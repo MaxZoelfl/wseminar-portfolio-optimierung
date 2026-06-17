@@ -51,6 +51,37 @@ def test_risk_parity_more_equal_than_equal_weight():
     assert _rc_dispersion(w_rp, cov) < _rc_dispersion(w_ew, cov)
 
 
+def test_rf_refit_keeps_params_and_predicts():
+    # Performance-Hebel: refit nutzt zuletzt getunte Parameter ohne neue Suche.
+    import pandas as pd
+    from portfolio.optimizers import RFPortfolioOptimizer
+    rng = np.random.default_rng(0)
+    cols = ["f1", "f2", "f3"]
+    X1 = pd.DataFrame(rng.normal(size=(120, 3)), columns=cols)
+    y1 = pd.Series(rng.normal(size=120))
+    o = RFPortfolioOptimizer(n_iter=4, cv_splits=3)
+    o.fit_with_tuning(X1, y1)
+    params = dict(o.best_params_)
+    X2 = pd.DataFrame(rng.normal(size=(120, 3)), columns=cols)
+    y2 = pd.Series(rng.normal(size=120))
+    o.refit(X2, y2)
+    assert o.best_params_ == params                 # refit ändert Params nicht
+    pred = o.predict_monthly_returns(X2.iloc[:5])
+    assert pred.shape == (5,) and np.isfinite(pred).all()
+
+
+def test_rf_refit_falls_back_without_tuning():
+    # Ohne vorheriges Tuning fällt refit auf die volle Suche zurück.
+    import pandas as pd
+    from portfolio.optimizers import RFPortfolioOptimizer
+    rng = np.random.default_rng(1)
+    X = pd.DataFrame(rng.normal(size=(120, 3)), columns=["a", "b", "c"])
+    y = pd.Series(rng.normal(size=120))
+    o = RFPortfolioOptimizer(n_iter=4, cv_splits=3)
+    o.refit(X, y)
+    assert o.best_estimator_ is not None
+
+
 def test_efficient_frontier_nonempty_and_sorted():
     n = 5
     rng = np.random.default_rng(2)

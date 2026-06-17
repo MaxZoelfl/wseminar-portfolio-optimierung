@@ -188,6 +188,22 @@ class RFPortfolioOptimizer:
             f"leaf={self.best_params_.get('rf__min_samples_leaf','?')}"
         )
 
+    def refit(self, X_train: pd.DataFrame, y_train: pd.Series) -> None:
+        """
+        Schnelles Neutraining OHNE Hyperparametersuche: nutzt die zuletzt per
+        fit_with_tuning() gefundenen Parameter und passt das Modell nur an das
+        aktuelle (rollierende) Trainingsfenster an. Spart den teuren
+        RandomizedSearchCV, wenn nicht in jedem Monat neu getunt werden soll
+        (Performance-Hebel RF_RETUNE_EVERY). Fällt auf volle Suche zurück,
+        falls noch keine Parameter bekannt sind.
+        """
+        if not self.best_params_:
+            return self.fit_with_tuning(X_train, y_train)
+        pipe = self._build_pipeline()
+        pipe.set_params(**self.best_params_)
+        pipe.fit(X_train.values, y_train.values)
+        self.best_estimator_ = pipe
+
     def predict_monthly_returns(self, X_current: pd.DataFrame) -> np.ndarray:
         if self.best_estimator_ is None:
             raise RuntimeError("Zuerst fit_with_tuning() aufrufen.")

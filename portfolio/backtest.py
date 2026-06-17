@@ -50,6 +50,11 @@ def run_backtest(asset_prices: pd.DataFrame,
     # Turnover). None = es gibt noch keine Vorperiode.
     prev_hold_growth = None
 
+    # RF-Tuning-Zähler (Performance-Hebel RF_RETUNE_EVERY) und Index des letzten
+    # Backtest-Schritts (für gezielte Dashboard-Updates).
+    rf_tune_count = 0
+    _last_i = len(backtest_months) - 2
+
     # Live-Dashboard initialisieren
     dashboard = LiveDashboard(tickers, len(backtest_months) - 1)
 
@@ -122,7 +127,14 @@ def run_backtest(asset_prices: pd.DataFrame,
             X_train_rf = pd.concat(feat_rows)
             y_train_rf = pd.concat(target_rows)
             try:
-                rfo.fit_with_tuning(X_train_rf, y_train_rf)
+                # Hyperparameter nur alle RF_RETUNE_EVERY Monate neu suchen;
+                # dazwischen das Modell nur auf das aktuelle Fenster refitten.
+                # (Default RF_RETUNE_EVERY=1 → jeden Monat volle Suche.)
+                if rf_tune_count % RF_RETUNE_EVERY == 0 or rfo.best_estimator_ is None:
+                    rfo.fit_with_tuning(X_train_rf, y_train_rf)
+                else:
+                    rfo.refit(X_train_rf, y_train_rf)
+                rf_tune_count += 1
                 X_current_rows = []
                 for ticker in tickers:
                     t_rows = train_monthly[train_monthly["ticker"] == ticker]
@@ -228,13 +240,18 @@ def run_backtest(asset_prices: pd.DataFrame,
         prev_hold_growth = (1 + hold_period).prod(axis=0).reindex(tickers).to_numpy()
 
         # ---- Live Dashboard aktualisieren --------------------------------
-        returns_so_far = pd.DataFrame({
-            "Markowitz MVO" : pd.concat(results_mvo).sort_index(),
-            "Random Forest" : pd.concat(results_rf ).sort_index(),
-            "Equal Weight"  : pd.concat(results_ew ).sort_index(),
-            "Risk Parity"   : pd.concat(results_rp ).sort_index(),
-        })
-        dashboard.update(i + 1, month_end, returns_so_far, w_mvo, w_rf)
+        # Nur rendern, wenn das Dashboard aktiv ist und der Schritt fällig ist
+        # (alle DASHBOARD_UPDATE_EVERY Schritte sowie im letzten Schritt, damit
+        # das gespeicherte PNG den Endzustand zeigt). Spart die wachsende
+        # concat-Aggregation in headless-Läufen. Default 1 → jeder Schritt.
+        if dashboard.active and (i % DASHBOARD_UPDATE_EVERY == 0 or i == _last_i):
+            returns_so_far = pd.DataFrame({
+                "Markowitz MVO" : pd.concat(results_mvo).sort_index(),
+                "Random Forest" : pd.concat(results_rf ).sort_index(),
+                "Equal Weight"  : pd.concat(results_ew ).sort_index(),
+                "Risk Parity"   : pd.concat(results_rp ).sort_index(),
+            })
+            dashboard.update(i + 1, month_end, returns_so_far, w_mvo, w_rf)
 
         elapsed = time.perf_counter() - t0
         ret_m, vol_m, sr_m = portfolio_perf(w_mvo, mu_hist, cov_ann)

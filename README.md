@@ -53,8 +53,19 @@ PORTFOLIO_CONFIG=/pfad/zu/meiner.json python -m portfolio
 
 Überschreibbare Schlüssel: `tickers`, `spy_ticker`, `start_date`, `end_date`,
 `backtest_start`, `output_dir`, `risk_free_rate`, `train_years`, `n_frontier`,
-`rf_n_iter`, `rf_cv_splits`, `max_weight`, `transaction_cost`, `rf_turnover_limit`.
+`rf_n_iter`, `rf_cv_splits`, `max_weight`, `transaction_cost`, `rf_turnover_limit`,
+`rf_retune_every`, `dashboard_update_every`.
 Nur die angegebenen Schlüssel werden überschrieben; der Rest bleibt auf Default.
+
+### Performance-Hebel
+
+Standardwerte (`1`) lassen das Verhalten exakt wie zuvor. Zum Beschleunigen:
+
+- **`rf_retune_every`** (Default `1`): RF-Hyperparametersuche nur alle *k* Monate,
+  dazwischen nur Refit auf dem aktuellen Fenster. `3` ≈ 2–3× schneller. **Achtung:**
+  Werte > 1 verändern die Ergebnisse (andere Hyperparameter über die Zeit).
+- **`dashboard_update_every`** (Default `1`): Live-Dashboard nur alle *k* Schritte
+  rendern. Rein kosmetisch, **kein** Einfluss auf Kennzahlen.
 
 ## Tests
 

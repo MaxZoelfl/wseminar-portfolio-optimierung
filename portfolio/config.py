@@ -119,6 +119,13 @@ class Config:
     transaction_cost: float  = 0.0010      # 0.10 % auf Handelsumsatz
     rf_turnover_limit: float = 0.30        # max. einseitiger Turnover/Monat (RF)
 
+    # Performance-Hebel (Default 1 = exakt bisheriges Verhalten):
+    rf_retune_every: int        = 1  # RF-Hyperparametersuche nur alle k Monate;
+                                     # dazwischen nur Refit auf neuem Fenster.
+                                     # >1 beschleunigt deutlich, ändert Ergebnisse.
+    dashboard_update_every: int = 1  # Live-Dashboard nur alle k Schritte rendern;
+                                     # rein kosmetisch (kein Ergebniseinfluss).
+
 
 def _load_config() -> Config:
     """Erzeugt die Konfiguration aus Defaults + optionalen JSON-Overrides."""
@@ -162,6 +169,8 @@ RF_CV_SPLITS      = CFG.rf_cv_splits
 MAX_WEIGHT        = CFG.max_weight
 TRANSACTION_COST  = CFG.transaction_cost
 RF_TURNOVER_LIMIT = CFG.rf_turnover_limit
+RF_RETUNE_EVERY        = CFG.rf_retune_every
+DASHBOARD_UPDATE_EVERY = CFG.dashboard_update_every
 
 # Cross-sectional Ranking: welche Features werden gerankt (strukturell, nicht
 # über config.json einstellbar).
