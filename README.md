@@ -20,10 +20,13 @@ portfolio/            ← kanonische, modularisierte Codebasis (v4.1)
   run.py              Orchestrierung (main)
 
 projekt1.6.py         ← Legacy-Monolith (identische Logik, dient als Referenz)
-projekt1.0 … 2.1.py   ← ältere/alternative Versionen (historisch)
 output1.6/            ← erzeugte Grafiken, CSVs, GIF, JSON
 requirements.txt      ← Python-Abhängigkeiten
 ```
+
+> Frühere Entwicklungsstufen (projekt1.0–1.5 sowie der abgebrochene 2.x-Zweig)
+> wurden entfernt; sie bleiben über den ersten Commit (`Initial snapshot`) in der
+> Git-Historie erhalten und sind bei Bedarf wiederherstellbar.
 
 ## Ausführen
 
