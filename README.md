@@ -39,6 +39,23 @@ python projekt1.6.py       # Legacy-Monolith
 Laufzeit ~16 min (Random-Forest-Tuning je Rebalancing-Monat). Ergebnisse landen
 in `./output1.6/`.
 
+## Konfiguration
+
+Alle einstellbaren Parameter liegen typisiert in der `dataclass` `Config`
+(`portfolio/config.py`). Überschreiben ohne Code-Änderung:
+
+```bash
+cp config.example.json config.json   # gewünschte Werte anpassen
+python -m portfolio                   # config.json wird automatisch geladen
+# oder eigener Pfad:
+PORTFOLIO_CONFIG=/pfad/zu/meiner.json python -m portfolio
+```
+
+Überschreibbare Schlüssel: `tickers`, `spy_ticker`, `start_date`, `end_date`,
+`backtest_start`, `output_dir`, `risk_free_rate`, `train_years`, `n_frontier`,
+`rf_n_iter`, `rf_cv_splits`, `max_weight`, `transaction_cost`, `rf_turnover_limit`.
+Nur die angegebenen Schlüssel werden überschrieben; der Rest bleibt auf Default.
+
 ## Methodische Korrekturen v4.1
 
 - **Einfache (arithmetische) Renditen** statt Log-Renditen: die Portfoliorendite

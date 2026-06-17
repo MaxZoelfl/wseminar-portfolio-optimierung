@@ -1,0 +1,16 @@
+{
+  "tickers": ["AAPL", "MSFT", "NVDA", "JNJ", "UNH", "JPM", "GS", "PG", "KO", "XOM", "CAT", "HON", "VZ", "PLD", "LIN"],
+  "spy_ticker": "SPY",
+  "start_date": "2013-01-01",
+  "end_date": "2024-12-31",
+  "backtest_start": "2015-01-01",
+  "output_dir": "./output1.6",
+  "risk_free_rate": 0.04,
+  "train_years": 3,
+  "n_frontier": 120,
+  "rf_n_iter": 30,
+  "rf_cv_splits": 5,
+  "max_weight": 0.20,
+  "transaction_cost": 0.0010,
+  "rf_turnover_limit": 0.30
+}

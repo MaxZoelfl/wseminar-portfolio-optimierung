@@ -5,14 +5,23 @@ Enthält:
   - Matplotlib-Backend-Auswahl (interaktiv mit Agg-Fallback)
   - Logging, Warnungen, Plot-Design
   - optionale Abhängigkeiten mit graceful Fallback (shap, yfinance, animation)
-  - alle globalen Konstanten (Tickers, Zeitraum, Kosten, Modellparameter)
+  - die typisierte Konfiguration (dataclass ``Config``) als Single Source of Truth
+  - rückwärtskompatible Modulkonstanten (TICKERS, RISK_FREE_RATE, …)
 
-Jedes andere Modul des Pakets importiert hieraus via ``from .config import *``.
+Konfiguration überschreiben (ohne Code-Änderung):
+  - eine Datei ``config.json`` im Arbeitsverzeichnis ablegen, ODER
+  - Umgebungsvariable ``PORTFOLIO_CONFIG=/pfad/zu/meiner.json`` setzen.
+Beispiel siehe ``config.example.json``. Overrides werden beim Import dieses
+Moduls eingelesen und wirken dadurch projektweit (vor allen ``from .config import *``).
+
 Dieses Modul hat selbst KEINE projektinternen Abhängigkeiten (Layer 0).
 """
 
+import os
+import json
 import warnings
 import logging
+from dataclasses import dataclass, field, fields, asdict
 
 import matplotlib
 
@@ -69,45 +78,93 @@ logging.basicConfig(
 )
 log = logging.getLogger("portfolio_v4")
 
+
 # ---------------------------------------------------------------------------
-# GLOBALE KONFIGURATION
+# TYPISIERTE KONFIGURATION
 # ---------------------------------------------------------------------------
+@dataclass
+class Config:
+    """Alle einstellbaren Parameter des Backtests an einem Ort."""
+    # Universum & Zeitraum
+    tickers: list = field(default_factory=lambda: [
+        "AAPL",   # Apple            — Technologie
+        "MSFT",   # Microsoft        — Technologie
+        "NVDA",   # NVIDIA           — Halbleiter
+        "JNJ",    # Johnson & Johnson — Gesundheit
+        "UNH",    # UnitedHealth     — Gesundheit
+        "JPM",    # JPMorgan         — Finanzen
+        "GS",     # Goldman Sachs    — Finanzen
+        "PG",     # Procter & Gamble — Konsum (nicht-zyklisch)
+        "KO",     # Coca-Cola        — Konsum (nicht-zyklisch)
+        "XOM",    # Exxon Mobil      — Energie
+        "CAT",    # Caterpillar      — Industrie
+        "HON",    # Honeywell        — Industrie
+        "VZ",     # Verizon          — Telekommunikation
+        "PLD",    # Prologis         — Immobilien (REIT)
+        "LIN",    # Linde            — Grundstoffe
+    ])
+    spy_ticker: str       = "SPY"
+    start_date: str       = "2013-01-01"   # Extra-Warmup für Indikatoren
+    end_date: str         = "2024-12-31"
+    backtest_start: str   = "2015-01-01"
+    output_dir: str       = "./output1.6"
 
-TICKERS = [
-    "AAPL",   # Apple            — Technologie
-    "MSFT",   # Microsoft        — Technologie
-    "NVDA",   # NVIDIA           — Halbleiter
-    "JNJ",    # Johnson & Johnson — Gesundheit
-    "UNH",    # UnitedHealth     — Gesundheit
-    "JPM",    # JPMorgan         — Finanzen
-    "GS",     # Goldman Sachs    — Finanzen
-    "PG",     # Procter & Gamble — Konsum (nicht-zyklisch)
-    "KO",     # Coca-Cola        — Konsum (nicht-zyklisch)
-    "XOM",    # Exxon Mobil      — Energie
-    "CAT",    # Caterpillar      — Industrie
-    "HON",    # Honeywell        — Industrie
-    "VZ",     # Verizon          — Telekommunikation
-    "PLD",    # Prologis         — Immobilien (REIT)
-    "LIN",    # Linde            — Grundstoffe
-]
+    # Modell- & Optimierungsparameter
+    risk_free_rate: float    = 0.04        # annualisiert (~US-10J 2024)
+    train_years: int         = 3
+    n_frontier: int          = 120
+    rf_n_iter: int           = 30          # RandomizedSearchCV-Iterationen
+    rf_cv_splits: int        = 5           # TimeSeriesSplit-Folds
+    max_weight: float        = 0.20        # Positionsobergrenze je Asset
+    transaction_cost: float  = 0.0010      # 0.10 % auf Handelsumsatz
+    rf_turnover_limit: float = 0.30        # max. einseitiger Turnover/Monat (RF)
 
-SPY_TICKER        = "SPY"
-START_DATE        = "2013-01-01"   # Extra-Warmup für Indikatoren
-END_DATE          = "2024-12-31"
-BACKTEST_START    = "2015-01-01"
-RISK_FREE_RATE    = 0.04           # Annualisiert (~US-10J 2024)
-TRAIN_YEARS       = 3
-N_FRONTIER        = 120
-OUTPUT_DIR        = "./output1.6"
 
-RF_N_ITER         = 30             # RandomizedSearchCV Iterationen
-RF_CV_SPLITS      = 5              # TimeSeriesSplit Folds
+def _load_config() -> Config:
+    """Erzeugt die Konfiguration aus Defaults + optionalen JSON-Overrides."""
+    cfg = Config()
+    path = os.environ.get("PORTFOLIO_CONFIG", "config.json")
+    if os.path.exists(path):
+        try:
+            with open(path, encoding="utf-8") as fh:
+                data = json.load(fh)
+            valid = {f.name for f in fields(cfg)}
+            applied, ignored = [], []
+            for k, v in data.items():
+                if k in valid:
+                    setattr(cfg, k, v); applied.append(k)
+                else:
+                    ignored.append(k)
+            log.info(f"Konfiguration aus '{path}' geladen — Overrides: {applied or 'keine'}"
+                     + (f" | ignoriert: {ignored}" if ignored else ""))
+        except Exception as e:
+            log.warning(f"Konnte '{path}' nicht laden ({e}); nutze Defaults.")
+    return cfg
 
-MAX_WEIGHT        = 0.20           # Positionsobergrenze je Asset
-TRANSACTION_COST  = 0.0010         # 0.10% auf Handelsumsatz
-RF_TURNOVER_LIMIT = 0.30           # Max. 30% einseitiger Turnover/Monat (RF)
 
-# Cross-sectional Ranking: welche Features werden gerankt (v4)
+CFG = _load_config()
+
+# ---------------------------------------------------------------------------
+# RÜCKWÄRTSKOMPATIBLE MODULKONSTANTEN (Single Source of Truth = CFG)
+# Bestehender Code nutzt weiterhin die Großbuchstaben-Namen unverändert.
+# ---------------------------------------------------------------------------
+TICKERS           = CFG.tickers
+SPY_TICKER        = CFG.spy_ticker
+START_DATE        = CFG.start_date
+END_DATE          = CFG.end_date
+BACKTEST_START    = CFG.backtest_start
+RISK_FREE_RATE    = CFG.risk_free_rate
+TRAIN_YEARS       = CFG.train_years
+N_FRONTIER        = CFG.n_frontier
+OUTPUT_DIR        = CFG.output_dir
+RF_N_ITER         = CFG.rf_n_iter
+RF_CV_SPLITS      = CFG.rf_cv_splits
+MAX_WEIGHT        = CFG.max_weight
+TRANSACTION_COST  = CFG.transaction_cost
+RF_TURNOVER_LIMIT = CFG.rf_turnover_limit
+
+# Cross-sectional Ranking: welche Features werden gerankt (strukturell, nicht
+# über config.json einstellbar).
 RANK_COLS = ["rsi", "mom_21d", "mom_63d", "mom_252d", "alpha_spy"]
 
 # Matplotlib-Design
