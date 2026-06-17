@@ -2,7 +2,7 @@
 =============================================================================
 PORTFOLIO-OPTIMIERUNG: MARKOWITZ (LEDOIT-WOLF) vs. RANDOM FOREST (ML)
 W-Seminararbeit | Bayerisches Gymnasium
-Version 4.0 — vollständig erweitert
+Version 4.1 — methodische Korrekturen (einfache Renditen, fairer Turnover)
 =============================================================================
 Strategien:
   1. Markowitz MVO + Ledoit-Wolf Kovarianzschätzung
@@ -34,11 +34,20 @@ Beibehaltene Korrekturen aus v3:
   - Transaktionskosten 0.10% auf Handelsumsatz (Turnover)
   - TimeSeriesSplit für Cross-Validation
 
+Methodische Korrekturen v4.1:
+  - Einfache (arithmetische) statt logarithmischer Renditen. Damit ist die
+    Portfoliorendite exakt die gewichtete Summe der Asset-Renditen und
+    konsistent zur Kennzahl-Berechnung über (1 + r).cumprod(). Monatsrenditen
+    werden korrekt aufgezinst ( prod(1+r) - 1 ) statt summiert.
+  - Driftbewusster Turnover: Vergleich der neuen Zielgewichte mit den über die
+    letzte Halteperiode gedrifteten Vorgängergewichten. Equal Weight erhält so
+    einen realistischen Rebalancing-Turnover (vorher fälschlich 0).
+
 Datenquelle  : Yahoo Finance via yfinance
-Zeitraum     : 2015-01-01 bis 2024-12-31
+Zeitraum     : 2015-01-01 bis 2024-12-31 (Warmup für Indikatoren ab 2013-01-01)
 Rebalancing  : Monatlich (Ende jedes Monats)
 Training     : Rollierendes 3-Jahres-Fenster
-Outputs      : PNG-Grafiken + CSV + GIF + JSON im Ordner ./output_v4/
+Outputs      : PNG-Grafiken + CSV + GIF + JSON im Ordner ./output1.6/
 =============================================================================
 """
 
@@ -427,7 +436,9 @@ def aggregate_to_monthly(indicator_dict: dict,
     for ticker in tickers:
         ind_df     = indicator_dict[ticker].copy()
         ret_col    = daily_returns[ticker]
-        monthly_r  = ret_col.resample("ME").sum()
+        # Monatsrendite korrekt aufzinsen: einfache Renditen sind über die
+        # ZEIT multiplikativ ( prod(1+r) - 1 ), nicht additiv.
+        monthly_r  = (1 + ret_col).resample("ME").prod() - 1
 
         feat = pd.DataFrame(index=monthly_r.index)
         for col in ["rsi", "macd", "macd_sig", "macd_hist",
@@ -732,7 +743,13 @@ def download_data(tickers: list, spy_ticker: str, start: str, end: str):
     prices    = raw[available + [spy_ticker]].dropna(how="any")
     log.info(f"  Verfügbare Assets: {len(available)} | Handelstage: {len(prices)}")
 
-    daily_returns = np.log(prices / prices.shift(1)).dropna()
+    # Einfache (arithmetische) Renditen: P_t / P_{t-1} - 1.
+    # Bewusst KEINE Log-Renditen: Einfache Renditen sind über Assets additiv,
+    # d.h. die Portfoliorendite ist exakt die gewichtete Summe der Asset-
+    # Renditen ( sum_i w_i * r_i ). Log-Renditen sind das NICHT — ihre
+    # gewichtete Summe über Assets ergibt keine gültige Portfoliorendite und
+    # wäre inkonsistent mit der Kennzahl-Berechnung via (1 + r).cumprod().
+    daily_returns = prices.pct_change(fill_method=None).dropna()
     spy_ret   = daily_returns[spy_ticker]
     asset_ret = daily_returns[available]
     asset_px  = prices[available]
@@ -968,6 +985,10 @@ def run_backtest(asset_prices: pd.DataFrame,
 
     w_prev_rf = np.ones(n) / n   # Start: Equal Weight
 
+    # Wachstumsfaktoren der jeweils letzten Halteperiode (für driftbewussten
+    # Turnover). None = es gibt noch keine Vorperiode.
+    prev_hold_growth = None
+
     # Live-Dashboard initialisieren
     dashboard = LiveDashboard(tickers, len(backtest_months) - 1)
 
@@ -1080,19 +1101,29 @@ def run_backtest(asset_prices: pd.DataFrame,
         w_ew = np.ones(n) / n
 
         # ---- Transaktionskosten ------------------------------------------
-        if i == 0:
-            turnover_mvo = 1.0
+        # Turnover = 0.5 * Σ|w_neu − w_alt|. Als "w_alt" werden die über die
+        # letzte Halteperiode GEDRIFTETEN Vorgängergewichte verwendet (nicht
+        # die ursprünglichen Zielgewichte). Dadurch erhält auch Equal Weight
+        # einen realistischen Rebalancing-Turnover (Rückführung der Kursdrift
+        # auf 1/N), und alle Strategien werden konsistent bewertet.
+        if i == 0 or prev_hold_growth is None:
+            turnover_mvo = 1.0   # Erstaufbau des Portfolios
             turnover_rf  = 1.0
             turnover_rp  = 1.0
             turnover_ew  = 1.0
         else:
-            prev_w_mvo = hist_w_mvo[-1].values if hist_w_mvo else np.ones(n) / n
-            prev_w_rf  = hist_w_rf[-1].values  if hist_w_rf  else np.ones(n) / n
-            prev_w_rp  = hist_w_rp[-1].values  if hist_w_rp  else np.ones(n) / n
+            def _drift(w_prev):
+                wd = np.asarray(w_prev, dtype=float) * prev_hold_growth
+                s  = wd.sum()
+                return wd / s if s > 0 else np.asarray(w_prev, dtype=float)
+            prev_w_mvo = _drift(hist_w_mvo[-1].values) if hist_w_mvo else np.ones(n) / n
+            prev_w_rf  = _drift(hist_w_rf[-1].values)  if hist_w_rf  else np.ones(n) / n
+            prev_w_rp  = _drift(hist_w_rp[-1].values)  if hist_w_rp  else np.ones(n) / n
+            prev_w_ew  = _drift(np.ones(n) / n)
             turnover_mvo = np.abs(w_mvo - prev_w_mvo).sum() / 2
             turnover_rf  = np.abs(w_rf  - prev_w_rf ).sum() / 2
             turnover_rp  = np.abs(w_rp  - prev_w_rp ).sum() / 2
-            turnover_ew  = 0.0
+            turnover_ew  = np.abs(w_ew  - prev_w_ew ).sum() / 2
 
         cost_mvo = turnover_mvo * TRANSACTION_COST
         cost_rf  = turnover_rf  * TRANSACTION_COST
@@ -1130,6 +1161,10 @@ def run_backtest(asset_prices: pd.DataFrame,
         })
 
         w_prev_rf = w_rf.copy()
+
+        # Wachstumsfaktoren dieser Halteperiode je Asset (prod(1+r)) für den
+        # driftbewussten Turnover der nächsten Iteration sichern.
+        prev_hold_growth = (1 + hold_period).prod(axis=0).reindex(tickers).to_numpy()
 
         # ---- Live Dashboard aktualisieren --------------------------------
         returns_so_far = pd.DataFrame({
@@ -1611,7 +1646,7 @@ def plot_turnover_performance(turnover_df: pd.DataFrame,
     log.info("Plot 10: Turnover vs. Performance …")
 
     # Monatliche Renditen aggregieren
-    monthly_returns = returns_df.resample("ME").sum()
+    monthly_returns = (1 + returns_df).resample("ME").prod() - 1
 
     fig, axes = plt.subplots(1, 2, figsize=(13, 5))
     fig.suptitle(
