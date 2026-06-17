@@ -1,0 +1,4 @@
+,CAGR (%),Gesamtrendite (%),Annualisierte Vola. (%),Sharpe Ratio,Sortino Ratio,Max. Drawdown (%),Calmar Ratio,"VaR 95 % (taegl., %)",Hit Rate (%)
+Markowitz MVO,15.9500,332.9500,21.6800,0.5514,0.6863,-41.5900,0.3836,-2.0900,55.4700
+Random Forest,64.2700,13516.9600,20.4500,2.9465,3.7705,-29.8000,2.1567,-1.6500,60.0000
+Equal Weight,15.7700,326.3100,17.5900,0.6692,0.8009,-36.0100,0.4380,-1.6100,54.8300

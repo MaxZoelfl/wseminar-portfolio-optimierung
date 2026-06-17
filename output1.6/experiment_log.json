@@ -1,0 +1,168 @@
+{
+  "experiment_meta": {
+    "version": "4.0",
+    "timestamp": "2026-05-04T07:29:03.743134",
+    "backtest_start": "2015-01-01",
+    "backtest_end": "2024-12-31",
+    "risk_free_rate": 0.04,
+    "train_years": 3,
+    "max_weight": 0.2,
+    "transaction_cost": 0.001,
+    "rf_turnover_limit": 0.3,
+    "rf_n_iter": 30,
+    "rf_cv_splits": 5,
+    "n_assets": 15,
+    "tickers": [
+      "AAPL",
+      "MSFT",
+      "NVDA",
+      "JNJ",
+      "UNH",
+      "JPM",
+      "GS",
+      "PG",
+      "KO",
+      "XOM",
+      "CAT",
+      "HON",
+      "VZ",
+      "PLD",
+      "LIN"
+    ],
+    "feature_cols": [
+      "rsi",
+      "macd",
+      "macd_sig",
+      "macd_hist",
+      "bb_pct_b",
+      "bb_width",
+      "mom_21d",
+      "mom_63d",
+      "mom_126d",
+      "mom_252d",
+      "vol_21d",
+      "vol_63d",
+      "alpha_spy",
+      "beta_spy",
+      "monthly_ret",
+      "rsi_rank",
+      "mom_21d_rank",
+      "mom_63d_rank",
+      "mom_252d_rank",
+      "alpha_spy_rank"
+    ]
+  },
+  "performance_metrics": {
+    "CAGR (%)": {
+      "Markowitz MVO": 16.22,
+      "Random Forest": 18.11,
+      "Equal Weight": 15.76,
+      "Risk Parity": 13.22
+    },
+    "Gesamtrendite (%)": {
+      "Markowitz MVO": 342.76,
+      "Random Forest": 419.76,
+      "Equal Weight": 325.89,
+      "Risk Parity": 241.92
+    },
+    "Annualisierte Vola. (%)": {
+      "Markowitz MVO": 20.7,
+      "Random Forest": 19.29,
+      "Equal Weight": 17.59,
+      "Risk Parity": 16.47
+    },
+    "Sharpe Ratio": {
+      "Markowitz MVO": 0.5902,
+      "Random Forest": 0.7317,
+      "Equal Weight": 0.6686,
+      "Risk Parity": 0.5598
+    },
+    "Sortino Ratio": {
+      "Markowitz MVO": 0.7267,
+      "Random Forest": 0.9478,
+      "Equal Weight": 0.8001,
+      "Risk Parity": 0.6678
+    },
+    "Max. Drawdown (%)": {
+      "Markowitz MVO": -38.74,
+      "Random Forest": -36.66,
+      "Equal Weight": -36.01,
+      "Risk Parity": -35.03
+    },
+    "Calmar Ratio": {
+      "Markowitz MVO": 0.4186,
+      "Random Forest": 0.4941,
+      "Equal Weight": 0.4377,
+      "Risk Parity": 0.3774
+    },
+    "VaR 95 % (tägl., %)": {
+      "Markowitz MVO": -1.98,
+      "Random Forest": -1.84,
+      "Equal Weight": -1.61,
+      "Risk Parity": -1.49
+    },
+    "Hit Rate (%)": {
+      "Markowitz MVO": 55.59,
+      "Random Forest": 54.91,
+      "Equal Weight": 54.83,
+      "Risk Parity": 54.75
+    }
+  },
+  "bootstrap_tests": {
+    "RF vs. MVO": {
+      "observed_diff": 0.141555,
+      "p_value": 0.274,
+      "ci_95": [
+        -0.312387,
+        0.543694
+      ],
+      "significant": false,
+      "n_bootstrap": 500,
+      "metric": "sharpe"
+    },
+    "RF vs. EW": {
+      "observed_diff": 0.06314,
+      "p_value": 0.368,
+      "ci_95": [
+        -0.246128,
+        0.345722
+      ],
+      "significant": false,
+      "n_bootstrap": 500,
+      "metric": "sharpe"
+    },
+    "MVO vs. EW": {
+      "observed_diff": -0.078414,
+      "p_value": 0.334,
+      "ci_95": [
+        -0.411771,
+        0.238322
+      ],
+      "significant": false,
+      "n_bootstrap": 500,
+      "metric": "sharpe"
+    },
+    "Risk Parity vs. EW": {
+      "observed_diff": -0.108821,
+      "p_value": 0.008,
+      "ci_95": [
+        -0.202692,
+        -0.022886
+      ],
+      "significant": true,
+      "n_bootstrap": 500,
+      "metric": "sharpe"
+    },
+    "MVO vs. RP": {
+      "observed_diff": 0.030407,
+      "p_value": 0.434,
+      "ci_95": [
+        -0.340868,
+        0.402789
+      ],
+      "significant": false,
+      "n_bootstrap": 500,
+      "metric": "sharpe"
+    }
+  }
+}

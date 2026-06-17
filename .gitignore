@@ -1,0 +1,17 @@
+# --- Python virtual environment (521 MB, maschinenspezifisch, reproduzierbar aus requirements.txt) ---
+venv/
+.venv/
+env/
+
+# --- Python-Artefakte ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# --- Betriebssystem ---
+.DS_Store
+
+# --- Editor ---
+.idea/
