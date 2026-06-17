@@ -1,7 +1,7 @@
 {
   "experiment_meta": {
     "version": "4.0",
-    "timestamp": "2026-05-04T07:29:03.743134",
+    "timestamp": "2026-06-17T20:43:34.227003",
     "backtest_start": "2015-01-01",
     "backtest_end": "2024-12-31",
     "risk_free_rate": 0.04,
@@ -54,111 +54,111 @@
   },
   "performance_metrics": {
     "CAGR (%)": {
-      "Markowitz MVO": 16.22,
-      "Random Forest": 18.11,
-      "Equal Weight": 15.76,
-      "Risk Parity": 13.22
+      "Markowitz MVO": 23.22,
+      "Random Forest": 23.5,
+      "Equal Weight": 20.03,
+      "Risk Parity": 16.92
     },
     "Gesamtrendite (%)": {
-      "Markowitz MVO": 342.76,
-      "Random Forest": 419.76,
-      "Equal Weight": 325.89,
-      "Risk Parity": 241.92
+      "Markowitz MVO": 690.2,
+      "Random Forest": 708.18,
+      "Equal Weight": 509.66,
+      "Risk Parity": 370.18
     },
     "Annualisierte Vola. (%)": {
-      "Markowitz MVO": 20.7,
-      "Random Forest": 19.29,
-      "Equal Weight": 17.59,
-      "Risk Parity": 16.47
+      "Markowitz MVO": 21.0,
+      "Random Forest": 19.27,
+      "Equal Weight": 17.56,
+      "Risk Parity": 16.45
     },
     "Sharpe Ratio": {
-      "Markowitz MVO": 0.5902,
-      "Random Forest": 0.7317,
-      "Equal Weight": 0.6686,
-      "Risk Parity": 0.5598
+      "Markowitz MVO": 0.9151,
+      "Random Forest": 1.0119,
+      "Equal Weight": 0.9131,
+      "Risk Parity": 0.7858
     },
     "Sortino Ratio": {
-      "Markowitz MVO": 0.7267,
-      "Random Forest": 0.9478,
-      "Equal Weight": 0.8001,
-      "Risk Parity": 0.6678
+      "Markowitz MVO": 1.165,
+      "Random Forest": 1.3337,
+      "Equal Weight": 1.1236,
+      "Risk Parity": 0.9621
     },
     "Max. Drawdown (%)": {
-      "Markowitz MVO": -38.74,
-      "Random Forest": -36.66,
-      "Equal Weight": -36.01,
-      "Risk Parity": -35.03
+      "Markowitz MVO": -34.28,
+      "Random Forest": -35.82,
+      "Equal Weight": -33.25,
+      "Risk Parity": -32.44
     },
     "Calmar Ratio": {
-      "Markowitz MVO": 0.4186,
-      "Random Forest": 0.4941,
-      "Equal Weight": 0.4377,
-      "Risk Parity": 0.3774
+      "Markowitz MVO": 0.6772,
+      "Random Forest": 0.656,
+      "Equal Weight": 0.6025,
+      "Risk Parity": 0.5217
     },
     "VaR 95 % (tägl., %)": {
-      "Markowitz MVO": -1.98,
-      "Random Forest": -1.84,
-      "Equal Weight": -1.61,
-      "Risk Parity": -1.49
+      "Markowitz MVO": -1.96,
+      "Random Forest": -1.81,
+      "Equal Weight": -1.59,
+      "Risk Parity": -1.46
     },
     "Hit Rate (%)": {
-      "Markowitz MVO": 55.59,
+      "Markowitz MVO": 55.87,
       "Random Forest": 54.91,
-      "Equal Weight": 54.83,
-      "Risk Parity": 54.75
+      "Equal Weight": 55.27,
+      "Risk Parity": 55.31
     }
   },
   "bootstrap_tests": {
     "RF vs. MVO": {
-      "observed_diff": 0.141555,
-      "p_value": 0.274,
+      "observed_diff": 0.096899,
+      "p_value": 0.342,
       "ci_95": [
-        -0.312387,
-        0.543694
+        -0.340169,
+        0.538703
       ],
       "significant": false,
       "n_bootstrap": 500,
       "metric": "sharpe"
     },
     "RF vs. EW": {
-      "observed_diff": 0.06314,
-      "p_value": 0.368,
+      "observed_diff": 0.098838,
+      "p_value": 0.304,
       "ci_95": [
-        -0.246128,
-        0.345722
+        -0.194983,
+        0.3844
       ],
       "significant": false,
       "n_bootstrap": 500,
       "metric": "sharpe"
     },
     "MVO vs. EW": {
-      "observed_diff": -0.078414,
-      "p_value": 0.334,
+      "observed_diff": 0.001938,
+      "p_value": 0.488,
       "ci_95": [
-        -0.411771,
-        0.238322
+        -0.376554,
+        0.360669
       ],
       "significant": false,
       "n_bootstrap": 500,
       "metric": "sharpe"
     },
     "Risk Parity vs. EW": {
-      "observed_diff": -0.108821,
-      "p_value": 0.008,
+      "observed_diff": -0.127329,
+      "p_value": 0.002,
       "ci_95": [
-        -0.202692,
-        -0.022886
+        -0.22545,
+        -0.0364
       ],
       "significant": true,
       "n_bootstrap": 500,
       "metric": "sharpe"
     },
     "MVO vs. RP": {
-      "observed_diff": 0.030407,
-      "p_value": 0.434,
+      "observed_diff": 0.129268,
+      "p_value": 0.266,
       "ci_95": [
-        -0.340868,
-        0.402789
+        -0.275278,
+        0.526471
       ],
       "significant": false,
       "n_bootstrap": 500,
