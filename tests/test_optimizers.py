@@ -1,0 +1,62 @@
+"""Constraints und Eigenschaften der Portfolio-Optimierer."""
+import numpy as np
+
+from portfolio.optimizers import MarkowitzLedoitWolf, RiskParityPortfolio
+from portfolio.config import MAX_WEIGHT
+
+
+def _spd_cov(n, seed=0):
+    """Symmetrisch positiv definite Kovarianzmatrix."""
+    rng = np.random.default_rng(seed)
+    A = rng.normal(size=(n, n))
+    return A @ A.T / n + np.eye(n) * 0.01
+
+
+def test_markowitz_weights_valid():
+    n = 8
+    rng = np.random.default_rng(1)
+    mu = rng.normal(0.10, 0.05, n)
+    w = MarkowitzLedoitWolf().max_sharpe(mu, _spd_cov(n))
+    assert abs(w.sum() - 1.0) < 1e-6          # voll investiert
+    assert (w >= -1e-9).all()                 # long-only
+    assert (w <= MAX_WEIGHT + 1e-6).all()     # Positionsobergrenze
+
+
+def test_markowitz_turnover_constraint():
+    n = 6
+    rng = np.random.default_rng(4)
+    mu = rng.normal(0.10, 0.05, n)
+    cov = _spd_cov(n, 2)
+    w_prev = np.ones(n) / n
+    w = MarkowitzLedoitWolf().max_sharpe(mu, cov, w_prev=w_prev, turnover_limit=0.10)
+    turnover = np.abs(w - w_prev).sum() / 2
+    assert turnover <= 0.10 + 1e-4
+
+
+def _rc_dispersion(w, cov):
+    """Variationskoeffizient der Risikobeiträge (0 = perfekte Risk Parity)."""
+    port_vol = np.sqrt(w @ cov @ w)
+    rc = w * (cov @ w) / port_vol
+    return rc.std() / rc.mean()
+
+
+def test_risk_parity_more_equal_than_equal_weight():
+    n = 8
+    cov = _spd_cov(n, seed=3)
+    w_rp = RiskParityPortfolio().optimize(cov)
+    assert abs(w_rp.sum() - 1.0) < 1e-6
+    assert (w_rp > 0).all()
+    # Risk Parity gleicht die Risikobeiträge deutlich stärker an als naive 1/N.
+    w_ew = np.ones(n) / n
+    assert _rc_dispersion(w_rp, cov) < _rc_dispersion(w_ew, cov)
+
+
+def test_efficient_frontier_nonempty_and_sorted():
+    n = 5
+    rng = np.random.default_rng(2)
+    mu = rng.normal(0.10, 0.05, n)
+    fr = MarkowitzLedoitWolf().efficient_frontier(mu, _spd_cov(n, 5), n_points=20)
+    assert len(fr) > 0
+    assert {"ret", "vol", "sr"}.issubset(fr.columns)
+    # Zielrenditen monoton steigend
+    assert (fr["ret"].diff().dropna() >= -1e-9).all()

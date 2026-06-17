@@ -1,0 +1,3 @@
+# Entwicklungs-/Test-Abhängigkeiten (nicht für den Produktionslauf nötig)
+-r requirements.txt
+pytest==9.1.0

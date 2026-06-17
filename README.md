@@ -56,6 +56,18 @@ PORTFOLIO_CONFIG=/pfad/zu/meiner.json python -m portfolio
 `rf_n_iter`, `rf_cv_splits`, `max_weight`, `transaction_cost`, `rf_turnover_limit`.
 Nur die angegebenen Schlüssel werden überschrieben; der Rest bleibt auf Default.
 
+## Tests
+
+```bash
+pip install -r requirements-dev.txt
+python -m pytest -q
+```
+
+17 Unit-Tests (ohne Netzwerk) prüfen Kennzahlen gegen analytische Werte,
+Optimierer-Constraints (Σw=1, Positionsobergrenze, Turnover-Limit, Risk-Parity-
+Eigenschaft), Indikatoren sowie die korrekte Monats-Aufzinsung und den
+Look-Ahead-Schutz (Ziel = Folgemonat).
+
 ## Methodische Korrekturen v4.1
 
 - **Einfache (arithmetische) Renditen** statt Log-Renditen: die Portfoliorendite
