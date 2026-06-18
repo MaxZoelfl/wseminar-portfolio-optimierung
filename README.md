@@ -8,9 +8,11 @@ Walk-Forward-Backtest (2015–2024) auf 15 US-Aktien.
 ## Projektstruktur
 
 ```
-portfolio/            ← kanonische, modularisierte Codebasis (v4.1)
-  config.py           Konstanten + Umgebungs-Setup (Logging, Matplotlib, optionale Pakete)
-  metrics.py          Kennzahlen (CAGR, Sharpe, Sortino, Drawdown …) + Bootstrap-Test
+portfolio/            ← kanonische, modularisierte Codebasis (aktiv weiterentwickelt)
+  config.py           Typisierte Config (dataclass) + Umgebungs-Setup
+  metrics.py          Kennzahlen (CAGR, Sharpe, Sortino, Drawdown …)
+  significance.py     Ledoit-Wolf-2008-Test, Holm-Bonferroni, Deflated Sharpe Ratio
+  cross_validation.py Purged & Embargoed CV (López de Prado 2018)
   indicators.py       Technische Indikatoren, Monats-Aggregation, Feature-Spalten
   optimizers.py       MarkowitzLedoitWolf, RiskParityPortfolio, RFPortfolioOptimizer
   data.py             Marktdaten laden (yfinance) + einfache Renditen
@@ -19,7 +21,9 @@ portfolio/            ← kanonische, modularisierte Codebasis (v4.1)
   plots.py            Visualisierungen + CSV-/JSON-Export
   run.py              Orchestrierung (main)
 
-projekt1.6.py         ← Legacy-Monolith (identische Logik, dient als Referenz)
+projekt1.6.py         ← eingefrorene v4.1-Baseline (Einzeldatei-Referenz; enthält
+                        NICHT die späteren Paket-Erweiterungen)
+LIMITATIONS.md        ← wissenschaftliche Limitationen & Literatur
 output1.6/            ← erzeugte Grafiken, CSVs, GIF, JSON
 requirements.txt      ← Python-Abhängigkeiten
 ```
@@ -27,6 +31,10 @@ requirements.txt      ← Python-Abhängigkeiten
 > Frühere Entwicklungsstufen (projekt1.0–1.5 sowie der abgebrochene 2.x-Zweig)
 > wurden entfernt; sie bleiben über den ersten Commit (`Initial snapshot`) in der
 > Git-Historie erhalten und sind bei Bedarf wiederherstellbar.
+>
+> **Hinweis:** `projekt1.6.py` ist die eingefrorene v4.1-Baseline. Die
+> wissenschaftlichen Erweiterungen (robuste Signifikanztests, Purged CV) sowie die
+> Performance-Hebel liegen ausschließlich im Paket `portfolio/`.
 
 ## Ausführen
 
@@ -34,9 +42,9 @@ requirements.txt      ← Python-Abhängigkeiten
 python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 
-python -m portfolio        # modularisierte Version (empfohlen)
-# oder, identisch:
-python projekt1.6.py       # Legacy-Monolith
+python -m portfolio        # kanonische, aktuelle Version (empfohlen)
+# oder die eingefrorene Baseline:
+python projekt1.6.py       # v4.1-Referenz (ohne spätere Erweiterungen)
 ```
 
 Laufzeit ~16 min (Random-Forest-Tuning je Rebalancing-Monat). Ergebnisse landen
@@ -81,6 +89,25 @@ python -m pytest -q
 Optimierer-Constraints (Σw=1, Positionsobergrenze, Turnover-Limit, Risk-Parity-
 Eigenschaft), Indikatoren sowie die korrekte Monats-Aufzinsung und den
 Look-Ahead-Schutz (Ziel = Folgemonat).
+
+## Wissenschaftliche Analyse
+
+`main()` führt nach dem Backtest eine literaturgestützte Signifikanzanalyse durch:
+
+- **Sharpe-Differenz-Test** nach Ledoit & Wolf (2008) — HAC-studentisierter
+  Circular-Block-Bootstrap, robust gegen Autokorrelation & Vol-Clustering.
+- **Holm-Bonferroni-Korrektur** für die paarweisen Vergleiche (Holm 1979).
+- **Deflated Sharpe Ratio** (Bailey & López de Prado 2014) je Strategie.
+
+Optional aktivierbar: **Purged & Embargoed Cross-Validation** (López de Prado
+2018) im RF-Tuning via `use_purged_cv` in der Konfiguration.
+
+**Zentrales Ergebnis (robust):** Nach Holm-Korrektur schlägt *kein* aktiver
+Ansatz die Equal-Weight-Benchmark signifikant; nur „Risk Parity < Equal Weight"
+ist signifikant — konsistent mit DeMiguel, Garlappi & Uppal (2009).
+
+Eine ausführliche Diskussion der Grenzen (u. a. **Survivorship Bias**) inkl.
+Literaturverzeichnis steht in **[LIMITATIONS.md](LIMITATIONS.md)**.
 
 ## Methodische Korrekturen v4.1
 
