@@ -13,6 +13,9 @@ from .data import *
 from .dashboard import *
 from .backtest import *
 from .plots import *
+from .significance import (
+    sharpe_difference_test, holm_bonferroni, deflated_sharpe_from_strategies,
+)
 
 def main():
     t0_main = time.perf_counter()
@@ -78,10 +81,10 @@ def main():
     print("=" * 70 + "\n")
 
     # ------------------------------------------------------------------
-    # E: Bootstrap-Signifikanztests (v4: jetzt aufgerufen!)
+    # E: Signifikanz- & Overfitting-Analyse (wissenschaftlich robust)
+    #    Ledoit & Wolf (2008) + Holm-Bonferroni + Deflated Sharpe Ratio
     # ------------------------------------------------------------------
-    log.info("Führe Bootstrap-Signifikanztests durch (Bailey et al. 2014) …")
-    bootstrap_results = {}
+    log.info("Signifikanzanalyse: Ledoit-Wolf-2008-Test + Holm-Bonferroni + Deflated Sharpe …")
     r_mvo = returns_df["Markowitz MVO"]
     r_rf  = returns_df["Random Forest"]
     r_rp  = returns_df["Risk Parity"]
@@ -94,22 +97,50 @@ def main():
         ("Risk Parity vs. EW",r_rp,  r_ew),
         ("MVO vs. RP",        r_mvo, r_rp),
     ]
+    sharpe_tests = {}
+    pvals = []
     for label, ra, rb in pairs:
-        res = bootstrap_paired_test(ra, rb, n_bootstrap=500, metric="sharpe")
-        bootstrap_results[label] = res
-        sig = "✓ SIGNIFIKANT (p < 0.05)" if res["significant"] else "✗ nicht signifikant"
+        t = sharpe_difference_test(ra, rb, rf=RISK_FREE_RATE, n_boot=4999)
+        sharpe_tests[label] = t
+        pvals.append(t["p_value"])
+    holm = holm_bonferroni(pvals)
+    for (label, _, _), p_adj, rej in zip(pairs, holm["p_adjusted"], holm["reject"]):
+        sharpe_tests[label]["p_holm"] = float(p_adj)
+        sharpe_tests[label]["significant_holm"] = bool(rej)
         log.info(
-            f"  {label:<30} | ΔSharpe: {res['observed_diff']:>+.4f} | "
-            f"p = {res['p_value']:.4f} | {sig}"
+            f"  {label:<20} ΔSharpe={sharpe_tests[label]['diff_annual']:>+.3f} | "
+            f"p_LW={sharpe_tests[label]['p_value']:.3f} | p_Holm={p_adj:.3f} | "
+            f"{'SIGNIFIKANT' if rej else 'n.s.'}"
         )
 
-    print("\n  BOOTSTRAP-SIGNIFIKANZTESTS (Sharpe-Vergleich, 500 Resamples):")
-    print("  " + "-" * 60)
-    for label, res in bootstrap_results.items():
-        sig = "✓" if res["significant"] else "✗"
-        print(f"  {sig} {label:<30} ΔSharpe={res['observed_diff']:>+.4f}  "
-              f"p={res['p_value']:.4f}  "
-              f"95%-KI: [{res['ci_95'][0]:>+.4f}, {res['ci_95'][1]:>+.4f}]")
+    strat_cols = [c for c in STRATEGIES if c in returns_df.columns]
+    dsr_results = {
+        col: deflated_sharpe_from_strategies(returns_df, col, rf=RISK_FREE_RATE)
+        for col in strat_cols
+    }
+    significance_results = {
+        "sharpe_difference_tests": sharpe_tests,
+        "deflated_sharpe": dsr_results,
+        "n_strategies": len(strat_cols),
+        "method": "Ledoit-Wolf (2008) HAC block bootstrap; Holm-Bonferroni; "
+                  "Deflated Sharpe Ratio (Bailey & Lopez de Prado 2014)",
+    }
+
+    print("\n  SHARPE-DIFFERENZ-TEST (Ledoit & Wolf 2008, HAC-Block-Bootstrap; "
+          "Holm-korrigiert):")
+    print("  " + "-" * 70)
+    for label, _, _ in pairs:
+        t = sharpe_tests[label]
+        mark = "✓" if t["significant_holm"] else "✗"
+        print(f"  {mark} {label:<20} ΔSharpe={t['diff_annual']:>+.3f}  "
+              f"p={t['p_value']:.3f}  p(Holm)={t['p_holm']:.3f}")
+    print("\n  DEFLATED SHARPE RATIO (Bailey & López de Prado 2014, "
+          f"N={significance_results['n_strategies']} Strategien):")
+    print("  " + "-" * 70)
+    for col, d in dsr_results.items():
+        mark = "✓" if d["significant"] else "✗"
+        print(f"  {mark} {col:<16} SR={d['sharpe_annual']:.2f}  "
+              f"Hürde SR0={d['sr0_annual']:.2f}  DSR={d['deflated_sr']:.3f}")
     print()
 
     # ------------------------------------------------------------------
@@ -204,7 +235,7 @@ def main():
     # H: JSON-Experimentprotokoll
     # ------------------------------------------------------------------
     save_experiment_json(
-        metrics_df, bootstrap_results, tickers,
+        metrics_df, significance_results, tickers,
         os.path.join(OUTPUT_DIR, "experiment_log.json"),
     )
 
@@ -231,9 +262,10 @@ def main():
     print("=" * 60)
     print(f"\n  Ausgabe-Ordner: {os.path.abspath(OUTPUT_DIR)}/\n")
 
-    print("\n  BOOTSTRAP-SIGNIFIKANZ ÜBERSICHT:")
-    for label, res in bootstrap_results.items():
-        sig_str = "SIGNIFIKANT (p < 5%)" if res["significant"] else "n.s."
+    print("\n  SIGNIFIKANZ-ÜBERSICHT (Holm-korrigiert, Ledoit-Wolf 2008):")
+    for label, _, _ in pairs:
+        t = sharpe_tests[label]
+        sig_str = "SIGNIFIKANT (p_Holm < 5%)" if t["significant_holm"] else "n.s."
         print(f"    {label:<35} {sig_str}")
     print()
 

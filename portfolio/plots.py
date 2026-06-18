@@ -678,16 +678,18 @@ def save_all_csv(returns_df: pd.DataFrame, metrics_df: pd.DataFrame,
 
 
 def save_experiment_json(metrics_df: pd.DataFrame,
-                          bootstrap_results: dict,
+                          significance_results: dict,
                           tickers: list,
                           output_path: str) -> None:
     """
-    Speichert Experimentparameter + Ergebnisse als JSON (v4).
+    Speichert Experimentparameter + Ergebnisse als JSON (v4.1).
     Dient der Reproduzierbarkeit und wissenschaftlichen Dokumentation.
+    Enthält die robuste Signifikanzanalyse (Ledoit-Wolf 2008, Holm,
+    Deflated Sharpe Ratio) statt des früheren i.i.d.-Bootstraps.
     """
     record = {
         "experiment_meta": {
-            "version"           : "4.0",
+            "version"           : "4.1",
             "timestamp"         : datetime.now().isoformat(),
             "backtest_start"    : BACKTEST_START,
             "backtest_end"      : END_DATE,
@@ -703,7 +705,7 @@ def save_experiment_json(metrics_df: pd.DataFrame,
             "feature_cols"      : FEATURE_COLS,
         },
         "performance_metrics": metrics_df.to_dict(),
-        "bootstrap_tests"    : bootstrap_results,
+        "significance"       : significance_results,
     }
 
     with open(output_path, "w", encoding="utf-8") as f:
