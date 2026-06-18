@@ -131,7 +131,8 @@ def run_backtest(asset_prices: pd.DataFrame,
                 # dazwischen das Modell nur auf das aktuelle Fenster refitten.
                 # (Default RF_RETUNE_EVERY=1 → jeden Monat volle Suche.)
                 if rf_tune_count % RF_RETUNE_EVERY == 0 or rfo.best_estimator_ is None:
-                    rfo.fit_with_tuning(X_train_rf, y_train_rf)
+                    rfo.fit_with_tuning(X_train_rf, y_train_rf,
+                                        sample_times=X_train_rf.index)
                 else:
                     rfo.refit(X_train_rf, y_train_rf)
                 rf_tune_count += 1

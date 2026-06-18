@@ -126,6 +126,12 @@ class Config:
     dashboard_update_every: int = 1  # Live-Dashboard nur alle k Schritte rendern;
                                      # rein kosmetisch (kein Ergebniseinfluss).
 
+    # Wissenschaftliche Option (Default aus = bisheriges Verhalten):
+    use_purged_cv: bool = False  # Purged & Embargoed CV (López de Prado 2018)
+                                 # statt TimeSeriesSplit im RF-Tuning. >0 ändert
+                                 # die RF-Hyperparameterwahl und damit Ergebnisse.
+    cv_embargo: float    = 0.02  # Embargo-Anteil (nur wirksam bei use_purged_cv).
+
 
 def _load_config() -> Config:
     """Erzeugt die Konfiguration aus Defaults + optionalen JSON-Overrides."""
@@ -171,6 +177,8 @@ TRANSACTION_COST  = CFG.transaction_cost
 RF_TURNOVER_LIMIT = CFG.rf_turnover_limit
 RF_RETUNE_EVERY        = CFG.rf_retune_every
 DASHBOARD_UPDATE_EVERY = CFG.dashboard_update_every
+USE_PURGED_CV          = CFG.use_purged_cv
+CV_EMBARGO             = CFG.cv_embargo
 
 # Cross-sectional Ranking: welche Features werden gerankt (strukturell, nicht
 # über config.json einstellbar).

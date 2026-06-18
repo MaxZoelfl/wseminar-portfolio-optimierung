@@ -11,6 +11,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 from .config import *
 from .metrics import timer
+from .cross_validation import purged_kfold_splits
 
 class MarkowitzLedoitWolf:
     """
@@ -166,18 +167,28 @@ class RFPortfolioOptimizer:
         }
 
     @timer
-    def fit_with_tuning(self, X_train: pd.DataFrame, y_train: pd.Series) -> None:
+    def fit_with_tuning(self, X_train: pd.DataFrame, y_train: pd.Series,
+                        sample_times=None) -> None:
         """
-        Training mit RandomizedSearchCV + TimeSeriesSplit.
-        TimeSeriesSplit verhindert Look-Ahead-Bias: Testdaten liegen immer
-        zeitlich NACH den Trainingsdaten.
+        Training mit RandomizedSearchCV.
+
+        Standard: TimeSeriesSplit (Testdaten liegen zeitlich NACH dem Training).
+        Optional (config use_purged_cv=True): Purged & Embargoed CV nach
+        López de Prado (2018), die überlappende Labels zwischen Train und Test
+        entfernt — wissenschaftlich sauberer bei überlappenden Monatslabels.
+        ``sample_times`` ist die Periode (Monatsende) je Zeile von X_train.
         """
-        tscv   = TimeSeriesSplit(n_splits=self.cv_splits)
+        if USE_PURGED_CV and sample_times is not None:
+            cv = purged_kfold_splits(
+                sample_times, n_splits=self.cv_splits, embargo_pct=CV_EMBARGO,
+            )
+        else:
+            cv = TimeSeriesSplit(n_splits=self.cv_splits)
         search = RandomizedSearchCV(
             estimator=self._build_pipeline(),
             param_distributions=self._param_grid(),
             n_iter=self.n_iter, scoring="neg_mean_squared_error",
-            cv=tscv, random_state=42, n_jobs=-1, refit=True,
+            cv=cv, random_state=42, n_jobs=-1, refit=True,
         )
         search.fit(X_train.values, y_train.values)
         self.best_estimator_ = search.best_estimator_
