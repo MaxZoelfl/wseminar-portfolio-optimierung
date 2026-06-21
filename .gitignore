@@ -21,3 +21,7 @@ run_*.log
 
 # --- lokale Konfigurations-Overrides (Vorlage: config.example.json ist getrackt) ---
 config.json
+
+# Urheberrechtlich geschützte Quell-PDFs (nicht verteilen)
+Quellen/
+W-Seminararbeit_Formales.pdf
