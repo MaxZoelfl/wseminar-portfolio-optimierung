@@ -155,3 +155,26 @@ Die Untersuchung ist vollständig in Python umgesetzt. Der Code ist als modulare
 ## 6.2 Kernkomponenten
 
 Die Markowitz-Optimierung kombiniert die Ledoit-Wolf-Kovarianzschätzung (Abschnitt 2.7) mit einer numerischen Maximierung der Sharpe Ratio unter den Nebenbedingungen $\sum_i w_i = 1$ und $0 \le w_i \le 0{,}20$ (Abschnitte 2.4 und 2.8); gelöst wird mit dem SLSQP-Verfahren der Bibliothek SciPy. Der Random Forest wird zu jedem Rebalancing-Termin über eine randomisierte Hyperparametersuche mit Zeitreihen-Kreuzvalidierung trainiert (Abschnitt 5.5) und prognostiziert die Rendite des Folgemonats, die anschließend als erwartete Rendite in dieselbe Sharpe-Maximierung eingeht. Die Backtest-Engine steuert das rollierende Walk-Forward-Schema (Abschnitt 4.3), verbucht die Transaktionskosten (Abschnitt 4.4) und protokolliert Gewichte, Renditen und Umschlag jeder Periode. Das Signifikanzmodul schließlich implementiert den robusten Sharpe-Differenz-Test, die Holm-Korrektur und die Deflated Sharpe Ratio (Kapitel 5).
+
+# 7 Ergebnisse
+
+## 7.1 Performance der vier Strategien
+
+Über den Backtest-Zeitraum 2015–2024 ergeben sich nach Abzug der Transaktionskosten die folgenden Kennzahlen:
+
+| Strategie | CAGR | Sharpe Ratio | Sortino Ratio | Max. Drawdown |
+|---|---|---|---|---|
+| Random Forest | 23,5 % | 1,01 | 1,33 | −35,8 % |
+| Markowitz MVO | 23,2 % | 0,92 | 1,17 | −34,3 % |
+| Equal Weight | 20,0 % | 0,91 | 1,12 | −33,3 % |
+| Risk Parity | 16,9 % | 0,79 | 0,96 | −32,4 % |
+
+Gemessen an den Punktschätzern rangiert der Random Forest mit einer Sharpe Ratio von 1,01 knapp vorn, gefolgt von Markowitz (0,92) und Equal Weight (0,91), die praktisch gleichauf liegen; Risk Parity bildet mit 0,79 das Schlusslicht. Bemerkenswert ist bereits hier, dass die aufwändigen Optimierungsverfahren die naive 1/N-Strategie nur geringfügig (Random Forest) bzw. kaum (Markowitz) übertreffen – ein erstes Indiz im Sinne des Befundes von DeMiguel, Garlappi und Uppal (Abschnitt 2.9).
+
+## 7.2 Statistische Signifikanz der Unterschiede
+
+Punktschätzer allein sind jedoch nicht aussagekräftig (Kapitel 5). Der robuste Sharpe-Differenz-Test (Abschnitt 5.2) liefert für die fünf paarweisen Vergleiche die folgenden p-Werte: Random Forest gegen Markowitz $p = 0{,}69$, Random Forest gegen Equal Weight $p = 0{,}53$, Markowitz gegen Equal Weight $p = 0{,}95$, Risk Parity gegen Equal Weight $p = 0{,}004$ sowie Markowitz gegen Risk Parity $p = 0{,}48$. Nach der Holm-Korrektur für multiples Testen (Abschnitt 5.3) bleibt nur ein einziger Vergleich signifikant: Risk Parity ist signifikant *schlechter* als Equal Weight ($p_{\text{Holm}} = 0{,}018$). Insbesondere ist der scheinbare Vorsprung des Random Forest gegenüber Markowitz und Equal Weight statistisch *nicht* signifikant, und der Unterschied zwischen Markowitz und Equal Weight ist mit $p = 0{,}95$ vernachlässigbar. Damit schlägt *keine* der aktiven Strategien die naive 1/N-Benchmark in statistisch belastbarer Weise.
+
+## 7.3 Deflated Sharpe Ratio
+
+Die Deflated Sharpe Ratio (Abschnitt 5.4) liegt für alle vier Strategien über 0,95 (Random Forest 0,997; Markowitz 0,995; Equal Weight 0,994; Risk Parity 0,986). Jede Einzelstrategie besitzt somit – auch nach Korrektur für Selektionsverzerrung und Nicht-Normalität – mit hoher Wahrscheinlichkeit eine echte positive Sharpe Ratio. Dieser Befund bestätigt, dass alle vier Ansätze über den Untersuchungszeitraum profitabel waren; über ihre *Rangfolge* untereinander trifft er hingegen keine Aussage.
