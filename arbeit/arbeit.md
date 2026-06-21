@@ -6,6 +6,30 @@ Reihenfolge entspricht der Endfassung; Einleitung (Kap. 1) wird nach Lektüre vo
 DeMiguel/Gu-Kelly-Xiu ergänzt.
 -->
 
+# 1 Einleitung
+
+## 1.1 Motivation
+
+Die Frage, wie ein Anleger sein Vermögen optimal auf verschiedene Wertpapiere verteilt, gehört zu den ältesten der Finanzwissenschaft. Mit der Arbeit von Markowitz erhielt sie 1952 ein mathematisches Fundament: Seither lässt sich die Portfoliowahl als Abwägung zwischen erwarteter Rendite und Risiko (Varianz) beschreiben.[[FN: Markowitz, S. 77]] In den folgenden Jahrzehnten wurde dieses Verfahren verfeinert – und zugleich grundlegend in Frage gestellt, weil seine „optimalen" Lösungen empfindlich auf Schätzfehler reagieren und schon eine naive Gleichverteilung out-of-sample oft nicht zu schlagen ist.[[FN: DeMiguel et al., S. 3]]
+
+Zugleich hält das maschinelle Lernen Einzug in die Finanzwelt: Verfahren wie der Random Forest versprechen, aus großen Datenmengen bessere Renditeprognosen zu gewinnen.[[FN: Gu/Kelly/Xiu, PDF-S. 2]] Damit stellt sich neu und konkret die Frage, ob solche datengetriebenen Methoden die klassische Optimierung und die simple Gleichverteilung tatsächlich übertreffen – oder ob ihr scheinbarer Vorsprung bloß ein Zufall des betrachteten Zeitraums ist.
+
+## 1.2 Forschungsfrage und Leitfragen
+
+Die vorliegende Arbeit untersucht daher die folgende Forschungsfrage: *Kann eine Random-Forest-gestützte Portfoliooptimierung die klassische Markowitz-Mean-Variance-Optimierung und die naive 1/N-Diversifikation hinsichtlich der risikoadjustierten Rendite übertreffen – und ist ein etwaiger Vorsprung statistisch belastbar?*
+
+Zur Beantwortung dienen fünf Leitfragen:
+
+1. Auf welcher mathematischen Theorie beruht die Mean-Variance-Optimierung, und welche Schwächen hat sie?
+2. Wie funktioniert ein Random Forest, und wie lässt er sich zur Renditeprognose einsetzen?
+3. Wie vergleicht man Anlagestrategien methodisch sauber und verzerrungsfrei?
+4. Sind beobachtete Performance-Unterschiede statistisch signifikant oder Zufall?
+5. Welche Ergebnisse liefert der empirische Vergleich, und welche Grenzen hat er?
+
+## 1.3 Aufbau der Arbeit
+
+Kapitel 2 entwickelt die Theorie der Mean-Variance-Optimierung samt ihrer Schätzproblematik und der 1/N-Benchmark; Kapitel 3 erläutert den Random Forest und seinen Einsatz in der Renditeprognose. Kapitel 4 beschreibt die Methodik des empirischen Vergleichs, Kapitel 5 die statistischen Verfahren zur Signifikanzprüfung. Kapitel 6 dokumentiert die Implementierung, Kapitel 7 präsentiert die Ergebnisse. Kapitel 8 diskutiert diese kritisch und benennt die Limitationen, Kapitel 9 fasst die Befunde zusammen und gibt einen Ausblick.
+
 # 2 Theoretische Grundlagen der Portfoliooptimierung
 
 ## 2.1 Rendite und Risiko einer Anlage
@@ -178,3 +202,31 @@ Punktschätzer allein sind jedoch nicht aussagekräftig (Kapitel 5). Der robuste
 ## 7.3 Deflated Sharpe Ratio
 
 Die Deflated Sharpe Ratio (Abschnitt 5.4) liegt für alle vier Strategien über 0,95 (Random Forest 0,997; Markowitz 0,995; Equal Weight 0,994; Risk Parity 0,986). Jede Einzelstrategie besitzt somit – auch nach Korrektur für Selektionsverzerrung und Nicht-Normalität – mit hoher Wahrscheinlichkeit eine echte positive Sharpe Ratio. Dieser Befund bestätigt, dass alle vier Ansätze über den Untersuchungszeitraum profitabel waren; über ihre *Rangfolge* untereinander trifft er hingegen keine Aussage.
+
+# 8 Diskussion und kritische Würdigung
+
+## 8.1 Einordnung des Kernbefunds
+
+Der zentrale Befund – keine aktive Strategie schlägt Equal Weight in statistisch belastbarer Weise – fügt sich nahtlos in die Literatur ein. DeMiguel, Garlappi und Uppal zeigten, dass die naive 1/N-Regel out-of-sample häufig nicht zu schlagen ist, weil der Schätzfehler den Vorteil der Optimierung auffrisst (Abschnitt 2.9). Die vorliegende Untersuchung bestätigt dies an einem eigenen Datensatz: Markowitz und Equal Weight sind praktisch ununterscheidbar ($p = 0{,}95$), und auch der Random Forest – der gerade die fehleranfälligste Eingangsgröße zu verbessern sucht – erzielt keinen signifikanten Vorsprung. Letzteres deckt sich mit der geringen Prognosegüte, die Gu, Kelly und Xiu für ML-Renditeprognosen berichten (Abschnitt 3.4): Wenn das Out-of-Sample-$R^2$ selbst der besten Verfahren nur etwa 0,4 % beträgt, ist ein robust messbarer Performancevorsprung kaum zu erwarten.
+
+## 8.2 Survivorship Bias
+
+Die wichtigste Einschränkung der Untersuchung ist der Survivorship Bias. Das Anlageuniversum besteht aus fünfzehn heute noch existierenden Aktien; Titel, die im Untersuchungszeitraum ausschieden, fusionierten oder scheiterten, fehlen vollständig. Brown, Goetzmann, Ibbotson und Ross zeigen, dass eine durch Überleben „abgeschnittene" Stichprobe scheinbare Muster erzeugen kann – in ihrem Fall die scheinbare Vorhersagbarkeit von Renditen.[[FN: Brown et al., S. 553]] Übertragen auf die vorliegende Arbeit bedeutet dies, dass die absoluten Renditen aller vier Strategien systematisch nach oben verzerrt sind. Da jedoch sämtliche Strategien dasselbe verzerrte Universum nutzen, ist der *relative* Vergleich – und damit der Kernbefund, dass keine Strategie Equal Weight signifikant schlägt – deutlich weniger betroffen als die absoluten Renditeniveaus. Die Ergebnisse sind daher als relativer Strategievergleich aussagekräftiger denn als Prognose absoluter Renditen.
+
+## 8.3 Weitere Limitationen
+
+Weitere Einschränkungen sind zu nennen. Erstens wird ein konstanter risikofreier Zins von 4 % unterstellt, obwohl die US-Zinsen über den Zeitraum erheblich schwankten; dies verzerrt die Sharpe Ratios periodenübergreifend. Zweitens sind die Transaktionskosten als pauschaler Satz modelliert. Almgren und Chriss zeigen, dass reale Ausführungskosten aus permanentem und temporärem Markteinfluss bestehen und damit von Handelsgröße und Liquidität abhängen;[[FN: Almgren/Chriss, S. 1]] ein pauschaler Satz unterschätzt somit die Kosten großer Umschichtungen. Drittens beruht die Untersuchung auf einem einzigen historischen Pfad, der von einem überwiegend steigenden Markt geprägt ist; die Ergebnisse sind daher regimeabhängig. Diese Limitationen schmälern die externe Validität, ändern jedoch nichts am methodisch abgesicherten Kernbefund.
+
+# 9 Fazit und Ausblick
+
+## 9.1 Beantwortung der Forschungsfrage
+
+Die Arbeit ging der Frage nach, ob eine Random-Forest-gestützte Portfoliooptimierung die klassische Markowitz-Optimierung und die naive 1/N-Diversifikation hinsichtlich der risikoadjustierten Rendite übertrifft – und ob ein etwaiger Vorsprung statistisch belastbar ist.
+
+Die Antwort fällt entlang der fünf Leitfragen klar aus. Die theoretische Analyse (LF 1) zeigte, dass die Mean-Variance-Optimierung zwar die risikoadjustierte Rendite maximiert, dabei aber entscheidend von der Schätzung der erwarteten Renditen abhängt – jener Eingangsgröße, deren Fehler am schwersten wiegen. Der Random Forest (LF 2) kann diese Schätzung prinzipiell verbessern, jedoch nur mit sehr geringer Prognosegüte. Methodisch (LF 3) wurde der Vergleich verzerrungsfrei über ein Walk-Forward-Backtesting mit Look-Ahead-Schutz und Transaktionskosten geführt. Die statistische Prüfung (LF 4) schließlich ergab das zentrale Ergebnis (LF 5): Der Random Forest erzielt zwar die höchste Sharpe Ratio (1,01), doch nach dem robusten Sharpe-Differenz-Test und der Holm-Korrektur schlägt *keine* aktive Strategie – weder der Random Forest noch die Markowitz-Optimierung – die naive 1/N-Benchmark in statistisch belastbarer Weise; signifikant ist allein, dass Risk Parity *schlechter* abschneidet als Equal Weight.
+
+Die Forschungsfrage ist somit zu *verneinen*: Die untersuchten Optimierungsverfahren bieten gegenüber der einfachen Gleichgewichtung keinen statistisch gesicherten Mehrwert. Dieses Ergebnis ist kein Misserfolg, sondern eine eigenständige empirische Bestätigung des Befundes von DeMiguel, Garlappi und Uppal und unterstreicht, wie wichtig die Trennung von echtem Können und Zufall in der quantitativen Finanzforschung ist.
+
+## 9.2 Ausblick
+
+Mehrere Erweiterungen bieten sich an. Der Survivorship Bias ließe sich durch ein *point-in-time* zusammengesetztes Universum verringern, das ausgeschiedene Titel einschließt. Auf der Modellseite könnten eine zeitvariable bzw. nichtlineare Kovarianzschätzung, das Black-Litterman-Modell zur Stabilisierung der erwarteten Renditen oder ein Ensemble mehrerer ML-Verfahren erprobt werden. Schließlich würde eine Auswertung über mehrere Marktphasen und zusätzliche Datensätze die Robustheit der Befunde weiter absichern.
