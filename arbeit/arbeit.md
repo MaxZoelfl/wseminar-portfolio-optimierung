@@ -230,3 +230,39 @@ Die Forschungsfrage ist somit zu *verneinen*: Die untersuchten Optimierungsverfa
 ## 9.2 Ausblick
 
 Mehrere Erweiterungen bieten sich an. Der Survivorship Bias ließe sich durch ein *point-in-time* zusammengesetztes Universum verringern, das ausgeschiedene Titel einschließt. Auf der Modellseite könnten eine zeitvariable bzw. nichtlineare Kovarianzschätzung, das Black-Litterman-Modell zur Stabilisierung der erwarteten Renditen oder ein Ensemble mehrerer ML-Verfahren erprobt werden. Schließlich würde eine Auswertung über mehrere Marktphasen und zusätzliche Datensätze die Robustheit der Befunde weiter absichern.
+
+# Literaturverzeichnis
+
+Es wurde ausschließlich wissenschaftliche Primärliteratur (Originalaufsätze, Arbeitspapiere und eine Monografie) verwendet; Sekundärliteratur kam nicht zum Einsatz. Mehrere Quellen lagen als Arbeitspapier- bzw. Online-Fassung vor; die Seitenangaben in den Fußnoten beziehen sich auf die jeweils verwendete Fassung.
+
+Almgren, Robert/Chriss, Neil: Optimal Execution of Portfolio Transactions, in: Journal of Risk, Jg. 3, Nr. 2, 2000, S. 5–39.
+
+Bailey, David H./López de Prado, Marcos: The Deflated Sharpe Ratio: Correcting for Selection Bias, Backtest Overfitting and Non-Normality, in: The Journal of Portfolio Management, Jg. 40, Nr. 5, 2014, S. 94–107.
+
+Breiman, Leo: Random Forests, in: Machine Learning, Jg. 45, Nr. 1, 2001, S. 5–32.
+
+Brown, Stephen J./Goetzmann, William N./Ibbotson, Roger G./Ross, Stephen A.: Survivorship Bias in Performance Studies, in: The Review of Financial Studies, Jg. 5, Nr. 4, 1992, S. 553–580.
+
+Chopra, Vijay K./Ziemba, William T.: The Effect of Errors in Means, Variances, and Covariances on Optimal Portfolio Choice, in: The Journal of Portfolio Management, Jg. 19, Nr. 2, 1993, S. 6–11.
+
+DeMiguel, Victor/Garlappi, Lorenzo/Uppal, Raman: How Inefficient is the 1/N Asset-Allocation Strategy?, Arbeitspapier, 1. Dezember 2005 (publiziert als: Optimal Versus Naive Diversification: How Inefficient Is the 1/N Portfolio Strategy?, in: The Review of Financial Studies, Jg. 22, Nr. 5, 2009, S. 1915–1953).
+
+Gu, Shihao/Kelly, Bryan/Xiu, Dacheng: Empirical Asset Pricing via Machine Learning, NBER Working Paper Nr. 25398, National Bureau of Economic Research, 2018, https://www.nber.org/papers/w25398, letzter Aufruf am 21.06.2026 (publiziert in: The Review of Financial Studies, Jg. 33, Nr. 5, 2020, S. 2223–2273).
+
+Harvey, Campbell R./Liu, Yan/Zhu, Heqing: … and the Cross-Section of Expected Returns, NBER Working Paper Nr. 20592, National Bureau of Economic Research, 2014, https://www.nber.org/papers/w20592, letzter Aufruf am 21.06.2026 (publiziert in: The Review of Financial Studies, Jg. 29, Nr. 1, 2016, S. 5–68).
+
+Jagannathan, Ravi/Ma, Tongshu: Risk Reduction in Large Portfolios: Why Imposing the Wrong Constraints Helps, NBER Working Paper Nr. 8922, National Bureau of Economic Research, 2002, https://www.nber.org/papers/w8922, letzter Aufruf am 21.06.2026 (publiziert in: The Journal of Finance, Jg. 58, Nr. 4, 2003, S. 1651–1684).
+
+Ledoit, Olivier/Wolf, Michael: A Well-Conditioned Estimator for Large-Dimensional Covariance Matrices, in: Journal of Multivariate Analysis, Jg. 88, Nr. 2, 2004, S. 365–411.
+
+Lo, Andrew W.: The Statistics of Sharpe Ratios, in: Financial Analysts Journal, Jg. 58, Nr. 4, 2002, S. 36–52.
+
+López de Prado, Marcos: Advances in Financial Machine Learning, Hoboken, New Jersey, John Wiley & Sons, 2018.
+
+Markowitz, Harry: Portfolio Selection, in: The Journal of Finance, Jg. 7, Nr. 1, 1952, S. 77–91.
+
+Michaud, Richard O.: The Markowitz Optimization Enigma: Is „Optimized" Optimal?, in: Financial Analysts Journal, Jg. 45, Nr. 1, 1989, S. 31–42.
+
+Sharpe, William F.: The Sharpe Ratio, in: The Journal of Portfolio Management, Jg. 21, Nr. 1, 1994, S. 49–58 (zitiert nach dem Online-Nachdruck: https://web.stanford.edu/~wfsharpe/art/sr/sr.htm, letzter Aufruf am 21.06.2026).
+
+Wolf, Michael: Robust Performance Hypothesis Testing with the Sharpe Ratio, Working Paper Nr. 320, Institute for Empirical Research in Economics, University of Zurich, 2007, https://ssrn.com/abstract=985038, letzter Aufruf am 21.06.2026 (publiziert als: Ledoit, Olivier/Wolf, Michael, in: Journal of Empirical Finance, Jg. 15, Nr. 5, 2008, S. 850–859).
