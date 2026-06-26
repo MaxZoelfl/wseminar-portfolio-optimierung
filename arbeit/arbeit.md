@@ -237,7 +237,7 @@ Der zentrale Befund – keine aktive Strategie schlägt Equal Weight in statisti
 
 ## 8.2 Survivorship Bias
 
-Die wichtigste Einschränkung der Untersuchung ist der Survivorship Bias. Das Anlageuniversum besteht aus fünfzehn heute noch existierenden Aktien; Titel, die im Untersuchungszeitraum ausschieden, fusionierten oder scheiterten, fehlen vollständig. Brown, Goetzmann, Ibbotson und Ross zeigen, dass eine durch Überleben „abgeschnittene" Stichprobe scheinbare Muster erzeugen kann – in ihrem Fall die scheinbare Vorhersagbarkeit von Renditen.[[FN: Brown et al., S. 553]] Übertragen auf die vorliegende Arbeit bedeutet dies, dass die absoluten Renditen aller vier Strategien systematisch nach oben verzerrt sind. Da jedoch sämtliche Strategien dasselbe verzerrte Universum nutzen, ist der *relative* Vergleich – und damit der Kernbefund, dass keine Strategie Equal Weight signifikant schlägt – deutlich weniger betroffen als die absoluten Renditeniveaus. Die Ergebnisse sind daher als relativer Strategievergleich aussagekräftiger denn als Prognose absoluter Renditen.
+Die wichtigste Einschränkung der Untersuchung ist der Survivorship Bias. Das Anlageuniversum besteht aus fünfzehn heute noch existierenden Aktien; Titel, die im Untersuchungszeitraum ausschieden, fusionierten oder scheiterten, fehlen vollständig. Brown, Goetzmann, Ibbotson und Ross zeigen, dass eine durch Überleben „abgeschnittene" Stichprobe scheinbare Muster erzeugen kann – in ihrem Fall die scheinbare Vorhersagbarkeit von Renditen.[[FN: Brown et al., S. 553]] Übertragen auf die vorliegende Arbeit bedeutet dies, dass die absoluten Renditen aller vier Strategien systematisch nach oben verzerrt sind. Da jedoch sämtliche Strategien dasselbe verzerrte Universum nutzen, ist der *relative* Vergleich – und damit der Kernbefund, dass keine Strategie Equal Weight signifikant schlägt – deutlich weniger betroffen als die absoluten Renditeniveaus. Methodisch ließe sich der Bias durch ein *point-in-time* zusammengesetztes Universum vermeiden, das zu jedem Zeitpunkt die tatsächlich gehandelten – einschließlich später ausgeschiedener – Titel enthält; entsprechende Daten standen für diese Arbeit jedoch nicht zur Verfügung. Die Ergebnisse sind daher als relativer Strategievergleich aussagekräftiger denn als Prognose absoluter Renditen.
 
 ## 8.3 Weitere Limitationen
 
@@ -263,7 +263,11 @@ Es wurde ausschließlich wissenschaftliche Primärliteratur (Originalaufsätze, 
 
 Almgren, Robert/Chriss, Neil: Optimal Execution of Portfolio Transactions, in: Journal of Risk, Jg. 3, Nr. 2, 2000, S. 5–39.
 
+Bailey, David H./Borwein, Jonathan M./López de Prado, Marcos/Zhu, Qiji Jim: The Probability of Backtest Overfitting, Arbeitspapier, 2015, https://ssrn.com/abstract=2326253, letzter Aufruf am 21.06.2026 (publiziert in: Journal of Computational Finance, Jg. 20, Nr. 4, 2016, S. 39–69).
+
 Bailey, David H./López de Prado, Marcos: The Deflated Sharpe Ratio: Correcting for Selection Bias, Backtest Overfitting and Non-Normality, in: The Journal of Portfolio Management, Jg. 40, Nr. 5, 2014, S. 94–107.
+
+Best, Michael J./Grauer, Robert R.: On the Sensitivity of Mean-Variance-Efficient Portfolios to Changes in Asset Means: Some Analytical and Computational Results, in: The Review of Financial Studies, Jg. 4, Nr. 2, 1991, S. 315–342.
 
 Breiman, Leo: Random Forests, in: Machine Learning, Jg. 45, Nr. 1, 2001, S. 5–32.
 
@@ -277,7 +281,11 @@ Gu, Shihao/Kelly, Bryan/Xiu, Dacheng: Empirical Asset Pricing via Machine Learni
 
 Harvey, Campbell R./Liu, Yan/Zhu, Heqing: … and the Cross-Section of Expected Returns, NBER Working Paper Nr. 20592, National Bureau of Economic Research, 2014, https://www.nber.org/papers/w20592, letzter Aufruf am 21.06.2026 (publiziert in: The Review of Financial Studies, Jg. 29, Nr. 1, 2016, S. 5–68).
 
+Holm, Sture: A Simple Sequentially Rejective Multiple Test Procedure, in: Scandinavian Journal of Statistics, Jg. 6, Nr. 2, 1979, S. 65–70.
+
 Jagannathan, Ravi/Ma, Tongshu: Risk Reduction in Large Portfolios: Why Imposing the Wrong Constraints Helps, NBER Working Paper Nr. 8922, National Bureau of Economic Research, 2002, https://www.nber.org/papers/w8922, letzter Aufruf am 21.06.2026 (publiziert in: The Journal of Finance, Jg. 58, Nr. 4, 2003, S. 1651–1684).
+
+Jegadeesh, Narasimhan/Titman, Sheridan: Returns to Buying Winners and Selling Losers: Implications for Stock Market Efficiency, in: The Journal of Finance, Jg. 48, Nr. 1, 1993, S. 65–91.
 
 Ledoit, Olivier/Wolf, Michael: A Well-Conditioned Estimator for Large-Dimensional Covariance Matrices, in: Journal of Multivariate Analysis, Jg. 88, Nr. 2, 2004, S. 365–411.
 
@@ -285,9 +293,17 @@ Lo, Andrew W.: The Statistics of Sharpe Ratios, in: Financial Analysts Journal, 
 
 López de Prado, Marcos: Advances in Financial Machine Learning, Hoboken, New Jersey, John Wiley & Sons, 2018.
 
+Maillard, Sébastien/Roncalli, Thierry/Teïletche, Jérôme: On the Properties of Equally-Weighted Risk Contributions Portfolios, Arbeitspapier, 2009 (publiziert in: The Journal of Portfolio Management, Jg. 36, Nr. 4, 2010, S. 60–70).
+
 Markowitz, Harry: Portfolio Selection, in: The Journal of Finance, Jg. 7, Nr. 1, 1952, S. 77–91.
 
+Merton, Robert C.: On Estimating the Expected Return on the Market: An Exploratory Investigation, NBER Working Paper Nr. 444, National Bureau of Economic Research, 1980, https://www.nber.org/papers/w0444, letzter Aufruf am 21.06.2026 (publiziert in: Journal of Financial Economics, Jg. 8, Nr. 4, 1980, S. 323–361).
+
 Michaud, Richard O.: The Markowitz Optimization Enigma: Is „Optimized" Optimal?, in: Financial Analysts Journal, Jg. 45, Nr. 1, 1989, S. 31–42.
+
+Politis, Dimitris N./Romano, Joseph P.: The Stationary Bootstrap, in: Journal of the American Statistical Association, Jg. 89, Nr. 428, 1994, S. 1303–1313.
+
+Qian, Edward: Risk Parity Portfolios: Efficient Portfolios Through True Diversification, Research Paper, PanAgora Asset Management, September 2005.
 
 Sharpe, William F.: The Sharpe Ratio, in: The Journal of Portfolio Management, Jg. 21, Nr. 1, 1994, S. 49–58 (zitiert nach dem Online-Nachdruck: https://web.stanford.edu/~wfsharpe/art/sr/sr.htm, letzter Aufruf am 21.06.2026).
 
