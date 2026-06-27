@@ -80,7 +80,8 @@ def step2_preprocess():
 
 def step3_pandoc():
     subprocess.run(["pandoc", PMD, "-o", BODY, "--reference-doc=" + REF,
-                    "--toc", "--toc-depth=3", "-f", "markdown+tex_math_dollars"],
+                    "--toc", "--toc-depth=3", "--resource-path=" + ROOT,
+                    "-f", "markdown+tex_math_dollars"],
                    check=True)
 
 

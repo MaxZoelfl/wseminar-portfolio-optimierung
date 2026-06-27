@@ -12,7 +12,8 @@ Kernbefund: **keine** aktive Strategie schlägt 1/N statistisch signifikant.
 ## Wo was liegt
 - **Manuskript:** `arbeit/arbeit.md` (Markdown, Kap. 1–9 + Literaturverzeichnis).
   Fußnoten-Konvention: `[[FN: Nachname, S. X]]` direkt hinter der Aussage.
-  ~8.000 Wörter, **114 Fußnoten**, 24 Quellen.
+  ~8.000 Wörter, **117 Fußnoten**, 26 Quellen, 3 Abbildungen (aus `output1.6/`,
+  eingebettet via `--resource-path`). Roadmap: `arbeit/ROADMAP.md`.
 - **Fertiges Dokument:** `arbeit/W-Seminararbeit.docx` (Formalia: TNR 12, 1,5-zeilig,
   Ränder L3,5/R2,5/O2,5/U2,5, echte Word-Fußnoten 10pt, Titelblatt mit Platzhaltern,
   automatisches Inhaltsverzeichnis, Seitenzahlen ab S. 3).
