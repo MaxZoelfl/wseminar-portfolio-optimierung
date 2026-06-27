@@ -12,7 +12,7 @@ Kernbefund: **keine** aktive Strategie schlägt 1/N statistisch signifikant.
 ## Wo was liegt
 - **Manuskript:** `arbeit/arbeit.md` (Markdown, Kap. 1–9 + Literaturverzeichnis).
   Fußnoten-Konvention: `[[FN: Nachname, S. X]]` direkt hinter der Aussage.
-  ~8.000 Wörter, **113 Fußnoten**, 24 Quellen.
+  ~8.000 Wörter, **114 Fußnoten**, 24 Quellen.
 - **Fertiges Dokument:** `arbeit/W-Seminararbeit.docx` (Formalia: TNR 12, 1,5-zeilig,
   Ränder L3,5/R2,5/O2,5/U2,5, echte Word-Fußnoten 10pt, Titelblatt mit Platzhaltern,
   automatisches Inhaltsverzeichnis, Seitenzahlen ab S. 3).
@@ -35,6 +35,16 @@ Kernbefund: **keine** aktive Strategie schlägt 1/N statistisch signifikant.
   ERC-Mathematik in 2.10).
 - **Beleg-Audit abgeschlossen:** alle Behauptungen gegen den Quellen-Volltext
   geprüft — inhaltlich korrekt; keine Falschdarstellungen.
+- **Quellen-Migration (27.06.) abgeschlossen:** Working-Paper-Belege auf die
+  begutachteten Endfassungen umgestellt (BSB = via Bayer. Staatsbibliothek
+  beschaffte Verlagsfassungen). Neu gemappte Fußnoten-Seiten: GKX → RFS 2020
+  (S. 2223–2234), DeMiguel → RFS 2009 (S. 1915/1916/1942; Simulationszahlen
+  korrigiert: 3000/6000 Monate statt „50/500/1000 Jahre"), Jagannathan/Ma → JoF
+  2003 (S. 1651/1657), Wolf → **Ledoit/Wolf 2008** JEF (S. 850–854, Autorwechsel).
+  Chopra/Ziemba: 1 Seitenkorrektur (S. 9 → S. 10). Literaturverzeichnis +
+  Notion-DB „Quellen wSeminar" (Eigenschaft *Inhalt*, 29 Quellen) entsprechend
+  gepflegt. **Noch nicht committet.** Hinweis: Jegadeesh/Titman ist in der
+  Notion-DB doppelt angelegt (Duplikat ggf. löschen).
 
 ## Was OFFEN ist (Priorität)
 1. **KÜRZEN auf ≤ 20 Seiten Text.** Durch den Mathe-Ausbau ist der Fließtext
@@ -55,7 +65,8 @@ Kernbefund: **keine** aktive Strategie schlägt 1/N statistisch signifikant.
 - Gescannte PDFs (Chopra/Ziemba, Michaud, Elton) haben keine Textebene → mit
   `pdftoppm -png -r 140 ...` als Bild rendern und per Read-Tool lesen.
 - Zitier-Hinweise (im Literaturverzeichnis vermerkt): Sharpe = Online-Nachdruck
-  (Seiten 1–15 statt JPM 49–58); mehrere Quellen sind Working-Paper-Fassungen
-  (Jagannathan/Ma, DeMiguel, GKX, Wolf, Harvey/Liu/Zhu, Merton, Maillard) →
-  Fußnoten-Seiten passen zu DIESEN Fassungen.
+  (Seiten 1–15 statt JPM 49–58). Nach der Migration sind nur noch wenige Quellen
+  als Arbeitspapier-/Online-Fassung zitiert (Harvey/Liu/Zhu, Merton, Maillard,
+  Bailey et al. PBO, Qian, Sharpe) → deren Fußnoten-Seiten passen zu DIESEN
+  Fassungen; alle übrigen verweisen auf die Verlags-Endfassung.
 - Headless: `MPLBACKEND=Agg venv/bin/python ...` für Tests/Plots.
