@@ -62,10 +62,21 @@ class MarkowitzLedoitWolf:
         return w
 
     def efficient_frontier(self, mu: np.ndarray, cov: np.ndarray,
-                            n_points: int = N_FRONTIER) -> pd.DataFrame:
-        """Berechnet N Punkte auf der Effizienzlinie (Long-Only)."""
+                            n_points: int = N_FRONTIER,
+                            max_weight: float = None) -> pd.DataFrame:
+        """
+        Berechnet N Punkte auf der Effizienzlinie (Long-Only).
+
+        ``max_weight`` setzt – wie in der eigentlichen Optimierung
+        (``max_sharpe``) – eine Positionsobergrenze je Titel. Ist sie gesetzt,
+        liegt das Markowitz-Tangentialportfolio auf der gezeichneten Kurve, und
+        die Kurve endet bei der unter dieser Obergrenze erreichbaren
+        Maximalrendite statt bei einer 100-%-Einzelwette. ``None`` = keine
+        Obergrenze (0 ≤ w ≤ 1), wie bisher.
+        """
         n      = len(mu)
-        bounds = [(0.0, 1.0)] * n
+        upper  = 1.0 if max_weight is None else float(max_weight)
+        bounds = [(0.0, upper)] * n
 
         res_mvp = minimize(
             lambda w: float(w @ cov @ w), np.ones(n) / n,
@@ -73,7 +84,21 @@ class MarkowitzLedoitWolf:
             constraints=[{"type": "eq", "fun": lambda w: w.sum() - 1}],
         )
         ret_min = float(res_mvp.x @ mu)
-        ret_max = float(mu.max())
+
+        if max_weight is None:
+            ret_max = float(mu.max())
+        else:
+            # maximal erreichbare Rendite unter der Obergrenze: Cap greedy auf
+            # die renditestärksten Titel legen, bis das Budget (Σw = 1) erschöpft
+            # ist (z. B. bei Cap 0,20 die fünf besten Titel zu je 20 %).
+            w_hi, remaining = np.zeros(n), 1.0
+            for idx in np.argsort(mu)[::-1]:
+                take       = min(upper, remaining)
+                w_hi[idx]  = take
+                remaining -= take
+                if remaining <= 1e-12:
+                    break
+            ret_max = float(w_hi @ mu)
 
         frontier = []
         for target in np.linspace(ret_min, ret_max, n_points):

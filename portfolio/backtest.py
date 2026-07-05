@@ -163,7 +163,8 @@ def run_backtest(asset_prices: pd.DataFrame,
         # ---- Efficient Frontier Snapshot (jeden 3. Monat) ----------------
         if i % 3 == 0:
             try:
-                snap = mvo.efficient_frontier(mu_hist, cov_ann, n_points=60)
+                snap = mvo.efficient_frontier(mu_hist, cov_ann, n_points=60,
+                                              max_weight=MAX_WEIGHT)
                 if not snap.empty:
                     snap["date"]   = month_end
                     snap["w_tang"] = [w_mvo] * len(snap)

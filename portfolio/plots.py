@@ -91,7 +91,7 @@ def plot_efficient_frontier(mu_hist: np.ndarray, cov_ann: np.ndarray,
     """Abbildung 4: Efficient Frontier mit CML und allen Portfolio-Punkten."""
     log.info("Plot 4: Efficient Frontier …")
     mvo_opt  = MarkowitzLedoitWolf(rf=rf)
-    frontier = mvo_opt.efficient_frontier(mu_hist, cov_ann)
+    frontier = mvo_opt.efficient_frontier(mu_hist, cov_ann, max_weight=MAX_WEIGHT)
 
     fig, ax = plt.subplots(figsize=(12, 8))
 
