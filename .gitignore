@@ -13,6 +13,9 @@ __pycache__/
 # --- Betriebssystem ---
 .DS_Store
 
+# --- Office-Temporär-/Lockdateien (Word/Excel) ---
+~$*
+
 # --- Editor ---
 .idea/
 
