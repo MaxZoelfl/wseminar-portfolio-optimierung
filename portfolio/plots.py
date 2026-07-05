@@ -689,7 +689,7 @@ def save_experiment_json(metrics_df: pd.DataFrame,
     """
     record = {
         "experiment_meta": {
-            "version"           : "4.1",
+            "version"           : "4.2",
             "timestamp"         : datetime.now().isoformat(),
             "backtest_start"    : BACKTEST_START,
             "backtest_end"      : END_DATE,

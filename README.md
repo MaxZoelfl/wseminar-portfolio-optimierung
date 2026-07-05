@@ -21,7 +21,7 @@ portfolio/            ← kanonische, modularisierte Codebasis (aktiv weiterentw
   plots.py            Visualisierungen + CSV-/JSON-Export
   run.py              Orchestrierung (main)
 
-projekt1.6.py         ← eingefrorene v4.1-Baseline (Einzeldatei-Referenz; enthält
+archive/projekt1.6.py ← eingefrorene v4.1-Baseline (Einzeldatei-Referenz; enthält
                         NICHT die späteren Paket-Erweiterungen)
 LIMITATIONS.md        ← wissenschaftliche Limitationen & Literatur
 output1.6/            ← erzeugte Grafiken, CSVs, GIF, JSON
@@ -32,7 +32,7 @@ requirements.txt      ← Python-Abhängigkeiten
 > wurden entfernt; sie bleiben über den ersten Commit (`Initial snapshot`) in der
 > Git-Historie erhalten und sind bei Bedarf wiederherstellbar.
 >
-> **Hinweis:** `projekt1.6.py` ist die eingefrorene v4.1-Baseline. Die
+> **Hinweis:** `archive/projekt1.6.py` ist die eingefrorene v4.1-Baseline. Die
 > wissenschaftlichen Erweiterungen (robuste Signifikanztests, Purged CV) sowie die
 > Performance-Hebel liegen ausschließlich im Paket `portfolio/`.
 
@@ -44,7 +44,7 @@ pip install -r requirements.txt
 
 python -m portfolio        # kanonische, aktuelle Version (empfohlen)
 # oder die eingefrorene Baseline:
-python projekt1.6.py       # v4.1-Referenz (ohne spätere Erweiterungen)
+python archive/projekt1.6.py  # v4.1-Referenz (ohne spätere Erweiterungen)
 ```
 
 Laufzeit ~16 min (Random-Forest-Tuning je Rebalancing-Monat). Ergebnisse landen
@@ -85,7 +85,7 @@ pip install -r requirements-dev.txt
 python -m pytest -q
 ```
 
-17 Unit-Tests (ohne Netzwerk) prüfen Kennzahlen gegen analytische Werte,
+31 Unit-Tests (ohne Netzwerk) prüfen Kennzahlen gegen analytische Werte,
 Optimierer-Constraints (Σw=1, Positionsobergrenze, Turnover-Limit, Risk-Parity-
 Eigenschaft), Indikatoren sowie die korrekte Monats-Aufzinsung und den
 Look-Ahead-Schutz (Ziel = Folgemonat).

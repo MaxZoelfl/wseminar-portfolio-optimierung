@@ -23,7 +23,7 @@ Kernbefund: **keine** aktive Strategie schlägt 1/N statistisch signifikant.
   Manuskript-Änderung neu ausführen.**
 - **Code (kanonisch):** Paket `portfolio/` (config, data, indicators, optimizers,
   metrics, significance, cross_validation, backtest, dashboard, plots, run).
-  `projekt1.6.py` = eingefrorene v4.1-Referenz. Ergebnisse in `output1.6/`.
+  `archive/projekt1.6.py` = eingefrorene v4.1-Referenz. Ergebnisse in `output1.6/`.
 - **GitHub:** https://github.com/maxzoelfl-source/wseminar-portfolio-optimierung (privat, Branch `main`).
 - **Quellen:** `Quellen/*.pdf` (24 Paper) — **via .gitignore NICHT im Repo** (Urheberrecht).
 - **Notion:** verbunden; Projektseite „Portfoliooptimierung: Markowitz vs.
