@@ -1,7 +1,50 @@
 """
 Zentrale Konfiguration & Umgebungs-Setup für das Portfolio-Optimierungsprojekt.
 
-Enthält:
+════════════════════════════════════════════════════════════════════════════
+FÜR EINSTEIGER — WORUM GEHT ES IN DIESEM PROJEKT?
+════════════════════════════════════════════════════════════════════════════
+Dieses Programm vergleicht vier "Anlagestrategien", also vier verschiedene
+Rezepte, wie man Geld auf 15 Aktien (Apple, Microsoft, Coca-Cola, …) verteilt:
+
+  1. "Markowitz MVO"  — die klassische Mathematik-Methode von 1952: Sie sucht
+                        die Mischung mit dem besten Verhältnis aus erwartetem
+                        Gewinn und Schwankungsrisiko.
+  2. "Random Forest"  — eine Methode der Künstlichen Intelligenz: Ein Computer-
+                        modell versucht, die Renditen des nächsten Monats
+                        vorherzusagen, und mischt danach das Depot.
+  3. "Equal Weight"   — die denkbar einfachste Regel: Jede Aktie bekommt genau
+                        gleich viel Geld (bei 15 Aktien je 1/15).
+  4. "Risk Parity"    — jede Aktie soll gleich viel zum GESAMTRISIKO beitragen
+                        (schwankungsarme Aktien bekommen mehr Gewicht).
+
+Der Vergleich läuft als sogenannter "Backtest": Das Programm tut so, als hätte
+es von 2015 bis 2024 jeden Monat neu investiert — natürlich nur mit Daten, die
+zum jeweiligen Zeitpunkt wirklich bekannt waren. Am Ende wird statistisch
+geprüft, ob eine Strategie WIRKLICH besser war oder ob der Unterschied bloß
+Zufall sein könnte.
+
+WAS MACHT SPEZIELL DIESE DATEI (config.py)?
+Sie ist die "Schaltzentrale" des Projekts: Alle Einstellungen (welche Aktien,
+welcher Zeitraum, welche Kostenannahmen, …) stehen hier an EINEM Ort. Alle
+anderen Dateien lesen ihre Einstellungen von hier. So muss man zum Ändern
+eines Parameters nie im Rechen-Code herumsuchen.
+
+KLEINES PROGRAMMIER-GLOSSAR (gilt für alle Dateien des Projekts):
+  - "import X"      : lädt ein fertiges Zusatzpaket (Bibliothek), damit wir
+                      dessen Funktionen benutzen können — wie ein Werkzeugkoffer.
+  - "def name(...)" : definiert eine FUNKTION, also einen benannten, wieder-
+                      verwendbaren Arbeitsschritt (Zutaten rein → Ergebnis raus).
+  - "class Name"    : definiert eine KLASSE, also einen Bauplan für Objekte,
+                      die Daten UND passende Funktionen ("Methoden") bündeln.
+  - "# Text"        : eine Kommentarzeile — wird vom Computer ignoriert und
+                      dient nur der Erklärung für menschliche Leser.
+  - Ein Text in dreifachen Anführungszeichen (wie dieser hier) heißt
+    "Docstring" und beschreibt eine Datei/Funktion/Klasse.
+  - "DataFrame"     : eine Tabelle (wie in Excel) aus der Bibliothek pandas;
+                      eine "Series" ist eine einzelne Tabellen-Spalte.
+
+Technischer Inhalt dieser Datei:
   - Matplotlib-Backend-Auswahl (interaktiv mit Agg-Fallback)
   - Logging, Warnungen, Plot-Design
   - optionale Abhängigkeiten mit graceful Fallback (shap, yfinance, animation)
@@ -14,45 +57,62 @@ Konfiguration überschreiben (ohne Code-Änderung):
 Beispiel siehe ``config.example.json``. Overrides werden beim Import dieses
 Moduls eingelesen und wirken dadurch projektweit (vor allen ``from .config import *``).
 
-Dieses Modul hat selbst KEINE projektinternen Abhängigkeiten (Layer 0).
+Dieses Modul hat selbst KEINE projektinternen Abhängigkeiten (Layer 0),
+d. h. es ist das Fundament, auf dem alle anderen Dateien aufbauen.
 """
 
-import os
-import json
-import warnings
-import logging
-from dataclasses import dataclass, field, fields, asdict
+# ---------------------------------------------------------------------------
+# IMPORTE: Werkzeugkästen aus der Python-Standardbibliothek laden.
+# ---------------------------------------------------------------------------
+import os        # Zugriff auf das Betriebssystem (Dateipfade, Umgebungsvariablen)
+import json      # Lesen/Schreiben des JSON-Textformats (für die Konfig-Datei)
+import warnings  # Steuerung von Warnmeldungen
+import logging   # Protokoll-Ausgaben ("Logbuch" des Programms im Terminal)
+from dataclasses import dataclass, field, fields, asdict  # bequeme Datencontainer
 
-import matplotlib
+import matplotlib  # die zentrale Bibliothek zum Zeichnen von Diagrammen
 
-# Matplotlib: interaktives Backend für Live-Dashboard versuchen,
-# Fallback auf Agg (headless/serverless Umgebungen).
+# ---------------------------------------------------------------------------
+# GRAFIK-AUSGABE EINRICHTEN
+# Matplotlib kann Diagramme entweder live in einem Fenster anzeigen
+# ("interaktives Backend") oder nur unsichtbar in Bilddateien schreiben
+# ("Agg"-Backend — nötig auf Servern ohne Bildschirm, sogenannt "headless").
+# Wir PROBIEREN zuerst den Fenster-Modus; scheitert das (kein Bildschirm
+# vorhanden), schalten wir automatisch auf den unsichtbaren Modus um.
+# "try/except" ist Pythons Sicherheitsnetz: Der try-Block wird versucht,
+# und NUR wenn dabei ein Fehler auftritt, läuft der except-Block.
+# ---------------------------------------------------------------------------
 _BACKEND_TESTED = False
-INTERACTIVE_DISPLAY = False
+INTERACTIVE_DISPLAY = False   # merkt sich: Können wir Live-Fenster anzeigen?
 try:
     import matplotlib.pyplot as plt
-    _test = plt.figure(figsize=(1, 1))
-    plt.close(_test)
-    INTERACTIVE_DISPLAY = True
+    _test = plt.figure(figsize=(1, 1))   # Mini-Testbild erzeugen …
+    plt.close(_test)                     # … und sofort wieder schließen.
+    INTERACTIVE_DISPLAY = True           # Hat geklappt → Live-Anzeige möglich.
     _BACKEND_TESTED = True
 except Exception:
-    matplotlib.use("Agg")
+    matplotlib.use("Agg")                # Fallback: nur in Dateien zeichnen.
     import matplotlib.pyplot as plt
     INTERACTIVE_DISPLAY = False
     _BACKEND_TESTED = True
 
-# Optionale Abhängigkeiten mit graceful Fallback. Die Namen werden IMMER
-# definiert (None bei fehlendem Paket), damit abhängiger Code keine
-# NameErrors riskiert und sich allein auf die *_AVAILABLE-Flags stützen kann.
+# ---------------------------------------------------------------------------
+# OPTIONALE ZUSATZPAKETE
+# Manche Funktionen des Projekts brauchen Extra-Bibliotheken, die vielleicht
+# nicht installiert sind. Statt dann abzustürzen, merken wir uns nur in einer
+# Ja/Nein-Variable (True/False-"Flag"), ob das Paket verfügbar ist. Die Namen
+# werden IMMER definiert (None bei fehlendem Paket), damit abhängiger Code
+# keine NameErrors riskiert und sich allein auf die *_AVAILABLE-Flags stützt.
+# ---------------------------------------------------------------------------
 try:
-    import shap
+    import shap                     # SHAP: erklärt, WARUM das KI-Modell so entscheidet
     SHAP_AVAILABLE = True
 except ImportError:
     shap = None
     SHAP_AVAILABLE = False
 
 try:
-    from matplotlib.animation import FuncAnimation, PillowWriter
+    from matplotlib.animation import FuncAnimation, PillowWriter  # für animierte GIFs
     ANIMATION_AVAILABLE = True
 except ImportError:
     FuncAnimation = None
@@ -60,32 +120,47 @@ except ImportError:
     ANIMATION_AVAILABLE = False
 
 try:
-    import yfinance as yf
+    import yfinance as yf           # lädt kostenlose Kursdaten von Yahoo Finance
     YFINANCE_AVAILABLE = True
 except ImportError:
     yf = None
     YFINANCE_AVAILABLE = False
 
+# Unwichtige Bibliotheks-Warnungen ausblenden, damit das Protokoll lesbar bleibt.
 warnings.filterwarnings("ignore")
 
 # ---------------------------------------------------------------------------
 # LOGGING
+# Das "Logbuch" des Programms: Jede wichtige Aktion wird mit Uhrzeit und
+# Wichtigkeitsstufe (INFO, WARNING, ERROR) im Terminal protokolliert.
+# Alle anderen Dateien holen sich dieses Logbuch über die Variable ``log``.
 # ---------------------------------------------------------------------------
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)-8s | %(message)s",
-    datefmt="%H:%M:%S",
+    level=logging.INFO,                                  # ab Stufe INFO anzeigen
+    format="%(asctime)s | %(levelname)-8s | %(message)s",  # Zeilenaufbau
+    datefmt="%H:%M:%S",                                  # Uhrzeit-Format
 )
 log = logging.getLogger("portfolio_v4")
 
 
 # ---------------------------------------------------------------------------
 # TYPISIERTE KONFIGURATION
+# Eine "dataclass" ist ein bequemer Datencontainer: Man listet nur die Felder
+# mit ihren Standardwerten auf, Python erzeugt den Rest automatisch.
 # ---------------------------------------------------------------------------
 @dataclass
 class Config:
-    """Alle einstellbaren Parameter des Backtests an einem Ort."""
-    # Universum & Zeitraum
+    """Alle einstellbaren Parameter des Backtests an einem Ort.
+
+    Jede Zeile unten ist ein "Stellrad" des Experiments: links der Name,
+    dahinter der Standardwert. Wer das Experiment verändern will (andere
+    Aktien, anderer Zeitraum, andere Kosten), dreht NUR hier — der übrige
+    Code liest diese Werte und bleibt unangetastet.
+    """
+    # ---- Anlageuniversum & Zeitraum ---------------------------------------
+    # "Ticker" = das Kürzel, unter dem eine Aktie an der Börse gehandelt wird
+    # (z. B. AAPL für Apple). Die 15 Titel sind bewusst über viele Branchen
+    # gestreut, damit nicht alle gleichzeitig fallen (Diversifikation).
     tickers: list = field(default_factory=lambda: [
         "AAPL",   # Apple            — Technologie
         "MSFT",   # Microsoft        — Technologie
@@ -103,30 +178,48 @@ class Config:
         "PLD",    # Prologis         — Immobilien (REIT)
         "LIN",    # Linde            — Grundstoffe
     ])
+    # SPY = börsengehandelter Fonds auf den S&P-500-Index; dient als
+    # Vergleichsmaßstab ("der Markt") für einige Kennzahlen.
     spy_ticker: str       = "SPY"
+    # Daten werden schon ab 2013 geladen, obwohl der Backtest erst 2015
+    # beginnt: Die technischen Indikatoren (z. B. 12-Monats-Momentum) brauchen
+    # eine Anlaufzeit ("Warmup") von bis zu einem Jahr Historie.
     start_date: str       = "2013-01-01"   # Extra-Warmup für Indikatoren
     end_date: str         = "2024-12-31"
-    backtest_start: str   = "2015-01-01"
-    output_dir: str       = "./output1.6"
+    backtest_start: str   = "2015-01-01"   # ab hier wird "investiert"
+    output_dir: str       = "./output1.6"  # Ordner für alle Ergebnisdateien
 
-    # Modell- & Optimierungsparameter
+    # ---- Modell- & Optimierungsparameter -----------------------------------
+    # Risikofreier Zins: Rendite einer als sicher geltenden Anlage (etwa
+    # US-Staatsanleihen). Wird von der Portfoliorendite abgezogen, um den
+    # "Mehrertrag fürs Risiko" zu messen (→ Sharpe Ratio). 0.04 = 4 % pro Jahr.
     risk_free_rate: float    = 0.04        # annualisiert (~US-10J 2024)
+    # Wie viele Jahre Vergangenheit jede Strategie zum "Lernen" sieht.
     train_years: int         = 3
+    # Anzahl der berechneten Punkte auf der Effizienzlinie (nur fürs Diagramm).
     n_frontier: int          = 120
+    # Der Random Forest hat "Hyperparameter" (Stellschrauben wie Baumtiefe).
+    # Die Suche probiert rf_n_iter zufällige Kombinationen aus …
     rf_n_iter: int           = 30          # RandomizedSearchCV-Iterationen
+    # … und bewertet jede per Kreuzvalidierung mit so vielen Zeit-Abschnitten:
     rf_cv_splits: int        = 5           # TimeSeriesSplit-Folds
+    # Keine Aktie darf mehr als 20 % des Depots ausmachen (Klumpenrisiko-Schutz).
     max_weight: float        = 0.20        # Positionsobergrenze je Asset
+    # Handelskosten: 0,10 % des umgeschichteten Betrags gehen bei jedem
+    # Umbau des Depots "verloren" (Gebühren, Geld-Brief-Spanne).
     transaction_cost: float  = 0.0010      # 0.10 % auf Handelsumsatz
+    # Der Random Forest darf sein Depot pro Monat höchstens zu 30 % umbauen —
+    # sonst würden die Handelskosten seine Prognosegewinne auffressen.
     rf_turnover_limit: float = 0.30        # max. einseitiger Turnover/Monat (RF)
 
-    # Performance-Hebel (Default 1 = exakt bisheriges Verhalten):
+    # ---- Performance-Hebel (Default 1 = exakt bisheriges Verhalten) --------
     rf_retune_every: int        = 1  # RF-Hyperparametersuche nur alle k Monate;
                                      # dazwischen nur Refit auf neuem Fenster.
                                      # >1 beschleunigt deutlich, ändert Ergebnisse.
     dashboard_update_every: int = 1  # Live-Dashboard nur alle k Schritte rendern;
                                      # rein kosmetisch (kein Ergebniseinfluss).
 
-    # Wissenschaftliche Option (Default aus = bisheriges Verhalten):
+    # ---- Wissenschaftliche Option (Default aus = bisheriges Verhalten) -----
     use_purged_cv: bool = False  # Purged & Embargoed CV (López de Prado 2018)
                                  # statt TimeSeriesSplit im RF-Tuning. >0 ändert
                                  # die RF-Hyperparameterwahl und damit Ergebnisse.
@@ -134,32 +227,50 @@ class Config:
 
 
 def _load_config() -> Config:
-    """Erzeugt die Konfiguration aus Defaults + optionalen JSON-Overrides."""
+    """Erzeugt die Konfiguration aus Defaults + optionalen JSON-Overrides.
+
+    Ablauf in Worten:
+      1. Starte mit den Standardwerten von oben (``Config()``).
+      2. Schaue nach, ob eine Datei ``config.json`` existiert (oder eine per
+         Umgebungsvariable PORTFOLIO_CONFIG benannte Datei).
+      3. Falls ja: Übernimm daraus alle Einträge, deren Name ein echtes
+         Config-Feld ist; unbekannte Namen werden nur gemeldet und ignoriert.
+    So kann man Experimente variieren, ohne den Programmcode anzufassen.
+    """
     cfg = Config()
+    # os.environ.get(A, B) liest die Umgebungsvariable A; existiert sie nicht,
+    # wird der Ersatzwert B ("config.json" im aktuellen Ordner) benutzt.
     path = os.environ.get("PORTFOLIO_CONFIG", "config.json")
     if os.path.exists(path):
         try:
             with open(path, encoding="utf-8") as fh:
-                data = json.load(fh)
-            valid = {f.name for f in fields(cfg)}
+                data = json.load(fh)                     # JSON-Text → Python-Daten
+            valid = {f.name for f in fields(cfg)}        # erlaubte Feldnamen
             applied, ignored = [], []
             for k, v in data.items():
                 if k in valid:
-                    setattr(cfg, k, v); applied.append(k)
+                    setattr(cfg, k, v); applied.append(k)   # Wert übernehmen
                 else:
-                    ignored.append(k)
+                    ignored.append(k)                        # unbekannt → merken
             log.info(f"Konfiguration aus '{path}' geladen — Overrides: {applied or 'keine'}"
                      + (f" | ignoriert: {ignored}" if ignored else ""))
         except Exception as e:
+            # Kaputte/unlesbare Datei bricht das Programm nicht ab — wir
+            # warnen nur und arbeiten mit den Standardwerten weiter.
             log.warning(f"Konnte '{path}' nicht laden ({e}); nutze Defaults.")
     return cfg
 
 
+# Die EINE, projektweit gültige Konfigurations-Instanz. Wird genau einmal
+# beim ersten Import dieses Moduls erzeugt.
 CFG = _load_config()
 
 # ---------------------------------------------------------------------------
 # RÜCKWÄRTSKOMPATIBLE MODULKONSTANTEN (Single Source of Truth = CFG)
-# Bestehender Code nutzt weiterhin die Großbuchstaben-Namen unverändert.
+# Historisch sprach der Code die Einstellungen über GROSSBUCHSTABEN-Namen an
+# (Python-Konvention für "Konstanten", also Werte, die sich zur Laufzeit nicht
+# mehr ändern sollen). Diese Namen zeigen jetzt einfach auf die CFG-Felder,
+# damit bestehender Code unverändert weiterläuft.
 # ---------------------------------------------------------------------------
 TICKERS           = CFG.tickers
 SPY_TICKER        = CFG.spy_ticker
@@ -180,18 +291,24 @@ DASHBOARD_UPDATE_EVERY = CFG.dashboard_update_every
 USE_PURGED_CV          = CFG.use_purged_cv
 CV_EMBARGO             = CFG.cv_embargo
 
-# Cross-sectional Ranking: welche Features werden gerankt (strukturell, nicht
-# über config.json einstellbar).
+# Cross-sectional Ranking: welche Kennzahlen ("Features") monatlich in einen
+# Rang UNTER den 15 Aktien umgerechnet werden (Erklärung in indicators.py).
+# Strukturell festgelegt, nicht über config.json einstellbar.
 RANK_COLS = ["rsi", "mom_21d", "mom_63d", "mom_252d", "alpha_spy"]
 
-# Matplotlib-Design
+# ---------------------------------------------------------------------------
+# EINHEITLICHES DIAGRAMM-DESIGN
+# rcParams sind die globalen Voreinstellungen von Matplotlib. Einmal hier
+# gesetzt, sehen alle Abbildungen des Projekts gleich aus (weiße Fläche,
+# dezentes Gitter, Serifenschrift wie in der Seminararbeit).
+# ---------------------------------------------------------------------------
 plt.rcParams.update({
     "figure.facecolor"  : "white",
     "axes.facecolor"    : "white",
     "axes.grid"         : True,
-    "grid.alpha"        : 0.25,
+    "grid.alpha"        : 0.25,     # Gitterlinien nur 25 % deckend (dezent)
     "grid.linewidth"    : 0.6,
-    "axes.spines.top"   : False,
+    "axes.spines.top"   : False,    # obere/rechte Rahmenlinie ausblenden
     "axes.spines.right" : False,
     "font.family"       : "serif",
     "font.size"         : 11,
@@ -203,14 +320,17 @@ plt.rcParams.update({
     "ytick.labelsize"   : 9,
 })
 
+# Feste Farbzuordnung je Strategie (Hex-Farbcodes), damit z. B. "Random
+# Forest" in JEDER Abbildung dieselbe rote Linie hat.
 COLORS = {
-    "Markowitz MVO" : "#1f77b4",
-    "Random Forest" : "#d62728",
-    "Equal Weight"  : "#2ca02c",
-    "Risk Parity"   : "#ff7f0e",
-    "frontier"      : "#7f7f7f",
-    "cml"           : "#9467bd",
-    "mvp"           : "#e7ba52",
+    "Markowitz MVO" : "#1f77b4",   # blau
+    "Random Forest" : "#d62728",   # rot
+    "Equal Weight"  : "#2ca02c",   # grün
+    "Risk Parity"   : "#ff7f0e",   # orange
+    "frontier"      : "#7f7f7f",   # grau   (Effizienzlinie)
+    "cml"           : "#9467bd",   # violett (Kapitalmarktlinie)
+    "mvp"           : "#e7ba52",   # gold   (Minimum-Varianz-Portfolio)
 }
 
+# Die vier verglichenen Strategien in fester Reihenfolge (für Tabellen/Plots).
 STRATEGIES = ["Markowitz MVO", "Random Forest", "Equal Weight", "Risk Parity"]

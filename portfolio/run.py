@@ -1,4 +1,17 @@
-"""Orchestrierung: Daten -> Indikatoren -> Backtest -> Kennzahlen -> Plots."""
+"""
+Orchestrierung: Daten -> Indikatoren -> Backtest -> Kennzahlen -> Plots.
+
+FÜR EINSTEIGER — WAS MACHT DIESE DATEI?
+Dies ist der "Dirigent" des Projekts: Die Funktion main() ruft alle anderen
+Bausteine in der richtigen Reihenfolge auf — von A wie "Daten laden" bis
+I wie "Zusammenfassung drucken". Die Abschnitte sind im Code mit A–I
+beschriftet. Wer verstehen will, wie das Gesamtsystem zusammenspielt,
+liest am besten genau diese Datei von oben nach unten.
+
+Gestartet wird das Ganze im Terminal mit:
+    python -m portfolio
+(das führt __main__.py aus, welches wiederum main() von hier aufruft).
+"""
 
 import os
 import time
@@ -18,43 +31,48 @@ from .significance import (
 )
 
 def main():
-    t0_main = time.perf_counter()
+    """Führt das komplette Experiment einmal von Anfang bis Ende aus."""
+    t0_main = time.perf_counter()   # Gesamt-Stoppuhr
     log.info("=" * 70)
     log.info("  PORTFOLIO-OPTIMIERUNG V4 | MARKOWITZ vs. RF vs. EW vs. RISK PARITY")
     log.info("  Neu v4: Risk Parity | CS-Ranking | Live-Dashboard | SHAP | GIF")
     log.info(f"  Start: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     log.info("=" * 70)
 
+    # Ohne yfinance gibt es keine Kursdaten → früh und verständlich abbrechen.
     if not YFINANCE_AVAILABLE:
         log.error("yfinance fehlt. Bitte: pip install yfinance")
         return
 
+    # Ergebnisordner anlegen (exist_ok=True: kein Fehler, wenn er schon existiert).
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     log.info(f"Output-Ordner: {os.path.abspath(OUTPUT_DIR)}")
     log.info(f"Interaktives Display: {INTERACTIVE_DISPLAY} | "
              f"SHAP: {SHAP_AVAILABLE} | Animation: {ANIMATION_AVAILABLE}")
 
     # ------------------------------------------------------------------
-    # A: Daten laden
+    # A: Daten laden — Kurse von Yahoo Finance holen, Renditen berechnen.
     # ------------------------------------------------------------------
     asset_prices, asset_returns, spy_returns, tickers = download_data(
         TICKERS, SPY_TICKER, START_DATE, END_DATE
     )
 
     # ------------------------------------------------------------------
-    # B: Technische Indikatoren
+    # B: Technische Indikatoren — die Merkmale für den Random Forest.
     # ------------------------------------------------------------------
     indicator_dict = build_all_indicators(
         asset_prices, asset_returns, spy_returns, tickers
     )
 
     # ------------------------------------------------------------------
-    # C: Backtest (mit Live-Dashboard)
+    # C: Backtest (mit Live-Dashboard) — die eigentliche Simulation;
+    #    das ist der mit Abstand rechenintensivste Schritt.
     # ------------------------------------------------------------------
     results = run_backtest(
         asset_prices, asset_returns, spy_returns, tickers, indicator_dict
     )
 
+    # Das Ergebnis-dict in einzelne, sprechend benannte Variablen auspacken:
     returns_df         = results["returns"]
     weights_mvo        = results["weights_mvo"]
     weights_rf         = results["weights_rf"]
@@ -68,10 +86,11 @@ def main():
     w_rp_last          = results["w_rp_last"]
     frontier_snapshots = results["frontier_snapshots"]
     rfo                = results["rfo"]
-    w_ew               = np.ones(len(tickers)) / len(tickers)
+    w_ew               = np.ones(len(tickers)) / len(tickers)   # 1/N, immer gleich
 
     # ------------------------------------------------------------------
-    # D: Kennzahlen
+    # D: Kennzahlen — die "Noten"-Tabelle aller Strategien berechnen
+    #    und im Terminal ausgeben.
     # ------------------------------------------------------------------
     metrics_df = compute_metrics(returns_df)
     print("\n" + "=" * 70)
@@ -83,6 +102,7 @@ def main():
     # ------------------------------------------------------------------
     # E: Signifikanz- & Overfitting-Analyse (wissenschaftlich robust)
     #    Ledoit & Wolf (2008) + Holm-Bonferroni + Deflated Sharpe Ratio
+    #    → Sind die Unterschiede ECHT oder Zufall? (Details: significance.py)
     # ------------------------------------------------------------------
     log.info("Signifikanzanalyse: Ledoit-Wolf-2008-Test + Holm-Bonferroni + Deflated Sharpe …")
     r_mvo = returns_df["Markowitz MVO"]
@@ -90,6 +110,7 @@ def main():
     r_rp  = returns_df["Risk Parity"]
     r_ew  = returns_df["Equal Weight"]
 
+    # Die fünf paarweisen Vergleiche der Arbeit (Name, Reihe A, Reihe B):
     pairs = [
         ("RF vs. MVO",        r_rf,  r_mvo),
         ("RF vs. EW",         r_rf,  r_ew),
@@ -97,12 +118,15 @@ def main():
         ("Risk Parity vs. EW",r_rp,  r_ew),
         ("MVO vs. RP",        r_mvo, r_rp),
     ]
+    # Für jedes Paar den Sharpe-Differenz-Test rechnen, p-Werte sammeln:
     sharpe_tests = {}
     pvals = []
     for label, ra, rb in pairs:
         t = sharpe_difference_test(ra, rb, rf=RISK_FREE_RATE, n_boot=4999)
         sharpe_tests[label] = t
         pvals.append(t["p_value"])
+    # Weil es FÜNF Tests sind: p-Werte per Holm-Bonferroni verschärfen
+    # (sonst steigt die Chance auf Zufallstreffer, s. significance.py).
     holm = holm_bonferroni(pvals)
     for (label, _, _), p_adj, rej in zip(pairs, holm["p_adjusted"], holm["reject"]):
         sharpe_tests[label]["p_holm"] = float(p_adj)
@@ -113,11 +137,13 @@ def main():
             f"{'SIGNIFIKANT' if rej else 'n.s.'}"
         )
 
+    # Deflated Sharpe Ratio für jede Strategie (Schutz vor "Auswahlglück"):
     strat_cols = [c for c in STRATEGIES if c in returns_df.columns]
     dsr_results = {
         col: deflated_sharpe_from_strategies(returns_df, col, rf=RISK_FREE_RATE)
         for col in strat_cols
     }
+    # Alles für das JSON-Protokoll (Abschnitt H) bündeln:
     significance_results = {
         "sharpe_difference_tests": sharpe_tests,
         "deflated_sharpe": dsr_results,
@@ -126,6 +152,8 @@ def main():
                   "Deflated Sharpe Ratio (Bailey & Lopez de Prado 2014)",
     }
 
+    # Testergebnisse übersichtlich im Terminal ausgeben
+    # (✓ = statistisch signifikant, ✗ = nicht; "n.s." = nicht signifikant):
     print("\n  SHARPE-DIFFERENZ-TEST (Ledoit & Wolf 2008, HAC-Block-Bootstrap; "
           "Holm-korrigiert):")
     print("  " + "-" * 70)
@@ -144,7 +172,8 @@ def main():
     print()
 
     # ------------------------------------------------------------------
-    # F: Visualisierungen
+    # F: Visualisierungen — alle Abbildungen als PNG in den Output-Ordner
+    #    (die Funktionen sind in plots.py erklärt).
     # ------------------------------------------------------------------
     log.info("Erstelle finale Abbildungen …")
 
@@ -205,7 +234,9 @@ def main():
         os.path.join(OUTPUT_DIR, "11_frontier_animation.gif"),
     )
 
-    # NEU v4: SHAP (optional)
+    # NEU v4: SHAP (optional — nur wenn das shap-Paket installiert ist).
+    # Für die SHAP-Analyse werden die Monats-Features noch einmal frisch
+    # aufgebaut und alle Aktien mit genug Historie zusammengesammelt:
     if SHAP_AVAILABLE and rfo.best_estimator_ is not None:
         monthly_data_shap = aggregate_to_monthly(indicator_dict, asset_returns, tickers)
         monthly_data_shap = add_cross_sectional_ranks(monthly_data_shap)
@@ -226,13 +257,13 @@ def main():
                 )
 
     # ------------------------------------------------------------------
-    # G: CSV-Export
+    # G: CSV-Export — alle Ergebnistabellen für Excel & Co.
     # ------------------------------------------------------------------
     save_all_csv(returns_df, metrics_df, weights_mvo, weights_rf,
                  weights_rp, turnover_df, OUTPUT_DIR)
 
     # ------------------------------------------------------------------
-    # H: JSON-Experimentprotokoll
+    # H: JSON-Experimentprotokoll — Parameter + Ergebnisse zur Reproduktion.
     # ------------------------------------------------------------------
     save_experiment_json(
         metrics_df, significance_results, tickers,
@@ -240,7 +271,7 @@ def main():
     )
 
     # ------------------------------------------------------------------
-    # I: Kompakte Zusammenfassung
+    # I: Kompakte Zusammenfassung — das Wichtigste noch einmal ins Terminal.
     # ------------------------------------------------------------------
     total = time.perf_counter() - t0_main
     log.info("=" * 70)
@@ -269,5 +300,7 @@ def main():
         print(f"    {label:<35} {sig_str}")
     print()
 
+# Dieser Standard-Baustein sorgt dafür, dass main() nur läuft, wenn die
+# Datei direkt gestartet wird — nicht schon beim bloßen Importieren.
 if __name__ == "__main__":
     main()
