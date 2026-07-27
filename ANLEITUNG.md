@@ -10,7 +10,7 @@ Spotlight-Suche mit `⌘ + Leertaste` → „Terminal" tippen).
 ## Schritt 0: In den Projektordner wechseln
 
 ```bash
-cd /Users/max/Desktop/vsCode/wSeminarClaude
+cd /Users/max/Desktop/Schule/wSeminar/Claude
 ```
 
 Alle folgenden Befehle gehen davon aus, dass du in diesem Ordner stehst
@@ -132,4 +132,4 @@ löschen = Originalverhalten.
 | das volle Experiment laufen lassen     | `venv/bin/python -m portfolio`                    | 30–90 min  |
 | das Word-Dokument neu erzeugen         | `venv/bin/python arbeit/build_docx.py`            | Sekunden   |
 
-(Vorher jeweils: `cd /Users/max/Desktop/vsCode/wSeminarClaude`)
+(Vorher jeweils: `cd /Users/max/Desktop/Schule/wSeminar/Claude`)
