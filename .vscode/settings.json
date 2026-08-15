@@ -1,3 +1,21 @@
 {
-    "python-envs.defaultEnvManager": "ms-python.python:system"
+  // Welchen Python-Interpreter VS Code benutzt: die projekteigene Umgebung,
+  // NICHT das systemweite Python. Nur hier sind pandas, scikit-learn usw.
+  // installiert. ${workspaceFolder} = der Ordner, den du in VS Code geöffnet hast
+  // (also .../wSeminar/Code).
+  "python.defaultInterpreterPath": "${workspaceFolder}/venv/bin/python",
+
+  // Neues "Python Environments"-Plugin: ebenfalls auf die venv zeigen
+  // (stand vorher auf "system" — daher fand VS Code die Pakete nicht).
+  "python-envs.defaultEnvManager": "ms-python.python:venv",
+
+  // Beim Öffnen eines Terminals automatisch die venv aktivieren, damit ein
+  // getipptes "python" schon das richtige ist.
+  "python.terminal.activateEnvironment": true,
+
+  // Test-Explorer (Reagenzglas-Symbol links) auf pytest umstellen.
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestArgs": ["tests"],
+  "python.testing.autoTestDiscoverOnSaveEnabled": true
 }

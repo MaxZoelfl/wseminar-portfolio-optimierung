@@ -24,7 +24,7 @@ portfolio/            ← kanonische, modularisierte Codebasis (aktiv weiterentw
 archive/projekt1.6.py ← eingefrorene v4.1-Baseline (Einzeldatei-Referenz; enthält
                         NICHT die späteren Paket-Erweiterungen)
 LIMITATIONS.md        ← wissenschaftliche Limitationen & Literatur
-output1.6/            ← erzeugte Grafiken, CSVs, GIF, JSON
+output/               ← erzeugte Grafiken, CSVs, GIF, JSON
 requirements.txt      ← Python-Abhängigkeiten
 ```
 
@@ -48,7 +48,7 @@ python archive/projekt1.6.py  # v4.1-Referenz (ohne spätere Erweiterungen)
 ```
 
 Laufzeit ~16 min (Random-Forest-Tuning je Rebalancing-Monat). Ergebnisse landen
-in `./output1.6/`.
+in `./output/`.
 
 ## Konfiguration
 
@@ -65,8 +65,29 @@ PORTFOLIO_CONFIG=/pfad/zu/meiner.json python -m portfolio
 Überschreibbare Schlüssel: `tickers`, `spy_ticker`, `start_date`, `end_date`,
 `backtest_start`, `output_dir`, `risk_free_rate`, `train_years`, `n_frontier`,
 `rf_n_iter`, `rf_cv_splits`, `max_weight`, `transaction_cost`, `rf_turnover_limit`,
-`rf_retune_every`, `dashboard_update_every`.
+`rf_retune_every`, `dashboard_update_every`, `use_purged_cv`, `cv_embargo`,
+`mvo_turnover_limit`, `turnover_ref_drifted`, `min_variance_fallback`.
 Nur die angegebenen Schlüssel werden überschrieben; der Rest bleibt auf Default.
+
+### Fairness des Strategievergleichs
+
+Drei Optionen machen den Vergleich Markowitz ↔ Random Forest strenger. Alle sind
+**standardmäßig aus**, damit der dokumentierte Lauf in `output1.6/` reproduzierbar
+bleibt; eingeschaltet verändern sie die Ergebnisse. Hintergrund und Literatur in
+[LIMITATIONS.md](LIMITATIONS.md), Abschnitte 10–11.
+
+- **`mvo_turnover_limit`** (Default `null`): Bisher hatte nur der Random Forest ein
+  Turnover-Limit. Auf denselben Wert wie `rf_turnover_limit` gesetzt, unterscheiden
+  sich die beiden Strategien wirklich **nur** im Renditeschätzer.
+- **`turnover_ref_drifted`** (Default `false`): Die Turnover-Schranke *im Optimierer*
+  gegen die kursgedrifteten Vorgängergewichte messen — dieselbe Referenz, die auch
+  der ausgewiesene Turnover benutzt. Ohne dies kann der realisierte Turnover das
+  nominelle Limit überschreiten.
+- **`min_variance_fallback`** (Default `false`): Erwartet kein zulässiges Portfolio
+  mehr als den risikofreien Zins, ist die Sharpe-Maximierung entartet — der
+  Optimierer würde die Volatilität *maximieren*. Mit dieser Option weicht er auf das
+  Minimum-Varianz-Portfolio aus. Der Fall wird **immer** ins Log geschrieben
+  (`Max-Sharpe entartet: …`), auch wenn die Option aus ist.
 
 ### Performance-Hebel
 
@@ -85,10 +106,11 @@ pip install -r requirements-dev.txt
 python -m pytest -q
 ```
 
-31 Unit-Tests (ohne Netzwerk) prüfen Kennzahlen gegen analytische Werte,
+34 Unit-Tests (ohne Netzwerk) prüfen Kennzahlen gegen analytische Werte,
 Optimierer-Constraints (Σw=1, Positionsobergrenze, Turnover-Limit, Risk-Parity-
-Eigenschaft), Indikatoren sowie die korrekte Monats-Aufzinsung und den
-Look-Ahead-Schutz (Ziel = Folgemonat).
+Eigenschaft, Minimum-Varianz-Eigenschaft und den entarteten Sharpe-Fall),
+Indikatoren sowie die korrekte Monats-Aufzinsung und den Look-Ahead-Schutz
+(Ziel = Folgemonat).
 
 ## Wissenschaftliche Analyse
 

@@ -1,0 +1,250 @@
+{
+  "experiment_meta": {
+    "version": "4.2",
+    "timestamp": "2026-08-15T15:05:11.664082",
+    "backtest_start": "2015-01-01",
+    "backtest_end": "2024-12-31",
+    "risk_free_rate": 0.04,
+    "train_years": 3,
+    "max_weight": 0.2,
+    "transaction_cost": 0.001,
+    "rf_turnover_limit": 0.3,
+    "rf_n_iter": 30,
+    "rf_cv_splits": 5,
+    "use_purged_cv": true,
+    "cv_embargo": 0.02,
+    "mvo_turnover_limit": 0.3,
+    "turnover_ref_drifted": true,
+    "min_variance_fallback": true,
+    "n_assets": 15,
+    "tickers": [
+      "AAPL",
+      "MSFT",
+      "NVDA",
+      "JNJ",
+      "UNH",
+      "JPM",
+      "GS",
+      "PG",
+      "KO",
+      "XOM",
+      "CAT",
+      "HON",
+      "VZ",
+      "PLD",
+      "LIN"
+    ],
+    "feature_cols": [
+      "rsi",
+      "macd",
+      "macd_sig",
+      "macd_hist",
+      "bb_pct_b",
+      "bb_width",
+      "mom_21d",
+      "mom_63d",
+      "mom_126d",
+      "mom_252d",
+      "vol_21d",
+      "vol_63d",
+      "alpha_spy",
+      "beta_spy",
+      "monthly_ret",
+      "rsi_rank",
+      "mom_21d_rank",
+      "mom_63d_rank",
+      "mom_252d_rank",
+      "alpha_spy_rank"
+    ]
+  },
+  "performance_metrics": {
+    "CAGR (%)": {
+      "Markowitz MVO": 23.14,
+      "Random Forest": 22.12,
+      "Equal Weight": 20.03,
+      "Risk Parity": 16.92
+    },
+    "Gesamtrendite (%)": {
+      "Markowitz MVO": 685.07,
+      "Random Forest": 623.27,
+      "Equal Weight": 509.66,
+      "Risk Parity": 370.18
+    },
+    "Annualisierte Vola. (%)": {
+      "Markowitz MVO": 21.0,
+      "Random Forest": 19.03,
+      "Equal Weight": 17.56,
+      "Risk Parity": 16.45
+    },
+    "Sharpe Ratio": {
+      "Markowitz MVO": 0.9114,
+      "Random Forest": 0.9524,
+      "Equal Weight": 0.9131,
+      "Risk Parity": 0.7858
+    },
+    "Sortino Ratio": {
+      "Markowitz MVO": 1.1603,
+      "Random Forest": 1.2541,
+      "Equal Weight": 1.1236,
+      "Risk Parity": 0.9621
+    },
+    "Max. Drawdown (%)": {
+      "Markowitz MVO": -34.28,
+      "Random Forest": -33.77,
+      "Equal Weight": -33.25,
+      "Risk Parity": -32.44
+    },
+    "Calmar Ratio": {
+      "Markowitz MVO": 0.6749,
+      "Random Forest": 0.655,
+      "Equal Weight": 0.6025,
+      "Risk Parity": 0.5217
+    },
+    "VaR 95 % (tägl., %)": {
+      "Markowitz MVO": -1.96,
+      "Random Forest": -1.81,
+      "Equal Weight": -1.59,
+      "Risk Parity": -1.46
+    },
+    "Hit Rate (%)": {
+      "Markowitz MVO": 55.75,
+      "Random Forest": 54.91,
+      "Equal Weight": 55.27,
+      "Risk Parity": 55.31
+    }
+  },
+  "significance": {
+    "sharpe_difference_tests": {
+      "RF vs. MVO": {
+        "sharpe_a": 0.9357443709877593,
+        "sharpe_b": 0.9063446460610942,
+        "diff_annual": 0.029405618426759674,
+        "se_annual": 0.17792016070634706,
+        "statistic": 0.16527423485915652,
+        "p_value": 0.8655731146229246,
+        "block_size": 14,
+        "n_boot": 4999,
+        "T": 2495,
+        "p_holm": 1.0,
+        "significant_holm": false
+      },
+      "RF vs. EW": {
+        "sharpe_a": 0.9357443709877593,
+        "sharpe_b": 0.9004709663529267,
+        "diff_annual": 0.03528047557900205,
+        "se_annual": 0.12140993868077563,
+        "statistic": 0.2905896828740303,
+        "p_value": 0.7733546709341869,
+        "block_size": 14,
+        "n_boot": 4999,
+        "T": 2495,
+        "p_holm": 1.0,
+        "significant_holm": false
+      },
+      "RF vs. RP": {
+        "sharpe_a": 0.9357443709877593,
+        "sharpe_b": 0.7901434739774087,
+        "diff_annual": 0.14563008432085936,
+        "se_annual": 0.1298505990319598,
+        "statistic": 1.1215203118548247,
+        "p_value": 0.2566513302660532,
+        "block_size": 14,
+        "n_boot": 4999,
+        "T": 2495,
+        "p_holm": 1.0,
+        "significant_holm": false
+      },
+      "MVO vs. EW": {
+        "sharpe_a": 0.9063446460610942,
+        "sharpe_b": 0.9004709663529267,
+        "diff_annual": 0.005874857152242382,
+        "se_annual": 0.14559534605591198,
+        "statistic": 0.040350583390119495,
+        "p_value": 0.9713942788557711,
+        "block_size": 14,
+        "n_boot": 4999,
+        "T": 2495,
+        "p_holm": 1.0,
+        "significant_holm": false
+      },
+      "MVO vs. RP": {
+        "sharpe_a": 0.9063446460610942,
+        "sharpe_b": 0.7901434739774087,
+        "diff_annual": 0.11622446589409968,
+        "se_annual": 0.16048515904066862,
+        "statistic": 0.724206939687471,
+        "p_value": 0.48869773954790957,
+        "block_size": 14,
+        "n_boot": 4999,
+        "T": 2495,
+        "p_holm": 1.0,
+        "significant_holm": false
+      },
+      "Risk Parity vs. EW": {
+        "sharpe_a": 0.7901434739774087,
+        "sharpe_b": 0.9004709663529267,
+        "diff_annual": -0.1103496087418573,
+        "se_annual": 0.038391905984350834,
+        "statistic": -2.8742935760167154,
+        "p_value": 0.0036007201440288058,
+        "block_size": 14,
+        "n_boot": 4999,
+        "T": 2495,
+        "p_holm": 0.021604320864172834,
+        "significant_holm": true
+      }
+    },
+    "deflated_sharpe": {
+      "Markowitz MVO": {
+        "sharpe_annual": 0.9063446460610942,
+        "sr_per_period": 0.057094346085536006,
+        "sr0_per_period": 0.004235954943642265,
+        "sr0_annual": 0.06724370007451234,
+        "n_trials": 4,
+        "skew": -0.2898613809663843,
+        "kurtosis": 13.516547222096959,
+        "deflated_sr": 0.9954080677384566,
+        "significant": true,
+        "T": 2495
+      },
+      "Random Forest": {
+        "sharpe_annual": 0.9357443709877593,
+        "sr_per_period": 0.05894635467528987,
+        "sr0_per_period": 0.004235954943642265,
+        "sr0_annual": 0.06724370007451234,
+        "n_trials": 4,
+        "skew": -0.2526993206111019,
+        "kurtosis": 9.681838626732272,
+        "deflated_sr": 0.9965547414517005,
+        "significant": true,
+        "T": 2495
+      },
+      "Equal Weight": {
+        "sharpe_annual": 0.9004709663529267,
+        "sr_per_period": 0.056724339042948914,
+        "sr0_per_period": 0.004235954943642265,
+        "sr0_annual": 0.06724370007451234,
+        "n_trials": 4,
+        "skew": -0.2830178482848507,
+        "kurtosis": 18.75720830179676,
+        "deflated_sr": 0.9950940438296518,
+        "significant": true,
+        "T": 2495
+      },
+      "Risk Parity": {
+        "sharpe_annual": 0.7901434739774087,
+        "sr_per_period": 0.04977436029059189,
+        "sr0_per_period": 0.004235954943642265,
+        "sr0_annual": 0.06724370007451234,
+        "n_trials": 4,
+        "skew": -0.2741302336263502,
+        "kurtosis": 19.134557940243447,
+        "deflated_sr": 0.987661321336824,
+        "significant": true,
+        "T": 2495
+      }
+    },
+    "n_strategies": 4,
+    "method": "Ledoit-Wolf (2008) HAC block bootstrap; Holm-Bonferroni; Deflated Sharpe Ratio (Bailey & Lopez de Prado 2014)"
+  }
+}

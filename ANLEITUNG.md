@@ -43,13 +43,13 @@ in `portfolio/run.py` aufruft. Was dann nacheinander passiert:
    den Fortschritt beobachten kann.
 3. **Auswertung** — am Ende erscheinen die Kennzahlen-Tabelle und die
    Signifikanztests im Terminal; alle Abbildungen (PNG), Tabellen (CSV)
-   und das Experimentprotokoll (JSON) landen im Ordner `output1.6/`.
+   und das Experimentprotokoll (JSON) landen im Ordner `output/`.
 
 **Dauer: grob 30–90 Minuten.** Der teure Teil ist der Random Forest,
 der in jedem Monat neu trainiert und getunt wird.
 
 > ⚠️ **Warnung vor dem Ausführen:** Ein neuer Lauf **überschreibt den
-> Ordner `output1.6/`** — und genau daraus stammen die Abbildungen, die
+> Ordner `output/`** — und genau daraus stammen die Abbildungen, die
 > im fertigen Word-Dokument der Seminararbeit eingebunden sind. Da Yahoo
 > Kursdaten gelegentlich nachträglich korrigiert, können die Ergebnisse
 > danach minimal von den Zahlen im Text abweichen. Deshalb: Den Backtest
@@ -57,7 +57,7 @@ der in jedem Monat neu trainiert und getunt wird.
 > Sicherheitskopie anlegen, z. B. mit:
 >
 > ```bash
-> cp -r output1.6 output1.6_backup
+> cp -r output output_backup
 > ```
 
 ---

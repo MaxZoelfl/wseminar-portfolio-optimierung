@@ -863,6 +863,14 @@ def save_experiment_json(metrics_df: pd.DataFrame,
             "rf_turnover_limit" : RF_TURNOVER_LIMIT,
             "rf_n_iter"         : RF_N_ITER,
             "rf_cv_splits"      : RF_CV_SPLITS,
+            # Fairness-/Robustheitsoptionen: gehören ins Laborprotokoll, weil
+            # sie die Ergebnisse verändern und ein Lauf sonst nicht
+            # reproduzierbar wäre.
+            "use_purged_cv"         : USE_PURGED_CV,
+            "cv_embargo"            : CV_EMBARGO if USE_PURGED_CV else None,
+            "mvo_turnover_limit"    : MVO_TURNOVER_LIMIT,
+            "turnover_ref_drifted"  : TURNOVER_REF_DRIFTED,
+            "min_variance_fallback" : MIN_VARIANCE_FALLBACK,
             "n_assets"          : len(tickers),
             "tickers"           : tickers,
             "feature_cols"      : FEATURE_COLS,

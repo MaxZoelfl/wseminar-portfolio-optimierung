@@ -1,10 +1,12 @@
 {
+  "_kommentar": "Beispielkonfiguration. Alle Werte entsprechen den Standardwerten aus portfolio/config.py — die Datei dokumentiert also den kanonischen Lauf. Nur wer bewusst abweichen will, braucht sie ueberhaupt (Aufruf: PORTFOLIO_CONFIG=config.example.json python -m portfolio).",
+
   "tickers": ["AAPL", "MSFT", "NVDA", "JNJ", "UNH", "JPM", "GS", "PG", "KO", "XOM", "CAT", "HON", "VZ", "PLD", "LIN"],
   "spy_ticker": "SPY",
   "start_date": "2013-01-01",
   "end_date": "2024-12-31",
   "backtest_start": "2015-01-01",
-  "output_dir": "./output1.6",
+  "output_dir": "./output",
   "risk_free_rate": 0.04,
   "train_years": 3,
   "n_frontier": 120,
@@ -12,5 +14,13 @@
   "rf_cv_splits": 5,
   "max_weight": 0.20,
   "transaction_cost": 0.0010,
-  "rf_turnover_limit": 0.30
+  "rf_turnover_limit": 0.30,
+
+  "_kommentar_methodik": "Die folgenden fuenf Schluessel sind seit dem 14.08.2026 Standard. Sie machen den Vergleich streng: gleiche Handelsrestriktion fuer beide aktiven Strategien, konsistente Turnover-Referenz, Schutz vor entarteter Sharpe-Maximierung und leckagefreie Kreuzvalidierung. Wer sie ausschaltet, reproduziert die frueheren Laeufe in Archiv/Robustheitslaeufe/ — der Random Forest erscheint dann um rund 0,044 Sharpe besser, als er ist. Begruendung: LIMITATIONS.md, Abschnitte 5 und 10-11.",
+  "deterministic": true,
+  "use_purged_cv": true,
+  "cv_embargo": 0.02,
+  "mvo_turnover_limit": 0.30,
+  "turnover_ref_drifted": true,
+  "min_variance_fallback": true
 }

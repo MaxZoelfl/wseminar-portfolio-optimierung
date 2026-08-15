@@ -110,13 +110,18 @@ def main():
     r_rp  = returns_df["Risk Parity"]
     r_ew  = returns_df["Equal Weight"]
 
-    # Die fünf paarweisen Vergleiche der Arbeit (Name, Reihe A, Reihe B):
+    # ALLE sechs paarweisen Vergleiche der vier Strategien (Name, Reihe A, Reihe B).
+    # Bewusst vollständig: Welche Paare geprüft werden, wäre sonst ein
+    # Freiheitsgrad des Auswertenden — genau das, wovor Harvey/Liu/Zhu (2016)
+    # warnen. Mit sechs statt fünf Tests wird die Holm-Korrektur zudem strenger,
+    # das Ergebnis also konservativer.
     pairs = [
         ("RF vs. MVO",        r_rf,  r_mvo),
         ("RF vs. EW",         r_rf,  r_ew),
+        ("RF vs. RP",         r_rf,  r_rp),
         ("MVO vs. EW",        r_mvo, r_ew),
-        ("Risk Parity vs. EW",r_rp,  r_ew),
         ("MVO vs. RP",        r_mvo, r_rp),
+        ("Risk Parity vs. EW",r_rp,  r_ew),
     ]
     # Für jedes Paar den Sharpe-Differenz-Test rechnen, p-Werte sammeln:
     sharpe_tests = {}
@@ -125,7 +130,7 @@ def main():
         t = sharpe_difference_test(ra, rb, rf=RISK_FREE_RATE, n_boot=4999)
         sharpe_tests[label] = t
         pvals.append(t["p_value"])
-    # Weil es FÜNF Tests sind: p-Werte per Holm-Bonferroni verschärfen
+    # Weil es SECHS Tests sind: p-Werte per Holm-Bonferroni verschärfen
     # (sonst steigt die Chance auf Zufallstreffer, s. significance.py).
     holm = holm_bonferroni(pvals)
     for (label, _, _), p_adj, rej in zip(pairs, holm["p_adjusted"], holm["reject"]):

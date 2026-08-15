@@ -1,0 +1,55 @@
+{
+  // Startkonfigurationen für den Debug-Reiter (Play-Symbol mit Käfer, links).
+  // Auswählen und F5 drücken — VS Code nimmt automatisch die venv.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // ACHTUNG: Überschreibt output1.6/ — genau daraus stammen die
+      // Abbildungen der Seminararbeit. Vorher sichern:
+      //   cp -r output1.6 output1.6_backup
+      // Laufzeit 30–90 Minuten, braucht Internet (Yahoo Finance).
+      "name": "Backtest komplett (ÜBERSCHREIBT output1.6/)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "portfolio",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "justMyCode": true
+    },
+    {
+      // Schneller Probelauf: Random Forest sucht nur alle 6 Monate neue
+      // Hyperparameter statt jeden Monat. Ergebnisse weichen dann von denen
+      // in der Arbeit ab — nur zum Ausprobieren.
+      "name": "Backtest schnell (config.json nötig)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "portfolio",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "env": { "PORTFOLIO_CONFIG": "${workspaceFolder}/config.example.json" },
+      "justMyCode": true
+    },
+    {
+      // Ungefährlich: rechnet nur, lädt nichts, ändert nichts.
+      "name": "Tests (alle)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["tests/", "-q"],
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "env": { "MPLBACKEND": "Agg" },
+      "justMyCode": false
+    },
+    {
+      // Die gerade offene Datei ausführen — praktisch beim Herumprobieren.
+      "name": "Aktuelle Datei ausführen",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "justMyCode": true
+    }
+  ]
+}

@@ -69,6 +69,7 @@ import json      # Lesen/Schreiben des JSON-Textformats (für die Konfig-Datei)
 import warnings  # Steuerung von Warnmeldungen
 import logging   # Protokoll-Ausgaben ("Logbuch" des Programms im Terminal)
 from dataclasses import dataclass, field, fields, asdict  # bequeme Datencontainer
+from typing import Optional  # "Optional[float]" = eine Zahl ODER None ("nicht gesetzt")
 
 import matplotlib  # die zentrale Bibliothek zum Zeichnen von Diagrammen
 
@@ -187,7 +188,12 @@ class Config:
     start_date: str       = "2013-01-01"   # Extra-Warmup für Indikatoren
     end_date: str         = "2024-12-31"
     backtest_start: str   = "2015-01-01"   # ab hier wird "investiert"
-    output_dir: str       = "./output1.6"  # Ordner für alle Ergebnisdateien
+    output_dir: str       = "./output"     # Ordner für alle Ergebnisdateien
+    # Kursspeicher: Yahoo liefert bei wiederholtem Abruf leicht abweichende
+    # Kurse (relativ bis 1,3e-6). Der erste Download wird hier abgelegt und
+    # danach wiederverwendet — sonst ist kein Lauf reproduzierbar.
+    # Auf "" setzen erzwingt jedes Mal einen frischen Download.
+    price_cache: str      = "./data/prices.pkl"
 
     # ---- Modell- & Optimierungsparameter -----------------------------------
     # Risikofreier Zins: Rendite einer als sicher geltenden Anlage (etwa
@@ -219,11 +225,54 @@ class Config:
     dashboard_update_every: int = 1  # Live-Dashboard nur alle k Schritte rendern;
                                      # rein kosmetisch (kein Ergebniseinfluss).
 
-    # ---- Wissenschaftliche Option (Default aus = bisheriges Verhalten) -----
-    use_purged_cv: bool = False  # Purged & Embargoed CV (López de Prado 2018)
-                                 # statt TimeSeriesSplit im RF-Tuning. >0 ändert
-                                 # die RF-Hyperparameterwahl und damit Ergebnisse.
+    # ---- Reproduzierbarkeit -------------------------------------------------
+    # random_state=42 fixiert zwar den Zufallsgenerator, nicht aber die
+    # Reihenfolge, in der parallele Threads ihre Teilergebnisse aufsummieren.
+    # Gleitkommaaddition ist nicht assoziativ — zwei Läufe weichen daher
+    # minimal ab. Bei der Hyperparametersuche genügt das, um bei nahezu
+    # gleichwertigen Kandidaten einen ANDEREN Sieger zu küren; gemessen an
+    # zwei sonst identischen Läufen geschah das in 4 von 119 Monaten und
+    # verschob den Sharpe-Quotienten des Random Forest um rund 0,010.
+    # True = einkernig rechnen (n_jobs=1) und damit bitgenau reproduzierbar,
+    # dafür deutlich langsamer. Siehe LIMITATIONS.md, Abschnitt 12.
+    deterministic: bool = True
+
+    # ---- Kreuzvalidierung im RF-Tuning -------------------------------------
+    # Purged & Embargoed CV nach López de Prado (2018, Kap. 7) statt
+    # TimeSeriesSplit. Nötig, weil die Merkmale aus überlappenden Fenstern
+    # stammen (Momentum über 252 Tage) und das Monatsziel in den Folgemonat
+    # reicht: benachbarte Trainings- und Testabschnitte teilen dadurch
+    # Information. TimeSeriesSplit verhindert Look-Ahead, aber nicht dieses
+    # Leck. Auf False gesetzt ergibt sich der frühere, leckbehaftete Lauf —
+    # der Random Forest erscheint dann um rund 0,044 Sharpe besser, als er ist.
+    use_purged_cv: bool = True
     cv_embargo: float    = 0.02  # Embargo-Anteil (nur wirksam bei use_purged_cv).
+
+    # ---- Fairness des Strategievergleichs ----------------------------------
+    # Früher bekam NUR der Random Forest ein Turnover-Limit, die klassische
+    # Markowitz-Strategie nicht. Damit unterschieden sich die beiden Strategien
+    # in ZWEI Punkten (Renditeschätzer UND Handelsrestriktion) statt nur in
+    # einem — der Vergleich war also nicht streng "ceteris paribus".
+    # Ist hier eine Zahl eingetragen, gilt dasselbe Limit auch für Markowitz;
+    # ``null`` in der JSON bzw. None = kein Limit (früheres Verhalten).
+    mvo_turnover_limit: Optional[float] = 0.30
+
+    # Bezugspunkt der Turnover-Schranke im Optimierer. Der AUSGEWIESENE
+    # Turnover wird gegen die kursgedrifteten Vorgängergewichte gemessen; die
+    # Schranke IM Optimierer verglich dagegen bisher mit den ungedrifteten
+    # Zielgewichten des Vormonats. Dadurch konnte der realisierte Turnover das
+    # nominelle Limit überschreiten. True = beide nutzen dieselbe Referenz.
+    # Mit False überschritt der RF sein 30-%-Limit in 100 von 118 Monaten.
+    turnover_ref_drifted: bool = True
+
+    # Sharpe-Maximierung ist nur sinnvoll, solange überhaupt ein zulässiges
+    # Portfolio eine erwartete Rendite ÜBER dem risikofreien Zins hat. Sonst
+    # ist der Zähler (μ − r_f) negativ, und der Optimierer macht die
+    # Volatilität im Nenner absichtlich GROSS, um den negativen Quotienten zu
+    # verkleinern — er maximiert dann also das Risiko. True = in diesem Fall
+    # auf das Minimum-Varianz-Portfolio ausweichen. Im Zeitraum 2015–2024
+    # trat der Fall in keinem der 119 Monate ein; die Option ist Vorsorge.
+    min_variance_fallback: bool = True
 
 
 def _load_config() -> Config:
@@ -288,8 +337,13 @@ TRANSACTION_COST  = CFG.transaction_cost
 RF_TURNOVER_LIMIT = CFG.rf_turnover_limit
 RF_RETUNE_EVERY        = CFG.rf_retune_every
 DASHBOARD_UPDATE_EVERY = CFG.dashboard_update_every
+PRICE_CACHE            = CFG.price_cache
+DETERMINISTIC          = CFG.deterministic
 USE_PURGED_CV          = CFG.use_purged_cv
 CV_EMBARGO             = CFG.cv_embargo
+MVO_TURNOVER_LIMIT     = CFG.mvo_turnover_limit
+TURNOVER_REF_DRIFTED   = CFG.turnover_ref_drifted
+MIN_VARIANCE_FALLBACK  = CFG.min_variance_fallback
 
 # Cross-sectional Ranking: welche Kennzahlen ("Features") monatlich in einen
 # Rang UNTER den 15 Aktien umgerechnet werden (Erklärung in indicators.py).

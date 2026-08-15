@@ -78,7 +78,11 @@ def run_backtest(asset_prices: pd.DataFrame,
     frontier_snapshots                              = []              # Effizienzlinien-Fotos
     turnover_log                                    = []   # v4: Turnover je Step
 
-    w_prev_rf = np.ones(n) / n   # Start: Equal Weight
+    # Vorgänger-Zielgewichte (ungedriftet) als Bezugspunkt der Turnover-
+    # Schranke. Start: Equal Weight, weil vor dem ersten Rebalancing noch
+    # kein Depot existiert.
+    w_prev_rf  = np.ones(n) / n
+    w_prev_mvo = np.ones(n) / n
 
     # Wachstumsfaktoren der jeweils letzten Halteperiode (für driftbewussten
     # Turnover, Erklärung unten im Kosten-Abschnitt). None = es gibt noch
@@ -141,12 +145,50 @@ def run_backtest(asset_prices: pd.DataFrame,
         # die Renditeschätzung der KLASSISCHEN Markowitz-Strategie.
         mu_hist = train_daily.mean().values * 252
 
+        # ---- Gedriftete Vorgängergewichte ---------------------------------
+        # "Drift" heißt: Auch ohne Handel verschieben sich die Gewichte, weil
+        # die Aktien unterschiedlich gestiegen/gefallen sind. Diese gedrifteten
+        # Gewichte sind der EINZIG richtige Bezugspunkt für den Turnover: Sie
+        # beschreiben das Depot, wie es zum Rebalancing-Zeitpunkt tatsächlich
+        # dasteht. Sie werden hier — vor den Optimierern — berechnet, damit
+        # dieselbe Referenz sowohl in der Turnover-SCHRANKE des Optimierers als
+        # auch in der späteren Turnover-MESSUNG verwendet werden kann
+        # (Option turnover_ref_drifted).
+        def _drift(w_prev):
+            # Alte Gewichte mit den Wachstumsfaktoren der Halteperiode
+            # fortschreiben und wieder auf Summe 1 normieren.
+            w_prev = np.asarray(w_prev, dtype=float)
+            if prev_hold_growth is None:
+                return w_prev
+            wd = w_prev * prev_hold_growth
+            s  = wd.sum()
+            return wd / s if s > 0 else w_prev
+
+        prev_w_mvo = _drift(hist_w_mvo[-1].values) if hist_w_mvo else np.ones(n) / n
+        prev_w_rf  = _drift(hist_w_rf[-1].values)  if hist_w_rf  else np.ones(n) / n
+        prev_w_rp  = _drift(hist_w_rp[-1].values)  if hist_w_rp  else np.ones(n) / n
+        prev_w_ew  = _drift(np.ones(n) / n)
+
+        # Bezugspunkt für die Turnover-SCHRANKE im Optimierer: entweder die
+        # gedrifteten (konsistent mit der Messung) oder — wie bisher — die
+        # ungedrifteten Zielgewichte des Vormonats.
+        ref_rf  = prev_w_rf  if TURNOVER_REF_DRIFTED else w_prev_rf
+        ref_mvo = prev_w_mvo if TURNOVER_REF_DRIFTED else w_prev_mvo
+
         # ---- 2) Markowitz MVO ---------------------------------------------
         # try/except als Sicherheitsnetz: Falls der Optimierer in einem Monat
         # scheitert (selten, z. B. keine Konvergenz), wird neutral auf 1/N
         # ausgewichen statt den ganzen Backtest abzubrechen.
+        # MVO_TURNOVER_LIMIT ist standardmäßig None → kein Limit (wie bisher).
+        # Ist es gesetzt, gilt für Markowitz dieselbe Handelsrestriktion wie
+        # für den Random Forest; nur dann unterscheiden sich die beiden
+        # Strategien wirklich AUSSCHLIESSLICH im Renditeschätzer.
         try:
-            w_mvo = mvo.max_sharpe(mu_hist, cov_ann)
+            w_mvo = mvo.max_sharpe(
+                mu_hist, cov_ann,
+                w_prev=ref_mvo if MVO_TURNOVER_LIMIT is not None else None,
+                turnover_limit=MVO_TURNOVER_LIMIT,
+            )
         except Exception as e:
             log.warning(f"  MVO-Fehler {month_end.date()}: {e}")
             w_mvo = np.ones(n) / n
@@ -226,7 +268,7 @@ def run_backtest(asset_prices: pd.DataFrame,
                 # KI-Prognose der Monatsrenditen (annualisiert) → damit dann
                 # dieselbe Sharpe-Maximierung wie bei Markowitz:
                 mu_rf = rfo.predict_monthly_returns(X_current)
-                w_rf  = rfo.optimize(mu_rf, cov_ann, w_prev=w_prev_rf)
+                w_rf  = rfo.optimize(mu_rf, cov_ann, w_prev=ref_rf)
             except Exception as e:
                 log.warning(f"  RF-Fehler {month_end.date()}: {e}")
                 w_rf  = np.ones(n) / n
@@ -253,28 +295,16 @@ def run_backtest(asset_prices: pd.DataFrame,
         # ---- 6a) Transaktionskosten ----------------------------------------
         # Turnover = 0.5 * Σ|w_neu − w_alt|. Als "w_alt" werden die über die
         # letzte Halteperiode GEDRIFTETEN Vorgängergewichte verwendet (nicht
-        # die ursprünglichen Zielgewichte). "Drift" heißt: Auch ohne Handel
-        # verschieben sich die Gewichte, weil die Aktien unterschiedlich
-        # gestiegen/gefallen sind (was gut lief, macht nun automatisch mehr
-        # vom Depot aus). Dadurch erhält auch Equal Weight einen realistischen
-        # Rebalancing-Turnover (Rückführung der Kursdrift auf 1/N), und alle
-        # Strategien werden konsistent und FAIR bewertet.
+        # die ursprünglichen Zielgewichte) — sie wurden oben vor den
+        # Optimierern berechnet (prev_w_*). Dadurch erhält auch Equal Weight
+        # einen realistischen Rebalancing-Turnover (Rückführung der Kursdrift
+        # auf 1/N), und alle Strategien werden konsistent und FAIR bewertet.
         if i == 0 or prev_hold_growth is None:
             turnover_mvo = 1.0   # Erstaufbau des Portfolios: 100 % Kaufumsatz
             turnover_rf  = 1.0
             turnover_rp  = 1.0
             turnover_ew  = 1.0
         else:
-            def _drift(w_prev):
-                # Alte Gewichte mit den Wachstumsfaktoren der Halteperiode
-                # fortschreiben und wieder auf Summe 1 normieren.
-                wd = np.asarray(w_prev, dtype=float) * prev_hold_growth
-                s  = wd.sum()
-                return wd / s if s > 0 else np.asarray(w_prev, dtype=float)
-            prev_w_mvo = _drift(hist_w_mvo[-1].values) if hist_w_mvo else np.ones(n) / n
-            prev_w_rf  = _drift(hist_w_rf[-1].values)  if hist_w_rf  else np.ones(n) / n
-            prev_w_rp  = _drift(hist_w_rp[-1].values)  if hist_w_rp  else np.ones(n) / n
-            prev_w_ew  = _drift(np.ones(n) / n)
             # Halbe Absolutsumme, weil jeder Verkauf zugleich ein Kauf ist.
             turnover_mvo = np.abs(w_mvo - prev_w_mvo).sum() / 2
             turnover_rf  = np.abs(w_rf  - prev_w_rf ).sum() / 2
@@ -324,7 +354,8 @@ def run_backtest(asset_prices: pd.DataFrame,
         })
 
         # Zustände für die nächste Runde merken:
-        w_prev_rf = w_rf.copy()
+        w_prev_rf  = w_rf.copy()
+        w_prev_mvo = w_mvo.copy()
 
         # Wachstumsfaktoren dieser Halteperiode je Asset (prod(1+r)) für den
         # driftbewussten Turnover der nächsten Iteration sichern.

@@ -85,6 +85,33 @@ class MarkowitzLedoitWolf:
         vol = float(np.sqrt(weights @ cov @ weights))    # Portfoliovolatilität
         return -(ret - self.rf) / vol if vol > 0 else 0.0
 
+    def min_variance(self, cov: np.ndarray,
+                     bounds: list = None, constraints: list = None) -> np.ndarray:
+        """Das Portfolio mit der KLEINSTEN Varianz (Minimum-Variance-Portfolio).
+
+        Braucht als einzige Eingabe die Kovarianzmatrix — es kommt also ohne
+        jede Renditeschätzung aus. Genau deshalb ist es der natürliche
+        Rückfallplan, wenn die Renditeschätzung unbrauchbar ist (siehe
+        ``max_sharpe``), und zugleich das linke Ende der Effizienzlinie.
+
+        ``bounds`` / ``constraints`` sind optional, damit der Aufrufer exakt
+        DIESELBEN Spielregeln durchreichen kann, unter denen er sonst
+        optimiert (z. B. inklusive Turnover-Schranke). Ohne Angabe gelten die
+        Standardregeln: long-only, voll investiert, Obergrenze MAX_WEIGHT.
+        """
+        n = cov.shape[0]
+        if bounds is None:
+            bounds = [(0.0, MAX_WEIGHT)] * n
+        if constraints is None:
+            constraints = [{"type": "eq", "fun": lambda w: w.sum() - 1}]
+        result = minimize(
+            fun=lambda w: float(w @ cov @ w), x0=np.ones(n) / n,
+            method="SLSQP", bounds=bounds, constraints=constraints,
+            options={"maxiter": 2000, "ftol": 1e-12},
+        )
+        w = np.maximum(result.x, 0.0)
+        return w / w.sum()
+
     def max_sharpe(self, mu: np.ndarray, cov: np.ndarray,
                    w_prev: np.ndarray = None,
                    turnover_limit: float = None) -> np.ndarray:
@@ -101,6 +128,17 @@ class MarkowitzLedoitWolf:
           - "Turnover-Constraint": Wenn Vorgängergewichte (w_prev) und ein
             Limit übergeben werden, darf die neue Lösung nur begrenzt vom
             alten Depot abweichen — das begrenzt Handelskosten.
+
+        ENTARTETER FALL (wichtig fürs Verständnis der Zielfunktion): Die
+        Sharpe Ratio ist (μ_p − r_f) / σ_p. Sie zu maximieren ergibt nur
+        Sinn, solange der Zähler POSITIV ist. Erwartet dagegen kein
+        zulässiges Portfolio mehr als den risikofreien Zins, wird der Zähler
+        negativ — und dann macht ein größeres σ_p im Nenner den Bruch
+        *weniger* negativ. Der Optimierer würde in dieser Lage also gezielt
+        das RISIKO MAXIMIEREN, was ökonomisch offensichtlich Unsinn ist.
+        Der Fall wird deshalb erkannt und protokolliert; mit der Option
+        ``min_variance_fallback`` weicht die Strategie dann auf das
+        Minimum-Varianz-Portfolio aus (dieselben Nebenbedingungen).
         """
         n  = len(mu)
         # Startpunkt der Suche: die alten Gewichte (falls vorhanden), sonst 1/N.
@@ -132,6 +170,23 @@ class MarkowitzLedoitWolf:
         # z. B. −1e-15) auf 0 setzen und exakt auf Summe 1 normieren.
         w = np.maximum(result.x, 0.0)
         w /= w.sum()
+
+        # Entartungsprüfung (s. Docstring): Hat die gefundene Lösung keine
+        # positive erwartete Überrendite, war die Sharpe-Maximierung in
+        # diesem Monat nicht sinnvoll definiert. Die Warnung erscheint IMMER
+        # (auch ohne aktivierte Option), damit sich im Protokoll nachzählen
+        # lässt, wie oft der Fall über den Backtest hinweg auftrat.
+        excess = float(w @ mu) - self.rf
+        if excess <= 0:
+            log.warning(
+                f"    Max-Sharpe entartet: erwartete Überrendite {excess:+.2%} ≤ 0 "
+                f"(bestes Asset: {float(np.max(mu)):+.2%} vs. r_f {self.rf:.2%}) — "
+                + ("weiche auf Minimum-Varianz aus."
+                   if MIN_VARIANCE_FALLBACK else
+                   "behalte Sharpe-Lösung (min_variance_fallback=false).")
+            )
+            if MIN_VARIANCE_FALLBACK:
+                return self.min_variance(cov, bounds=bounds, constraints=constraints)
         return w
 
     def efficient_frontier(self, mu: np.ndarray, cov: np.ndarray,
@@ -159,12 +214,10 @@ class MarkowitzLedoitWolf:
 
         # Schritt 1: das Portfolio mit der global KLEINSTEN Varianz finden
         # (Minimum-Variance-Portfolio, MVP) → linkes Ende der Kurve.
-        res_mvp = minimize(
-            lambda w: float(w @ cov @ w), np.ones(n) / n,
-            method="SLSQP", bounds=bounds,
-            constraints=[{"type": "eq", "fun": lambda w: w.sum() - 1}],
-        )
-        ret_min = float(res_mvp.x @ mu)     # Rendite des MVP = kleinste Zielrendite
+        # Genau dieselbe Rechnung dient in max_sharpe als Rückfallplan, daher
+        # steht sie als eigene Methode zur Verfügung.
+        w_mvp   = self.min_variance(cov, bounds=bounds)
+        ret_min = float(w_mvp @ mu)         # Rendite des MVP = kleinste Zielrendite
 
         # Schritt 2: die größte erreichbare Rendite bestimmen → rechtes Ende.
         if max_weight is None:
@@ -308,13 +361,17 @@ class RFPortfolioOptimizer:
              ordnung (Mittelwert 0, Streuung 1) — sonst würde z. B. der RSI
              (0–100) ganz andere Zahlenbereiche haben als Renditen (±0,1).
           2. RandomForestRegressor: das eigentliche Vorhersagemodell.
-        random_state=42 fixiert den Zufallsgenerator → jeder Lauf liefert
-        exakt dieselben Ergebnisse (Reproduzierbarkeit!). n_jobs=-1 heißt:
-        alle Prozessorkerne parallel nutzen.
+        random_state=42 fixiert den Zufallsgenerator. Das allein genügt aber
+        nicht: Bei n_jobs=-1 summieren mehrere Kerne ihre Teilergebnisse in
+        wechselnder Reihenfolge auf, und Gleitkommaaddition ist nicht
+        assoziativ. Mit ``config.deterministic = True`` (Standard) läuft
+        deshalb alles einkernig — langsamer, dafür bitgenau wiederholbar.
+        Siehe LIMITATIONS.md, Abschnitt 12.
         """
         return Pipeline([
             ("scaler", StandardScaler()),
-            ("rf",     RandomForestRegressor(random_state=42, n_jobs=-1)),
+            ("rf",     RandomForestRegressor(random_state=42,
+                                             n_jobs=1 if DETERMINISTIC else -1)),
         ])
 
     def _param_grid(self) -> dict:
@@ -377,7 +434,8 @@ class RFPortfolioOptimizer:
             estimator=self._build_pipeline(),
             param_distributions=self._param_grid(),
             n_iter=self.n_iter, scoring="neg_mean_squared_error",
-            cv=cv, random_state=42, n_jobs=-1, refit=True,
+            cv=cv, random_state=42,
+            n_jobs=1 if DETERMINISTIC else -1, refit=True,
         )
         search.fit(X_train.values, y_train.values)   # hier läuft die ganze Suche
         self.best_estimator_ = search.best_estimator_  # Sieger-Modell merken

@@ -20,6 +20,7 @@ __pycache__/
 .idea/
 
 # --- Lauf-Logs (transient) ---
+run.log
 run_*.log
 
 # --- lokale Konfigurations-Overrides (Vorlage: config.example.json ist getrackt) ---
@@ -28,3 +29,7 @@ config.json
 # Urheberrechtlich geschützte Quell-PDFs (nicht verteilen)
 Quellen/
 W-Seminararbeit_Formales.pdf
+
+# Kursdatei bewusst versionieren — ohne sie ist der Backtest nicht
+# reproduzierbar (siehe LIMITATIONS.md, Abschnitt 12).
+!data/prices.pkl
