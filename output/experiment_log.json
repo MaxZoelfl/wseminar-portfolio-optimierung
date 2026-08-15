@@ -1,7 +1,7 @@
 {
   "experiment_meta": {
     "version": "4.2",
-    "timestamp": "2026-08-15T15:05:11.664082",
+    "timestamp": "2026-08-15T20:14:43.202476",
     "backtest_start": "2015-01-01",
     "backtest_end": "2024-12-31",
     "risk_free_rate": 0.04,
@@ -77,16 +77,16 @@
       "Risk Parity": 16.45
     },
     "Sharpe Ratio": {
-      "Markowitz MVO": 0.9114,
-      "Random Forest": 0.9524,
-      "Equal Weight": 0.9131,
-      "Risk Parity": 0.7858
+      "Markowitz MVO": 0.9063,
+      "Random Forest": 0.9357,
+      "Equal Weight": 0.9005,
+      "Risk Parity": 0.7901
     },
     "Sortino Ratio": {
-      "Markowitz MVO": 1.1603,
-      "Random Forest": 1.2541,
-      "Equal Weight": 1.1236,
-      "Risk Parity": 0.9621
+      "Markowitz MVO": 1.2956,
+      "Random Forest": 1.3502,
+      "Equal Weight": 1.283,
+      "Risk Parity": 1.1214
     },
     "Max. Drawdown (%)": {
       "Markowitz MVO": -34.28,

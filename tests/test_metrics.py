@@ -62,14 +62,37 @@ def test_annualized_vol_constant_is_near_zero():
 
 
 def test_sharpe_zero_vol_guard():
-    # Vola exakt 0 -> Sharpe 0 (Division-durch-0-Schutz)
-    # Prüft gezielt den "if v > 0"-Schutz in sharpe_ratio().
-    assert sharpe_ratio(_series([0.0] * 252)) == 0.0
+    # Ueberschussrendite konstant -> Standardabweichung 0 -> Sharpe 0.
+    # Prueft gezielt den "if sd > 0"-Schutz in sharpe_ratio().
+    assert sharpe_ratio(_series([0.0] * 252), rf=0.0) == 0.0
+
+
+def test_sharpe_penalises_risk_free_shortfall():
+    # Eine Strategie, die konstant 0 % liefert, waehrend der sichere Zins 4 %
+    # betraegt, hat eine konstant NEGATIVE Ueberschussrendite. Die Streuung
+    # ist null, der Schutz greift also weiterhin.
+    assert sharpe_ratio(_series([0.0] * 252), rf=0.04) == 0.0
 
 
 def test_sortino_no_downside_guard():
-    # keine negativen Renditen -> Downside-Vola 0/NaN -> Sortino 0 (Schutz)
-    assert sortino_ratio(_series([0.0] * 252)) == 0.0
+    # Keine Abweichung unter die Zielrendite -> Downside-Abweichung 0 -> 0.
+    assert sortino_ratio(_series([0.0] * 252), rf=0.0) == 0.0
+
+
+def test_sortino_counts_shortfall_against_target():
+    # Liegt die Rendite dauerhaft UNTER dem sicheren Zins, ist das sehr wohl
+    # Downside-Risiko: Sortino muss negativ werden, nicht null.
+    assert sortino_ratio(_series([0.0] * 252), rf=0.04) < 0
+
+
+def test_sortino_uses_all_days_not_only_losers():
+    # Downside-Abweichung mittelt ueber ALLE Tage. Haengt man an eine Reihe
+    # mit wenigen Verlusten viele Gewinntage an, sinkt die Downside-Abweichung
+    # und der Sortino-Quotient steigt. Die alte Fassung (Streuung INNERHALB
+    # der Verlusttage) reagierte darauf nicht.
+    wenig = _series([-0.01] * 5 + [0.01] * 5)
+    viel  = _series([-0.01] * 5 + [0.01] * 95)
+    assert sortino_ratio(viel, rf=0.0) > sortino_ratio(wenig, rf=0.0)
 
 
 def test_portfolio_perf_matches_formula():

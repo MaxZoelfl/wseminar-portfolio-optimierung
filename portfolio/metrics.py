@@ -46,6 +46,10 @@ def timer(func):
     return wrapper
 
 
+# Numerische Toleranz für Nenner-Schutzabfragen (s. sharpe_ratio).
+_EPS = 1e-12
+
+
 def cagr(returns: pd.Series, freq: int = 252) -> float:
     """Compound Annual Growth Rate aus täglichen Renditen.
 
@@ -74,14 +78,32 @@ def annualized_vol(returns: pd.Series, freq: int = 252) -> float:
 
 def sharpe_ratio(returns: pd.Series, rf: float = RISK_FREE_RATE,
                  freq: int = 252) -> float:
-    """Sharpe Ratio = (Jahresrendite − sicherer Zins) / Jahresvolatilität.
+    """Sharpe Ratio nach Sharpe (1994): Mittelwert der Überschussrendite
+    geteilt durch deren Standardabweichung, annualisiert mit √freq.
 
-    Beispiel: 12 % Rendite bei 4 % sicherem Zins und 16 % Volatilität
-    → Sharpe = (0,12 − 0,04) / 0,16 = 0,5. Werte um 1 gelten als sehr gut.
+    Vorgehen:
+      1. Von jeder Tagesrendite den anteiligen risikofreien Zins abziehen
+         (rf/252) → "Überschussrendite" oder Differenzrendite d.
+      2. Mittelwert von d durch Standardabweichung von d teilen.
+      3. Mit √252 auf ein Jahr hochrechnen.
+
+    Beispiel: 12 % erwartete Überschussrendite bei 16 % Volatilität
+    → Sharpe = 0,12 / 0,16 = 0,75.
+
+    WARUM ARITHMETISCH UND NICHT ÜBER DIE CAGR? Frühere Fassungen dieser
+    Funktion setzten die geometrische Jahresrendite (CAGR) in den Zähler.
+    Das mischt ein geometrisches Maß mit einem linear annualisierten Nenner,
+    entspricht nicht Sharpes Definition — und lieferte für dieselbe Strategie
+    einen anderen Wert als der Signifikanztest in ``significance.py``, der
+    schon immer arithmetisch rechnet. Seit 15.08.2026 rechnen beide gleich.
     """
-    r = cagr(returns, freq)
-    v = annualized_vol(returns, freq)
-    return (r - rf) / v if v > 0 else 0.0    # Schutz: bei Vola 0 keine Division
+    d  = returns - rf / freq                 # Überschussrendite je Tag
+    sd = d.std(ddof=1)
+    # Schwelle statt "> 0": Die Subtraktion rf/freq erzeugt bei konstanten
+    # Renditen Gleitkommarauschen (Größenordnung 1e-20). Ohne Toleranz käme
+    # dabei ein sinnloser Wert von 1e+16 heraus statt der gewollten 0.
+    # 1e-12 liegt zehn Größenordnungen unter jeder echten Tagesschwankung.
+    return float(d.mean() / sd * np.sqrt(freq)) if sd > _EPS else 0.0
 
 
 def max_drawdown(returns: pd.Series) -> float:
@@ -118,10 +140,16 @@ def sortino_ratio(returns: pd.Series, rf: float = RISK_FREE_RATE,
     also wird die Volatilität nur aus den negativen Tagesrenditen berechnet
     ("Downside-Volatilität").
     """
-    r        = cagr(returns, freq)
-    down     = returns[returns < 0]              # nur die Verlusttage behalten
-    down_vol = down.std() * np.sqrt(freq)        # deren Schwankung, annualisiert
-    return (r - rf) / down_vol if down_vol > 0 else 0.0
+    d = returns - rf / freq                      # Überschussrendite je Tag
+    # Downside-Abweichung: quadratischer Mittelwert der NEGATIVEN Abweichungen,
+    # gemittelt über ALLE Tage (nicht nur über die Verlusttage). Tage über der
+    # Zielrendite gehen mit 0 ein — Schwankung nach oben soll nicht bestrafen.
+    #   DD = sqrt( 1/T · Σ min(d_t, 0)² )
+    # Frühere Fassungen nahmen stattdessen die Standardabweichung INNERHALB
+    # der Verlusttage. Das misst die Streuung unter den Verlusten statt deren
+    # Größe und entspricht nicht der üblichen Definition (Sortino/Van der Meer).
+    dd = np.sqrt((np.minimum(d, 0.0) ** 2).mean()) * np.sqrt(freq)
+    return float(d.mean() * freq / dd) if dd > _EPS else 0.0
 
 
 def portfolio_perf(weights: np.ndarray, mu: np.ndarray, cov: np.ndarray,
