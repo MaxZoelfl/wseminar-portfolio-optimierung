@@ -33,6 +33,12 @@ mit denen später auch der Backtest läuft:
       Arbeit: § 2.3 behandelt das klassische Problem, Leerverkaufsverbot
       und Obergrenze folgen erst in § 2.6.
 
+  18  Effizienzrand + CML   → Anhang, Ergänzung zu § 2.3
+      Dieselbe Abbildung mit einem Nebenbild, das zusätzlich die Kapital-
+      marktlinie und das Tangentialportfolio zeigt. Getrennt gehalten, weil
+      das Tangentialportfolio bei rund 53 % Volatilität liegt und den
+      Maßstab des Hauptbildes sprengt.
+
 WARUM DIESE DATEI ÜBERHAUPT ENTSTAND
 Die drei Bilder lagen bis zum 17.08.2026 nur als fertige PNG-Dateien im
 Ordner ``Abbildungen/`` vor, ohne erzeugenden Code. Sie waren damit weder
@@ -344,7 +350,8 @@ def plot_efficient_frontier_theory(asset_returns: pd.DataFrame,
     Blick, wie extrem das theoretisch optimale Portfolio bei echten Daten liegt.
     Der eingezeichnete Rahmen markiert den Ausschnitt des Hauptbildes.
     """
-    log.info("Theorieplot 17: Effizienzrand …")
+    log.info(f"Theorieplot {os.path.basename(output_path)[:2]}: Effizienzrand"
+             + (" mit Nebenbild …" if show_cml else " …"))
     mu_v, sigma, cov, _ = _annualised_moments(asset_returns)
     mu_a, S = mu_v.values, cov.values
     n = len(mu_a)
@@ -502,5 +509,12 @@ def create_theory_plots(asset_returns: pd.DataFrame, returns_df: pd.DataFrame,
         zeitraum, os.path.join(output_dir, "15_theorie_diversifikationsgrenze.png"))
     plot_estimation_uncertainty(
         zeitraum, os.path.join(output_dir, "16_theorie_schaetzunsicherheit.png"))
+    # Zwei Fassungen derselben Abbildung. 17 ist die schlichte für den Fließtext
+    # (§ 2.3, Abbildung 2 der Arbeit); 18 ergänzt das Nebenbild mit Kapital-
+    # marktlinie und Tangentialportfolio und eignet sich für den Anhang.
     plot_efficient_frontier_theory(
-        zeitraum, os.path.join(output_dir, "17_theorie_effizienzrand.png"))
+        zeitraum, os.path.join(output_dir, "17_theorie_effizienzrand.png"),
+        show_cml=False)
+    plot_efficient_frontier_theory(
+        zeitraum, os.path.join(output_dir, "18_theorie_effizienzrand_cml.png"),
+        show_cml=True)
