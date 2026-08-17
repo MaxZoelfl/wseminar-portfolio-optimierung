@@ -45,6 +45,7 @@ und lieferte andere Zahlen als die im Text genannten.
 import os
 import numpy as np
 import pandas as pd
+from scipy.optimize import minimize   # numerischer Löser für den zulässigen Rand
 from .config import *
 
 # Ein Börsenjahr hat rund 252 Handelstage. Damit wird von Tages- auf
@@ -288,6 +289,173 @@ def plot_estimation_uncertainty(asset_returns: pd.DataFrame,
              f"± {halbe_breite[breiteste]*100:.1f} Prozentpunkte")
 
 
+def plot_efficient_frontier_theory(asset_returns: pd.DataFrame,
+                                   output_path: str,
+                                   rf: float = RISK_FREE_RATE,
+                                   max_weight: float = 0.20,
+                                   n_points: int = 90) -> None:
+    """Abbildung 17 → Abbildung 2 der Arbeit (§ 2.3): der Effizienzrand.
+
+    ACHTUNG — NICHT verwechseln mit ``plot_efficient_frontier`` in plots.py.
+    Jene Abbildung (04) gehört zum ERGEBNISTEIL: Sie zeichnet die Schätzungen
+    des letzten Backtest-Monats und trägt die vier Strategien ein. Diese hier
+    ist eine reine THEORIEABBILDUNG: derselbe Auswertungszeitraum wie der übrige
+    Kapitel 2, keine Strategien, keine Kennzahlenlegende.
+
+    Gezeigt werden zwei Ränder, und ihr Unterschied ist die Pointe von § 2.3:
+
+    1. Der UNBESCHRÄNKTE Rand (gestrichelt) folgt der geschlossenen Lösung
+           sigma^2(mu) = (a mu^2 - 2 b mu + c) / d
+       mit a = 1'S^-1 1, b = 1'S^-1 mu, c = mu'S^-1 mu, d = ac - b^2.
+       Er ist eine Hyperbel und läuft nach oben wie nach unten unbegrenzt weiter.
+
+    2. Der ZULÄSSIGE Rand (durchgezogen) erfüllt zusätzlich die Beschränkungen
+       dieser Arbeit: keine Leerverkäufe und höchstens ``max_weight`` je Titel.
+       Er wird numerisch gelöst (SLSQP), weil es dafür keine geschlossene Formel
+       mehr gibt.
+
+    Der auffällige Unterschied ist nicht die LAGE der Kurven — die liegen fast
+    aufeinander —, sondern ihre LÄNGE: Die Obergrenze von 20 % je Titel kappt
+    den erreichbaren Renditebereich, weil sich das Vermögen nicht mehr auf die
+    wenigen Titel mit der höchsten Rendite konzentrieren lässt.
+
+    Statt der Lehrbuch-Kapitalmarktlinie (deren Tangentialportfolio hier
+    Leerverkäufe von −79 % verlangte und weit außerhalb des Bildes läge) wird
+    die Gerade vom risikofreien Zins zum Maximum-Sharpe-Punkt des ZULÄSSIGEN
+    Randes gezeichnet. Der Unterschied gehört in den Text.
+    """
+    log.info("Theorieplot 17: Effizienzrand …")
+    mu_v, sigma, cov, _ = _annualised_moments(asset_returns)
+    mu_a = mu_v.values
+    S = cov.values
+    n = len(mu_a)
+    one = np.ones(n)
+
+    # ---- 1. Unbeschränkter Rand: geschlossene Lösung -------------------
+    S_inv = np.linalg.inv(S)
+    a = one @ S_inv @ one
+    b = one @ S_inv @ mu_a
+    c = mu_a @ S_inv @ mu_a
+    d = a * c - b * b
+    mu_mvp_un, sig_mvp_un = b / a, np.sqrt(1.0 / a)
+
+    # ---- 2. Zulässiger Rand: numerisch, mit den Beschränkungen ---------
+    # Erreichbarer Renditebereich unter der Obergrenze: Mit einer Kappe von
+    # 20 % lassen sich höchstens die fünf besten (bzw. schlechtesten) Titel
+    # zu je 20 % halten — das begrenzt mu nach oben und unten.
+    k = int(np.ceil(1.0 / max_weight))
+    mu_sort = np.sort(mu_a)
+    mu_lo, mu_hi = mu_sort[:k].mean(), mu_sort[-k:].mean()
+
+    bounds = [(0.0, max_weight)] * n
+    eq_sum = {"type": "eq", "fun": lambda w: w.sum() - 1.0}
+    ziele, rand_sig, rand_mu = np.linspace(mu_lo, mu_hi, n_points), [], []
+    for ziel in ziele:
+        cons = (eq_sum, {"type": "eq", "fun": lambda w, z=ziel: w @ mu_a - z})
+        res = minimize(lambda w: w @ S @ w, one / n, method="SLSQP",
+                       bounds=bounds, constraints=cons,
+                       options={"ftol": 1e-12, "maxiter": 800})
+        if res.success:
+            rand_sig.append(np.sqrt(res.fun))
+            rand_mu.append(ziel)
+    rand_sig, rand_mu = np.array(rand_sig), np.array(rand_mu)
+
+    # Minimum-Varianz- und Maximum-Sharpe-Punkt des zulässigen Randes
+    res_mvp = minimize(lambda w: w @ S @ w, one / n, method="SLSQP",
+                       bounds=bounds, constraints=(eq_sum,),
+                       options={"ftol": 1e-12, "maxiter": 800})
+    sig_mvp, mu_mvp = np.sqrt(res_mvp.fun), res_mvp.x @ mu_a
+    res_tan = minimize(lambda w: -(w @ mu_a - rf) / np.sqrt(w @ S @ w),
+                       one / n, method="SLSQP", bounds=bounds,
+                       constraints=(eq_sum,), options={"ftol": 1e-12, "maxiter": 800})
+    sig_tan, mu_tan = np.sqrt(res_tan.x @ S @ res_tan.x), res_tan.x @ mu_a
+
+    # ---- 3. Zeichnen ---------------------------------------------------
+    fig, ax = plt.subplots(figsize=(11, 7))
+
+    # Ausschnitt: am zulässigen Rand ausgerichtet. Die volatilsten Titel liegen
+    # bewusst ausserhalb — sie würden die Kurve sonst ins linke Fünftel drängen.
+    x_max = max(rand_sig.max(), sig_tan) * 100 * 1.12
+    y_min, y_max = 4.0, mu_hi * 100 * 1.16
+
+    # Beide Ränder bestehen aus zwei Ästen: oberhalb des Minimum-Varianz-Punktes
+    # liegen die EFFIZIENTEN Portfolios (mehr Rendite bei gleichem Risiko gibt es
+    # nicht), unterhalb die ineffizienten — zu jedem von ihnen existiert ein
+    # Portfolio mit gleichem Risiko und höherer Rendite. Deshalb wird der obere
+    # Ast kräftig und der untere nur dünn gezeichnet: Gegenstand von § 2.3 ist
+    # der obere.
+    mu_un = np.linspace(y_min / 100, y_max / 100, 300)
+    sig_un = np.sqrt((a * mu_un ** 2 - 2 * b * mu_un + c) / d)
+    ob_un = mu_un >= mu_mvp_un
+    ax.plot(sig_un[ob_un] * 100, mu_un[ob_un] * 100, color="#777777", linestyle="--",
+            linewidth=2.0, label="unbeschränkt (geschlossene Lösung)", zorder=2)
+    ax.plot(sig_un[~ob_un] * 100, mu_un[~ob_un] * 100, color="#bbbbbb", linestyle="--",
+            linewidth=1.0, zorder=2)
+
+    ob = rand_mu >= mu_mvp
+    ax.plot(rand_sig[ob] * 100, rand_mu[ob] * 100, color="#1f77b4", linewidth=3.2,
+            label=f"zulässig: keine Leerverkäufe, höchstens {max_weight:.0%} je Titel",
+            zorder=4)
+    ax.plot(rand_sig[~ob] * 100, rand_mu[~ob] * 100, color="#9ec5e8", linewidth=1.4,
+            zorder=4)
+
+    # Gerade vom risikofreien Zins zum Maximum-Sharpe-Punkt des zulässigen Randes.
+    # Sie berührt den Rand und schneidet ihn nicht — numerisch geprüft.
+    ax.plot([0, sig_tan * 100 * 1.18], [rf * 100, rf * 100 + (mu_tan - rf) * 1.18 * 100],
+            color="#9467bd", linestyle=":", linewidth=1.8,
+            label=f"Tangente vom risikofreien Zins ($r_f$ = {rf:.0%})", zorder=3)
+
+    # Einzeltitel, blass im Hintergrund
+    ax.scatter(sigma.values * 100, mu_a * 100, s=34, color="#b0c4de",
+               edgecolor="#5b7ea6", linewidth=0.6, zorder=5, label="Einzeltitel")
+    draussen = []
+    for t, s_i, m_i in zip(mu_v.index, sigma.values, mu_a):
+        if s_i * 100 > x_max or m_i * 100 > y_max:
+            draussen.append(t)
+        elif s_i * 100 > 0.86 * x_max:
+            # Titel nahe am rechten Rand: Kürzel nach LINKS setzen, sonst
+            # ragt die Beschriftung aus dem Bild.
+            ax.annotate(f"{t} ", (s_i * 100, m_i * 100), fontsize=8,
+                        color="#5b7ea6", va="center", ha="right", zorder=5)
+        else:
+            ax.annotate(f" {t}", (s_i * 100, m_i * 100), fontsize=8,
+                        color="#5b7ea6", va="center", zorder=5)
+
+    # Die beiden ausgezeichneten Punkte des zulässigen Randes
+    ax.scatter([sig_mvp * 100], [mu_mvp * 100], marker="D", s=70, color="#e7ba52",
+               edgecolor="black", linewidth=0.8, zorder=6,
+               label=f"Minimum-Varianz-Portfolio ({sig_mvp*100:.2f} %)")
+    ax.scatter([sig_tan * 100], [mu_tan * 100], marker="*", s=190, color="#9467bd",
+               edgecolor="black", linewidth=0.8, zorder=6,
+               label=f"Maximum-Sharpe-Portfolio (Sharpe {(mu_tan-rf)/sig_tan:.2f})")
+
+    ax.set_xlim(0, x_max)
+    ax.set_ylim(y_min, y_max)
+    ax.set_title("Der Effizienzrand und was die Beschränkungen davon übrig lassen\n"
+                 f"{len(asset_returns.columns)} Titel, Tagesdaten "
+                 f"{asset_returns.index[0]:%d.%m.%Y} – {asset_returns.index[-1]:%d.%m.%Y}",
+                 fontweight="bold")
+    ax.set_xlabel("Volatilität σ (% p. a.)")
+    ax.set_ylabel("Erwartete Rendite μ (% p. a.)")
+    ax.grid(alpha=0.3)
+    # Legende oben links: dort ist die Fläche leer, weil der Rand von links
+    # unten nach rechts oben verläuft.
+    ax.legend(loc="upper left", framealpha=0.95, fontsize=9)
+
+    if draussen:
+        ax.annotate("außerhalb des Ausschnitts: " + ", ".join(draussen),
+                    xy=(0.99, 0.015), xycoords="axes fraction", ha="right",
+                    fontsize=8.5, color="#666666", style="italic")
+
+    plt.savefig(output_path, dpi=200, bbox_inches="tight")
+    plt.close()
+
+    log.info(f"  MVP zulässig {sig_mvp*100:.3f} % gegen geschlossen "
+             f"{sig_mvp_un*100:.3f} % | erreichbare Rendite {mu_lo*100:.2f}–{mu_hi*100:.2f} % "
+             f"| Max-Sharpe {(mu_tan-rf)/sig_tan:.3f}"
+             + (f" | ausserhalb: {', '.join(draussen)}" if draussen else ""))
+
+
 def create_theory_plots(asset_returns: pd.DataFrame, returns_df: pd.DataFrame,
                         output_dir: str) -> None:
     """Erzeugt alle drei Theorie-Abbildungen in den Ergebnisordner.
@@ -308,3 +476,5 @@ def create_theory_plots(asset_returns: pd.DataFrame, returns_df: pd.DataFrame,
         zeitraum, os.path.join(output_dir, "15_theorie_diversifikationsgrenze.png"))
     plot_estimation_uncertainty(
         zeitraum, os.path.join(output_dir, "16_theorie_schaetzunsicherheit.png"))
+    plot_efficient_frontier_theory(
+        zeitraum, os.path.join(output_dir, "17_theorie_effizienzrand.png"))
