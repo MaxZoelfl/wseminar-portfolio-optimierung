@@ -26,6 +26,7 @@ from .data import *
 from .dashboard import *
 from .backtest import *
 from .plots import *
+from .theory_plots import create_theory_plots
 from .significance import (
     sharpe_difference_test, holm_bonferroni, deflated_sharpe_from_strategies,
 )
@@ -260,6 +261,12 @@ def main():
                     rfo, X_for_shap[avail_for_shap],
                     os.path.join(OUTPUT_DIR, "12_shap_explainability.png"),
                 )
+
+    # ------------------------------------------------------------------
+    # F2: Theorie-Abbildungen zu Kapitel 2 — sie zeigen keine Strategie,
+    #     sondern Eigenschaften der Kursdaten selbst (theory_plots.py).
+    # ------------------------------------------------------------------
+    create_theory_plots(asset_returns, returns_df, OUTPUT_DIR)
 
     # ------------------------------------------------------------------
     # G: CSV-Export — alle Ergebnistabellen für Excel & Co.

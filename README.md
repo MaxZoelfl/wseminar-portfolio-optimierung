@@ -139,3 +139,14 @@ Literaturverzeichnis steht in **[LIMITATIONS.md](LIMITATIONS.md)**.
 - **Driftbewusster Turnover:** neue Zielgewichte werden mit den über die letzte
   Halteperiode gedrifteten Vorgängergewichten verglichen. Equal Weight erhält so
   einen realistischen Rebalancing-Turnover (vorher fälschlich 0).
+
+## Theorie-Abbildungen zu Kapitel 2 einzeln erzeugen
+
+Die drei Abbildungen `output/14–16` zeigen keine Strategieergebnisse, sondern
+Eigenschaften der Kursdaten (Modul `portfolio/theory_plots.py`). Sie entstehen
+bei jedem vollen Lauf mit — brauchen aber nur `data/prices.pkl` und lassen sich
+deshalb in zwei Sekunden einzeln neu erzeugen, ohne den 28-minütigen Backtest:
+
+```bash
+venv/bin/python -c "import pandas as pd; from portfolio.theory_plots import create_theory_plots; from portfolio.config import TICKERS, OUTPUT_DIR; ar=pd.read_pickle('data/prices.pkl')[TICKERS].pct_change().dropna(); rd=pd.read_csv('output/daily_returns.csv',index_col=0,parse_dates=True); create_theory_plots(ar,rd,OUTPUT_DIR)"
+```
