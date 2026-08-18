@@ -242,6 +242,34 @@ Numerische Kontrolle (8 Assets, r_f = 4 %, identische Kovarianzmatrix):
 | μ ≈ −5 % (Baisse) | **0,471** | 0,146 |
 
 Im Baisse-Fall wählt der Optimierer also die gut **dreifache** Volatilität.
+
+**Theoretischer Hintergrund (Merton 1972).** Das ist keine Eigenart dieser
+Implementierung, sondern ein seit 1972 bewiesenes Ergebnis. Merton leitet den
+Effizienzrand geschlossen her und zeigt, dass ein **Tangentialportfolio** — also die
+Lösung der Sharpe-Maximierung bei Vorhandensein einer risikofreien Anlage — nur dann
+als *effizientes* Portfolio existiert, wenn
+
+$$r_f < \bar E = A/C$$
+
+gilt, wobei Ē die erwartete Rendite des Minimum-Varianz-Portfolios ist
+(S. 1865, Theorem II: „… if and only if R < Ē"). Bei r_f = Ē gibt es überhaupt keinen
+Berührpunkt — die Kapitalmarktlinien sind dann genau die Asymptoten des Rands —, bei
+r_f > Ē liegt der Berührpunkt auf dem **ineffizienten** unteren Ast. Mertons Fazit
+dazu (S. 1868): „Under no condition can one construct the entire frontier (with the
+riskless security included) by drawing tangent lines to the upper and lower parts of
+the frontier for risky assets only." Die Entartung in der Tabelle oben ist also die
+numerische Erscheinungsform eines bekannten Struktursatzes, und der Rückfall auf das
+Minimum-Varianz-Portfolio ist die theoretisch konsistente Antwort darauf.
+
+⚠ **Zwei Schwellen nicht verwechseln.** Mertons Grenze Ē = A/C ist **ohne**
+Nichtnegativitätsbedingung hergeleitet — er lässt Leerverkäufe und Kreditaufnahme
+ausdrücklich zu (S. 1852, Fn. 3: „the only constraint on the x_i is that they sum to
+unity"). Unter long-only mit Σw = 1 und Kappe 20 % ist A/C daher **nicht** die
+maßgebliche Grenze; hier greift die Entartung erst, wenn kein *zulässiges* Portfolio
+mehr μ_p > r_f erreicht, also wenn max μ_i ≤ r_f — und genau das prüft der Code.
+Merton belegt deshalb die **Struktur** des Problems (die Sharpe-Maximierung verliert
+oberhalb einer Zinsschwelle ihren Sinn), nicht den Auslöser der Abfrage in
+`optimizers.py`. In dieser Abgrenzung ist der Beleg auch im Kolloquium haltbar.
 Betroffen sind grundsätzlich beide Strategien; praktisch trifft es eher den
 Random Forest, weil seine Prognosen konditional sind und in Abschwüngen negativ
 werden können, während der gleitende 3-Jahres-Mittelwert der MVO im Sample
@@ -422,6 +450,7 @@ Datei gehört deshalb mit Abrufdatum zum Projekt.
 - Ledoit, O. & Wolf, M. (2008): Robust Performance Hypothesis Testing with the Sharpe Ratio. *Journal of Empirical Finance* 15(5), 850–859. DOI [10.1016/j.jempfin.2008.03.002](https://doi.org/10.1016/j.jempfin.2008.03.002) · 📄 [CORE (PDF)](https://core.ac.uk/outputs/11251901/)
 - Lo, A. W. (2002): The Statistics of Sharpe Ratios. *Financial Analysts Journal* 58(4), 36–52. DOI [10.2469/faj.v58.n4.2453](https://doi.org/10.2469/faj.v58.n4.2453) · 📄 [Preprint (Semantic Scholar)](https://www.semanticscholar.org/paper/The-Statistics-of-Sharpe-Ratios-Lo/05561b77acfdd034a585c32048819cc9ba6d1434)
 - López de Prado, M. (2018): *Advances in Financial Machine Learning*. Hoboken, NJ: Wiley. ISBN 978-1-119-48208-6. 🔒 [Wiley](https://www.wiley.com/en-us/Advances+in+Financial+Machine+Learning-p-9781119482086) · Kap. 7 (CV) als Vorschau: [SSRN 3104847](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3104847)
+- Merton, R. C. (1972): An Analytic Derivation of the Efficient Portfolio Frontier. *Journal of Financial and Quantitative Analysis* 7(4), 1851–1872. 🔒 [JSTOR 2329621](https://www.jstor.org/stable/2329621) — Volltext liegt als `Quellen/An_Analytic_Derivation_of_the_Efficient_Portfolio_Frontier_BSB.pdf` vor
 - Merton, R. C. (1980): On Estimating the Expected Return on the Market: An Exploratory Investigation. *Journal of Financial Economics* 8(4), 323–361. DOI [10.1016/0304-405X(80)90007-0](https://doi.org/10.1016/0304-405X(80)90007-0) · 📄 [NBER w0444](https://www.nber.org/papers/w0444)
 - Michaud, R. O. (1989): The Markowitz Optimization Enigma: Is 'Optimized' Optimal? *Financial Analysts Journal* 45(1), 31–42. DOI [10.2469/faj.v45.n1.31](https://doi.org/10.2469/faj.v45.n1.31) · 📄 [SSRN 2387669](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2387669)
 - Politis, D. N. & Romano, J. P. (1994): The Stationary Bootstrap. *Journal of the American Statistical Association* 89(428), 1303–1313. 🔒 DOI [10.1080/01621459.1994.10476870](https://doi.org/10.1080/01621459.1994.10476870)
