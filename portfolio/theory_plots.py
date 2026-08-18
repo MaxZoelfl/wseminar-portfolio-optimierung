@@ -211,14 +211,19 @@ def plot_diversification_limit(asset_returns: pd.DataFrame,
     rng = np.random.default_rng(THEORY_SEED)
     n_sim, vol_sim = [], []
     for n in range(1, n_assets + 1):
-        vols = []
+        varianzen = []
         for _ in range(n_draws):
             auswahl = rng.choice(n_assets, size=n, replace=False)
             w = np.ones(n) / n
             teilmatrix = C[np.ix_(auswahl, auswahl)]
-            vols.append(np.sqrt(w @ teilmatrix @ w))
+            varianzen.append(w @ teilmatrix @ w)
+        # WICHTIG: erst die VARIANZEN mitteln, dann die Wurzel ziehen.
+        # Mittelt man stattdessen die Volatilitäten, liegt das Ergebnis wegen
+        # der Jensenschen Ungleichung systematisch zu tief — bei N = 1 um rund
+        # 0,7 Prozentpunkte. Die Modellkurve ist ebenfalls die Wurzel eines
+        # Erwartungswerts; nur so sind Kurve und Punkte vergleichbar.
         n_sim.append(n)
-        vol_sim.append(np.mean(vols))
+        vol_sim.append(np.sqrt(np.mean(varianzen)))
 
     fig, ax = plt.subplots(figsize=(11, 6.5))
     ax.plot(n_modell, np.sqrt(var_modell) * 100, color="#1f77b4", linewidth=2.5,
