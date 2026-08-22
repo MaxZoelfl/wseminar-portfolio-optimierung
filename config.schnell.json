@@ -1,0 +1,7 @@
+{
+  "_kommentar": "NUR FUER PROBELAEUFE — nicht fuer die Arbeit. Der Random Forest sucht nur alle 6 Monate neue Hyperparameter statt jeden Monat, und das Live-Dashboard wird nur alle 5 Schritte gezeichnet. Der Lauf wird dadurch ein Mehrfaches schneller, die Ergebnisse weichen aber von denen in der Arbeit ab. Geschrieben wird nach ./output_probelauf, damit der massgebliche Ordner ./output unangetastet bleibt. Der kanonische Lauf entsteht OHNE diese Datei: venv/bin/python -m portfolio",
+
+  "output_dir": "./output_probelauf",
+  "rf_retune_every": 6,
+  "dashboard_update_every": 5
+}

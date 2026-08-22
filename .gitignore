@@ -23,6 +23,10 @@ __pycache__/
 run.log
 run_*.log
 
+# --- Probelaeufe und Sicherungskopien des Ergebnisordners (transient) ---
+output_probelauf/
+output_backup/
+
 # --- lokale Konfigurations-Overrides (Vorlage: config.example.json ist getrackt) ---
 config.json
 
