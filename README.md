@@ -21,53 +21,82 @@ Ideen samt Status in [Ideen-Backlog.md](Ideen-Backlog.md).
 ## Projektstruktur
 
 ```
-portfolio/                ← kanonische, modularisierte Codebasis
-  config.py               Typisierte Config (dataclass) + Umgebungs-Setup
-  data.py                 Marktdaten laden (yfinance) + Kursspeicher + einfache Renditen
-  indicators.py           Technische Indikatoren, Monats-Aggregation, CS-Ränge, Feature-Spalten
-  metrics.py              Kennzahlen (CAGR, Sharpe, Sortino, Drawdown, Calmar, VaR …)
-  cross_validation.py     Purged & Embargoed CV (López de Prado 2018)
-  optimizers.py           MarkowitzLedoitWolf, RiskParityPortfolio, RFPortfolioOptimizer
-  significance.py         Ledoit-Wolf-2008-Test, Holm-Bonferroni, Deflated Sharpe Ratio
-  backtest.py             Rollierender Walk-Forward-Backtest (die Hauptschleife)
-  dashboard.py            Live-Training-Dashboard (optional, nur mit Bildschirm)
-  plots.py                Ergebnis-Abbildungen 1–12 + CSV-/JSON-Export
-  theory_plots.py         Theorie-Abbildungen 14–18 zu Kapitel 2
-  run.py                  Orchestrierung (main), Abschnitte A–I
-  __main__.py             Einstiegspunkt für ``python -m portfolio``
-
-tests/                    ← 37 Unit-Tests (ohne Netzwerk, ~4 s)
-data/prices.pkl           ← eingefrorene Schlusskurse (Abruf 15.08.2026) — ohne sie
-                            ist der Backtest nicht reproduzierbar
-output/                   ← DER Ergebnisordner: 18 Abbildungen, 8 CSV, experiment_log.json
-run.log                   ← Protokoll des maßgeblichen Laufs (15.08.2026)
-
-Zusatzskripte im Stammordner (alle sekundenschnell, keiner braucht den Backtest):
-  signifikanz.py          Signifikanzblock aus daily_returns.csv nachrechnen
-  kosten_sensitivitaet.py Sharpe über Kostensätze 0–100 bp → Abb. 13 + CSV
-  nachrechnen_kapitel2.py Kontrollrechnung zu § 2.1 der Arbeit
-  nachrechnen_kapitel3.py Kontrollrechnung zu § 3.1–3.3 der Arbeit
-
-archive/projekt1.6.py     ← eingefrorene v4.1-Baseline (Einzeldatei-Referenz; enthält
-                            NICHT die späteren Paket-Erweiterungen)
-arbeit/                   ← Begleitdokumente + überholte APA-Fassung der Arbeit
-config.example.json       ← dokumentiert den kanonischen Lauf (= alle Defaults)
-requirements.txt          ← Python-Abhängigkeiten (Produktionslauf)
-requirements-dev.txt      ← zusätzlich pytest
-config.schnell.json       ← gefahrloser Probelauf → output_probelauf/
-LIMITATIONS.md            ← wissenschaftliche Limitationen & Literatur
-Handbook.md               ← Funktionsweise des Codes, mit Diagrammen
-Ideen-Backlog.md          ← Ideensammlung vom Mai, je Punkt mit Umsetzungsstatus
+Code/
+├── portfolio/      das Paket — hier steckt die gesamte Implementierung
+├── tests/          37 Unit-Tests, ohne Netzwerk, ~4 s
+├── data/           prices.pkl — eingefrorene Kurse, Abruf 15.08.2026
+├── output/         DER Ergebnisordner — 20 Abbildungen, 8 CSV, 1 JSON-Protokoll
+├── arbeit/         überholte APA-Fassung der Arbeit (Juli, nur Nachschlagewerk)
+├── archive/        eingefrorene v4.1-Baseline als Einzeldatei
+├── venv/           Python-Umgebung (nicht versioniert, ~547 MB)
+├── .vscode/        Interpreter-, Test- und Startkonfiguration
+└── (Stammordner)   4 Kontrollskripte · 2 Konfigurationen · 4 Doku-Dateien
 ```
+
+### Das Paket `portfolio/`
+
+In Ausführungsreihenfolge. Die Schicht sagt, worauf ein Modul aufbauen darf —
+jedes importiert nur nach unten, deshalb gibt es keine Zyklen
+(Schaubild in [Handbook.md § 2](Handbook.md#2-architektur-schichten-und-abhängigkeiten)).
+
+| Modul | Aufgabe | Schicht |
+|---|---|:---:|
+| `config.py` | Typisierte Config (`dataclass`), Logging, Plot-Design, Backend-Wahl | 0 |
+| `data.py` | Marktdaten laden (yfinance), Kursspeicher, einfache Renditen | 1 |
+| `indicators.py` | Technische Indikatoren, Monats-Aggregation, CS-Ränge, Feature-Listen | 2 |
+| `metrics.py` | CAGR, Sharpe, Sortino, Drawdown, Calmar, VaR, `@timer` | 1 |
+| `cross_validation.py` | Purged & Embargoed CV (López de Prado 2018) | 0 |
+| `optimizers.py` | `MarkowitzLedoitWolf`, `RiskParityPortfolio`, `RFPortfolioOptimizer` | 2 |
+| `significance.py` | Ledoit-Wolf-2008-Test, Holm-Bonferroni, Deflated Sharpe Ratio | 0 |
+| `backtest.py` | Rollierender Walk-Forward-Backtest — **die Hauptschleife** | 3 |
+| `dashboard.py` | Live-Training-Dashboard (optional, nur mit Bildschirm) | 2 |
+| `plots.py` | Ergebnis-Abbildungen 01–12, CSV- und JSON-Export | 3 |
+| `theory_plots.py` | Theorie-Abbildungen 14–18 zu Kapitel 2 der Arbeit | 3 |
+| `run.py` | Orchestrierung: `main()` mit den Abschnitten A–I | 3 |
+| `__init__.py` · `__main__.py` | Paketkennung und Einstiegspunkt für `python -m portfolio` | — |
+
+### Kontrollskripte im Stammordner
+
+Keines braucht den Backtest — sie lesen `output/` bzw. `data/prices.pkl`.
+
+| Skript | Rechnet nach | Dauer |
+|---|---|---|
+| `signifikanz.py` | Signifikanzblock aus `output/daily_returns.csv` | Sekunden |
+| `kosten_sensitivitaet.py` | Sharpe über Kostensätze 0–100 bp → Abb. 13 + CSV | Sekunden |
+| `nachrechnen_kapitel2.py` | § 2.1 der Arbeit, Schritt für Schritt | ~2 s |
+| `nachrechnen_kapitel3.py` | § 3.1–3.3 der Arbeit | ~10 s · `--sweep` 7 min · `--baumkorrelation` 55 min |
+
+> ⛔ Diese vier Dateinamen sind **im Text der Seminararbeit zitiert** (u. a.
+> `Abgabe/Textsammlung.md`, `Abgabe/Gliederung.md`). Nicht verschieben, nicht
+> umbenennen — sonst stimmen die Angaben in der Arbeit nicht mehr.
+
+### Daten, Ergebnisse, Altbestand
+
+| Pfad | Inhalt |
+|---|---|
+| `data/prices.pkl` | Schlusskurse vom 15.08.2026, splitt- und dividendenbereinigt. **Ohne sie ist der Backtest nicht reproduzierbar** — Yahoo liefert bei jedem Abruf minimal andere Werte. |
+| `output/` | Der maßgebliche Lauf: 19 PNG + 1 GIF, 8 CSV und `experiment_log.json` — Letzteres ist die **verbindliche Quelle** für jede Zahl der Arbeit. |
+| `run.log` | Protokoll dieses Laufs (15.08.2026, 77 min). `nachrechnen_kapitel3.py` liest daraus die gewählten Baumtiefen. |
+| `archive/projekt1.6.py` | Eingefrorene v4.1-Baseline als Einzeldatei. Enthält **nicht** die späteren Erweiterungen — keine Purged CV, keine Fairness-Optionen, die alten Sharpe- und Sortino-Definitionen. Referenz, nicht Alternative. |
+| `arbeit/` | Manuskript, Bauskripte und `.docx` der überholten APA-Fassung. Näheres am Ende dieser Datei. |
+
+### Konfiguration und Dokumentation
+
+| Datei | Inhalt |
+|---|---|
+| `config.example.json` | Alle Standardwerte — dokumentiert damit den kanonischen Lauf |
+| `config.schnell.json` | Gefahrloser Probelauf → `output_probelauf/` |
+| `requirements.txt` · `requirements-dev.txt` | Abhängigkeiten für Lauf bzw. Tests |
+| `conftest.py` | pytest-Setup: headless Matplotlib, Projektwurzel auf `sys.path` |
+| `README.md` | diese Datei — was das Projekt ist und wie man es bedient |
+| [`Handbook.md`](Handbook.md) | wie der Code funktioniert, mit 13 Diagrammen |
+| [`LIMITATIONS.md`](LIMITATIONS.md) | wissenschaftliche Limitationen und Literatur |
+| [`Ideen-Backlog.md`](Ideen-Backlog.md) | Ideensammlung vom Mai, je Punkt mit Umsetzungsstatus |
 
 > Frühere Entwicklungsstufen (projekt1.0–1.5 sowie der abgebrochene 2.x-Zweig)
 > wurden entfernt; sie bleiben über den ersten Commit (`Initial snapshot`) in der
 > Git-Historie erhalten und sind bei Bedarf wiederherstellbar.
->
-> **Hinweis:** `archive/projekt1.6.py` ist die eingefrorene v4.1-Baseline. Die
-> wissenschaftlichen Erweiterungen (robuste Signifikanztests, Purged CV,
-> Fairness-Optionen, Theorie-Abbildungen) liegen ausschließlich im Paket
-> `portfolio/`.
+
 
 ## Loslegen
 
@@ -121,7 +150,7 @@ welches den Dirigenten `main()` in `portfolio/run.py` aufruft. Was passiert:
 **98 % davon** entfallen auf die Hyperparametersuche des Random Forest, die in
 jedem der 119 Rebalancing-Monate neu läuft — und zwar einkernig, weil
 `deterministic=True` bitgenaue Reproduzierbarkeit erzwingt (siehe
-[Methodikoptionen](#methodikoptionen--seit-15082026-alle-standardmäßig-an)).
+[Methodikoptionen](#methodikoptionen-seit-15082026-alle-standardmäßig-an)).
 
 > ⚠️ Ein neuer Lauf **überschreibt `output/`** — genau daraus stammen die
 > Abbildungen und Zahlen der Seminararbeit. Vorher sichern:
@@ -142,9 +171,8 @@ Kurse, siehe LIMITATIONS.md § 12).
 
 ### 3. Einzelne Bausteine nachrechnen (Sekunden statt Stunden)
 
-Diese vier Skripte brauchen den Backtest **nicht**. Sie lesen die gespeicherten
-Ergebnisse bzw. die eingefrorenen Kurse und rechnen daraus nach — ideal, um eine
-einzelne Zahl im Text der Arbeit zu überprüfen.
+Ideal, um eine einzelne Zahl im Text der Arbeit zu überprüfen — was die vier
+Skripte jeweils tun, steht [oben in der Übersicht](#kontrollskripte-im-stammordner).
 
 ```bash
 venv/bin/python signifikanz.py                # Signifikanzblock nachrechnen (Sekunden)
@@ -160,10 +188,6 @@ venv/bin/python nachrechnen_kapitel3.py --baumkorrelation  # + Baumkorrelation (
 ab (gemessen 2·10⁻⁴, exakt eine von 4999 Bootstrap-Ziehungen). **Maßgeblich
 bleibt `output/experiment_log.json`.** Das Skript schreibt bewusst keine Datei,
 damit im Ergebnisordner nur eine Signifikanzquelle liegt.
-
-> Die Dateinamen dieser vier Skripte sind **im Text der Seminararbeit zitiert**
-> (u. a. `Abgabe/Textsammlung.md`, `Abgabe/Gliederung.md`). Sie dürfen deshalb
-> weder verschoben noch umbenannt werden.
 
 Die fünf Theorie-Abbildungen (`output/14`–`18`) zeigen keine Strategieergebnisse,
 sondern Eigenschaften der Kursdaten (Modul `portfolio/theory_plots.py`). Sie
@@ -226,7 +250,7 @@ Lauf nicht ab.
 Nicht über JSON einstellbar (strukturell festgelegt): `RANK_COLS`,
 `FEATURE_COLS`, `COLORS`, `STRATEGIES`.
 
-### Methodikoptionen — seit 15.08.2026 alle **standardmäßig an**
+### Methodikoptionen: seit 15.08.2026 alle standardmäßig an
 
 Die folgenden fünf Schalter waren zunächst als abschaltbare Korrekturen
 eingeführt und sind inzwischen der kanonische Standard. Wer sie ausschaltet,
