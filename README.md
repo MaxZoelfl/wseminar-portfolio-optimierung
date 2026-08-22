@@ -13,9 +13,10 @@ Walk-Forward-Backtest (2015–2024) auf 15 US-Large-Caps.
 > kommen in der Arbeit nicht vor; es waren Vorstufen mit behobenen Fehlern,
 > keine methodischen Alternativen.
 
-Eine Schritt-für-Schritt-Bedienanleitung steht in [ANLEITUNG.md](ANLEITUNG.md),
-die Erklärung der *Funktionsweise* in [Handbook.md](Handbook.md), die
-wissenschaftlichen Grenzen in [LIMITATIONS.md](LIMITATIONS.md).
+Diese Datei erklärt, **was** das Projekt ist und **wie man es bedient**. Die
+*Funktionsweise* des Codes steht in [Handbook.md](Handbook.md), die
+wissenschaftlichen Grenzen in [LIMITATIONS.md](LIMITATIONS.md), nicht umgesetzte
+Ideen samt Status in [Ideen-Backlog.md](Ideen-Backlog.md).
 
 ## Projektstruktur
 
@@ -53,10 +54,10 @@ arbeit/                   ← Begleitdokumente + überholte APA-Fassung der Arbe
 config.example.json       ← dokumentiert den kanonischen Lauf (= alle Defaults)
 requirements.txt          ← Python-Abhängigkeiten (Produktionslauf)
 requirements-dev.txt      ← zusätzlich pytest
+config.schnell.json       ← gefahrloser Probelauf → output_probelauf/
 LIMITATIONS.md            ← wissenschaftliche Limitationen & Literatur
 Handbook.md               ← Funktionsweise des Codes, mit Diagrammen
-ANLEITUNG.md              ← Bedienanleitung ohne Programmiervorkenntnisse
-Ideen-Backlog.md          ← nicht umgesetzte Ideen
+Ideen-Backlog.md          ← Ideensammlung vom Mai, je Punkt mit Umsetzungsstatus
 ```
 
 > Frühere Entwicklungsstufen (projekt1.0–1.5 sowie der abgebrochene 2.x-Zweig)
@@ -68,24 +69,69 @@ Ideen-Backlog.md          ← nicht umgesetzte Ideen
 > Fairness-Optionen, Theorie-Abbildungen) liegen ausschließlich im Paket
 > `portfolio/`.
 
-## Ausführen
+## Loslegen
+
+Alle Befehle werden im **Terminal** eingegeben (macOS: Programm „Terminal"
+öffnen, z. B. über `⌘ + Leertaste` → „Terminal" tippen). Zuerst in den
+Projektordner wechseln — davon gehen alle folgenden Befehle aus:
 
 ```bash
-python -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-
-python -m portfolio        # der vollständige Lauf
+cd /Users/max/Desktop/Schule/wSeminar/Code
 ```
+
+Wir benutzen immer `venv/bin/python` statt nur `python`. Das ist die
+projekteigene Python-Umgebung („virtual environment"), in der pandas,
+scikit-learn, matplotlib und der Rest bereits installiert sind; das systemweite
+`python` kennt diese Pakete nicht und bräche mit Fehlermeldungen ab. Fehlt der
+Ordner `venv/`, baut man ihn so neu auf:
+
+```bash
+python3 -m venv venv && venv/bin/pip install -r requirements-dev.txt
+```
+
+### 1. Prüfen, ob alles heil ist (ungefährlich, ~4 s)
+
+```bash
+MPLBACKEND=Agg venv/bin/python -m pytest tests/ -q
+```
+
+Erwartet: **`37 passed`**. `MPLBACKEND=Agg` zeichnet Diagramme nur unsichtbar im
+Speicher, es poppen also keine Fenster auf; `-q` heißt „quiet". Der Befehl lädt
+keine Daten und verändert nichts — der richtige erste Griff, wenn man nur wissen
+will, ob alles funktioniert.
+
+### 2. Den vollständigen Backtest starten
+
+```bash
+venv/bin/python -m portfolio
+```
+
+„Führe das Paket `portfolio` als Programm aus." Das startet `__main__.py`,
+welches den Dirigenten `main()` in `portfolio/run.py` aufruft. Was passiert:
+
+1. **Daten laden** — Tageskurse der 15 Aktien und des S&P-500-Fonds aus der
+   eingefrorenen Datei `data/prices.pkl`.
+2. **Simulation** — die Monat-für-Monat-Zeitmaschine 2015–2024 über
+   119 Rebalancing-Termine. Auf einem Rechner mit Bildschirm öffnet sich dabei
+   das **Live-Dashboard**.
+3. **Auswertung** — Kennzahlen und Signifikanztests erscheinen im Terminal,
+   Abbildungen, Tabellen und das Experimentprotokoll landen in `output/`.
 
 **Laufzeit rund 77 Minuten** (gemessen am maßgeblichen Lauf vom 15.08.2026).
 **98 % davon** entfallen auf die Hyperparametersuche des Random Forest, die in
 jedem der 119 Rebalancing-Monate neu läuft — und zwar einkernig, weil
-`deterministic=True` bitgenaue Reproduzierbarkeit erzwingt (siehe unten).
-Ergebnisse landen in `./output/`.
+`deterministic=True` bitgenaue Reproduzierbarkeit erzwingt (siehe
+[Methodikoptionen](#methodikoptionen--seit-15082026-alle-standardmäßig-an)).
 
 > ⚠️ Ein neuer Lauf **überschreibt `output/`** — genau daraus stammen die
 > Abbildungen und Zahlen der Seminararbeit. Vorher sichern:
-> `cp -r output output_backup`.
+>
+> ```bash
+> cp -r output output_backup
+> ```
+>
+> Zum bloßen Ausprobieren gibt es den gefahrlosen Probelauf (siehe unten), der
+> nach `output_probelauf/` schreibt und `output/` unangetastet lässt.
 
 **Internet wird nicht gebraucht**, solange `data/prices.pkl` existiert: Die
 Kurse werden von dort gelesen. Das Paket `yfinance` muss trotzdem installiert
@@ -94,7 +140,11 @@ sein, sonst bricht `main()` früh ab. Frischer Download: Datei löschen oder
 Zahlen der Arbeit vergleichbar (Yahoo liefert bei jedem Abruf minimal andere
 Kurse, siehe LIMITATIONS.md § 12).
 
-### Einzelne Bausteine ohne den vollen Backtest
+### 3. Einzelne Bausteine nachrechnen (Sekunden statt Stunden)
+
+Diese vier Skripte brauchen den Backtest **nicht**. Sie lesen die gespeicherten
+Ergebnisse bzw. die eingefrorenen Kurse und rechnen daraus nach — ideal, um eine
+einzelne Zahl im Text der Arbeit zu überprüfen.
 
 ```bash
 venv/bin/python signifikanz.py                # Signifikanzblock nachrechnen (Sekunden)
@@ -105,9 +155,15 @@ venv/bin/python nachrechnen_kapitel3.py --sweep            # + Tiefensweep (~7 m
 venv/bin/python nachrechnen_kapitel3.py --baumkorrelation  # + Baumkorrelation (~55 min)
 ```
 
-`signifikanz.py` liest die gerundete `daily_returns.csv` und weicht deshalb in
-der vierten Stelle des p-Werts ab; **maßgeblich bleibt
-`output/experiment_log.json`.**
+`signifikanz.py` liest die auf sechs Nachkommastellen gerundete
+`output/daily_returns.csv` und weicht deshalb in der vierten Stelle des p-Werts
+ab (gemessen 2·10⁻⁴, exakt eine von 4999 Bootstrap-Ziehungen). **Maßgeblich
+bleibt `output/experiment_log.json`.** Das Skript schreibt bewusst keine Datei,
+damit im Ergebnisordner nur eine Signifikanzquelle liegt.
+
+> Die Dateinamen dieser vier Skripte sind **im Text der Seminararbeit zitiert**
+> (u. a. `Abgabe/Textsammlung.md`, `Abgabe/Gliederung.md`). Sie dürfen deshalb
+> weder verschoben noch umbenannt werden.
 
 Die fünf Theorie-Abbildungen (`output/14`–`18`) zeigen keine Strategieergebnisse,
 sondern Eigenschaften der Kursdaten (Modul `portfolio/theory_plots.py`). Sie
@@ -125,11 +181,18 @@ Alle einstellbaren Parameter liegen typisiert in der `dataclass` `Config`
 (`portfolio/config.py`). Überschreiben ohne Code-Änderung:
 
 ```bash
-cp config.example.json config.json   # gewünschte Werte anpassen
-python -m portfolio                   # config.json wird automatisch geladen
-# oder eigener Pfad:
-PORTFOLIO_CONFIG=/pfad/zu/meiner.json python -m portfolio
+# Weg A: Datei config.json im Projektordner ablegen — wird automatisch geladen
+cp config.example.json config.json    # darin die gewünschten Werte ändern
+venv/bin/python -m portfolio
+
+# Weg B: eine beliebige Datei per Umgebungsvariable benennen
+PORTFOLIO_CONFIG=config.schnell.json venv/bin/python -m portfolio
 ```
+
+`config.json` wieder löschen = Originalverhalten. `config.example.json` enthält
+**alle Standardwerte** und dokumentiert damit genau den Lauf, aus dem die Zahlen
+der Arbeit stammen — es ist keine „Beispielabweichung", sondern die
+Nachschlagefassung des kanonischen Laufs.
 
 Nur die angegebenen Schlüssel werden überschrieben; der Rest bleibt auf Default.
 Unbekannte Schlüssel werden gemeldet und ignoriert, eine kaputte Datei bricht den
@@ -203,11 +266,39 @@ Standardwerte (`1`) lassen das Verhalten exakt wie im maßgeblichen Lauf:
 - **`dashboard_update_every`** — Live-Dashboard nur alle *k* Schritte rendern.
   Rein kosmetisch, **kein** Einfluss auf Kennzahlen.
 
+### Der gefahrlose Probelauf
+
+```bash
+PORTFOLIO_CONFIG=config.schnell.json venv/bin/python -m portfolio
+```
+
+`config.schnell.json` ändert drei Dinge: Hyperparametersuche nur alle 6 Monate,
+Dashboard nur alle 5 Schritte — und geschrieben wird nach **`output_probelauf/`**
+statt nach `output/`. Ergebnis: ein Mehrfaches schneller, **`output/` bleibt
+unangetastet**, die Zahlen weichen dafür von denen der Arbeit ab. Genau richtig,
+um zu sehen, *dass* alles läuft, ohne die maßgeblichen Ergebnisse zu riskieren.
+
+## In VS Code: alles per Knopfdruck
+
+Im Debug-Reiter (Play-Symbol mit Käfer, links) stehen fertige
+Startkonfigurationen bereit — auswählen und `F5` drücken. VS Code nimmt
+automatisch die venv:
+
+| Eintrag | Was er tut |
+|---|---|
+| **Tests (alle 37)** | die Prüfung von oben |
+| **Backtest komplett (⚠ ÜBERSCHREIBT output/)** | der volle Lauf, rund 77 min |
+| **Backtest schnell (→ output_probelauf/)** | der Probelauf |
+| **Signifikanz nachrechnen** | `signifikanz.py` |
+| **Kostensensitivität (Abb. 13)** | `kosten_sensitivitaet.py` |
+| **Kontrollrechnung Kapitel 3** | `nachrechnen_kapitel3.py` |
+| **Aktuelle Datei ausführen** | die geöffnete Datei, z. B. `nachrechnen_kapitel2.py` |
+
 ## Tests
 
 ```bash
 pip install -r requirements-dev.txt
-MPLBACKEND=Agg python -m pytest tests/ -q
+MPLBACKEND=Agg venv/bin/python -m pytest tests/ -q
 ```
 
 **37 Unit-Tests** (ohne Netzwerk, ~4 s) prüfen:
@@ -305,3 +396,41 @@ Literaturverzeichnis steht in **[LIMITATIONS.md](LIMITATIONS.md)**.
 | `turnover.csv` | Handelsumsatz je Strategie und Monat |
 | `kosten_sensitivitaet.csv` | Sharpe über 0–100 bp Kostensatz |
 | `experiment_log.json` | **das Laborprotokoll**: Parameter + Kennzahlen + Signifikanz |
+
+## Zum Word-Dokument — bitte lesen, bevor du etwas baust
+
+**Die Arbeit wird nicht mehr aus diesem Ordner gebaut.** Geschrieben wird von
+Hand in `../Abgabe/W-Seminararbeit_FINAL.docx`.
+
+Der Ordner `arbeit/` enthält die **überholte APA-Fassung** aus dem Juli: das
+Manuskript `arbeit/arbeit.md`, das Bauskript `arbeit/build_docx.py` und die
+daraus erzeugten `.docx`-Dateien. Sie sind als Nachschlagewerk aufgehoben, nicht
+als Arbeitsstand. Wer `arbeit/build_docx.py` trotzdem startet, sollte zwei Dinge
+wissen:
+
+1. Es baut die **alte** Fassung mit APA-Kurzbelegen — nicht die Schulform mit
+   Fußnoten, auf die am 26.07. umgestellt wurde.
+2. Die drei eingebundenen Abbildungen verweisen in `arbeit/arbeit.md` noch auf
+   den Ordner `output1.6/`, den es nicht mehr gibt. Sie fehlen im Ergebnis, ohne
+   dass der Bau abbricht.
+
+Falls es doch einmal gebraucht wird — `pandoc` muss auffindbar sein:
+
+```bash
+export PATH="/opt/homebrew/bin:$PATH"
+venv/bin/python arbeit/build_docx.py
+```
+
+Die Nebendokumente lassen sich analog bauen (`arbeit/build_quellen.py`,
+`arbeit/build_klappentext.py`).
+
+## Kurzfassung
+
+| Ich möchte … | Befehl | Dauer |
+|---|---|---|
+| prüfen, ob alles funktioniert | `MPLBACKEND=Agg venv/bin/python -m pytest tests/ -q` | ~4 s |
+| eine Zahl der Arbeit nachrechnen | `venv/bin/python signifikanz.py` | Sekunden |
+| gefahrlos ausprobieren | `PORTFOLIO_CONFIG=config.schnell.json venv/bin/python -m portfolio` | Minuten |
+| das volle Experiment laufen lassen | `venv/bin/python -m portfolio` | ~77 min |
+
+(Vorher jeweils: `cd /Users/max/Desktop/Schule/wSeminar/Code`)

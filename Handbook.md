@@ -4,9 +4,9 @@ Dieses Dokument erklärt die **Funktionsweise** der Codebasis: Wie die Bausteine
 zusammenhängen, in welcher Reihenfolge sie arbeiten, warum sie so gebaut sind
 und wo die methodisch heiklen Stellen sitzen.
 
-- Was das Projekt *ist* und wie man es *startet* → [README.md](README.md)
-- Schritt-für-Schritt-Bedienung ohne Programmiervorkenntnisse → [ANLEITUNG.md](ANLEITUNG.md)
+- Was das Projekt *ist* und wie man es *bedient* → [README.md](README.md)
 - Wissenschaftliche Grenzen und Literatur → [LIMITATIONS.md](LIMITATIONS.md)
+- Geplante, teils umgesetzte Ideen mit Status → [Ideen-Backlog.md](Ideen-Backlog.md)
 
 Der Code selbst ist durchgehend laienverständlich kommentiert; dieses Handbuch
 ergänzt die Vogelperspektive, die man in einzelnen Dateien nicht sieht.
