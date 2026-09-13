@@ -31,7 +31,6 @@ Code/
 ├── tests/          37 Unit-Tests, ohne Netzwerk, ~4 s
 ├── data/           prices.pkl — eingefrorene Kurse, Abruf 15.08.2026
 ├── output/         DER Ergebnisordner — 20 Abbildungen, 8 CSV, 1 JSON-Protokoll
-├── arbeit/         frühere Manuskriptfassung, nicht mehr gepflegt
 ├── archive/        eingefrorene v4.1-Baseline als Einzeldatei
 ├── venv/           Python-Umgebung (nicht versioniert, ~547 MB)
 ├── .vscode/        Interpreter-, Test- und Startkonfiguration
@@ -71,7 +70,7 @@ Keines braucht den Backtest — sie lesen `output/` bzw. `data/prices.pkl`.
 | `nachrechnen_kapitel2.py` | § 2.1 der Arbeit, Schritt für Schritt | ~2 s |
 | `nachrechnen_kapitel3.py` | § 3.1–3.3 der Arbeit | ~10 s · `--sweep` 7 min · `--baumkorrelation` 55 min |
 
-### Daten, Ergebnisse, Altbestand
+### Daten, Ergebnisse, Referenz
 
 | Pfad | Inhalt |
 |---|---|
@@ -79,7 +78,6 @@ Keines braucht den Backtest — sie lesen `output/` bzw. `data/prices.pkl`.
 | `output/` | Der maßgebliche Lauf: 19 PNG + 1 GIF, 8 CSV und `experiment_log.json` — Letzteres ist die **verbindliche Quelle** für jede Zahl der Arbeit. |
 | `run.log` | Protokoll dieses Laufs (15.08.2026, 77 min). `nachrechnen_kapitel3.py` liest daraus die gewählten Baumtiefen. |
 | `archive/projekt1.6.py` | Eingefrorene v4.1-Baseline als Einzeldatei. Enthält **nicht** die späteren Erweiterungen — keine Purged CV, keine Fairness-Optionen, die alten Sharpe- und Sortino-Definitionen. Referenz, nicht Alternative. |
-| `arbeit/` | Manuskript, Bauskripte und `.docx` der überholten APA-Fassung. Näheres am Ende dieser Datei. |
 
 ### Konfiguration und Dokumentation
 
@@ -418,15 +416,6 @@ Literaturverzeichnis steht in **[LIMITATIONS.md](LIMITATIONS.md)**.
 | `turnover.csv` | Handelsumsatz je Strategie und Monat |
 | `kosten_sensitivitaet.csv` | Sharpe über 0–100 bp Kostensatz |
 | `experiment_log.json` | **das Laborprotokoll**: Parameter + Kennzahlen + Signifikanz |
-
-## Der Ordner `arbeit/`
-
-Er enthält eine **frühere Manuskriptfassung** der Seminararbeit (Markdown, mit
-Bauskripten nach `.docx`) und wird nicht mehr gepflegt: Die Abgabefassung
-entsteht außerhalb dieses Repositories in einer anderen Zitierweise. Die
-Bauskripte verweisen zudem auf Abbildungen aus einem nicht mehr vorhandenen
-Ergebnisordner. Der Ordner bleibt als Nachschlagewerk erhalten; für die
-Ergebnisse der Arbeit ist er ohne Bedeutung.
 
 ## Kurzfassung
 
