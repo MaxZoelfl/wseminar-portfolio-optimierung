@@ -1,6 +1,6 @@
-# Verbesserungsvorschläge & Feature-Ideen für dein Portfolio-Optimierungsprojekt
+# Verbesserungsvorschläge & Feature-Ideen für das Portfolio-Optimierungsprojekt
 
-**Stand 22.08.2026 — bitte zuerst lesen.**
+**Vorbemerkung** (Umsetzungsstatus geprüft am 22.08.2026)
 
 Diese Liste entstand am **09.05.2026, also vor der Umsetzung**. Sie liest sich wie
 eine To-do-Liste, ist aber inzwischen zur Hälfte eine Erledigt-Liste:
@@ -17,7 +17,7 @@ liegen blieb.
 | 🟡 **teilweise** | 1.1 Walk-Forward · 2.1 Leakage · 4.2 Volatilitäts-Features · 5.1 Bootstrap · 6.1 Performance |
 | ⬜ **offen** | 1.2 Target-Variable · 1.3 Kovarianz · 2.3 mehr Modelle · 2.4 Ensemble · 3.2 CVaR · 3.3 Regime Switching · 4.3 Korrelationsfeatures |
 
-**Fürs Kolloquium:** Die offenen Punkte sind keine Versäumnisse, sondern
+**Einordnung:** Die offenen Punkte sind keine Versäumnisse, sondern
 Abgrenzungen. Auf die Frage nach XGBoost ist die ehrliche Antwort, dass schon der
 Random Forest die 1/N-Benchmark nicht signifikant schlägt — ein zweites Modell
 hätte am Befund nichts geändert, aber die Zahl der getesteten Strategien erhöht
@@ -122,7 +122,7 @@ Vorteil:
 
 ## 2.3 Mehr Modelle vergleichen
 
-> ⬜ **offen.** Nur Random Forest. Ridge oder XGBoost als Baseline wären der naheliegendste nächste Schritt — und die wahrscheinlichste Kolloquiumsfrage.
+> ⬜ **offen.** Nur Random Forest. Ridge oder XGBoost als Baseline wären der naheliegendste nächste Schritt — und die naheliegendste Rückfrage an die Arbeit.
 
 Aktuell:
 - Random Forest

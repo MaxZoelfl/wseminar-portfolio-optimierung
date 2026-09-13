@@ -644,7 +644,7 @@ stark — ohne die Schranke fräßen die Handelskosten den Prognosevorteil auf.
 | VaR 95 % | 5. Perzentil der Tagesrenditen | — |
 | Hit Rate | Anteil Tage mit `r > 0` | — |
 
-Zwei Definitionen wurden am 15.08.2026 auf die Lehrbuchform gebracht — beides
+Zwei Definitionen wurden im Lauf der Entwicklung auf die Lehrbuchform gebracht — beides
 sind Korrekturen, keine Geschmacksfragen:
 
 **Sharpe arithmetisch statt geometrisch.** Frühere Fassungen setzten die CAGR in
@@ -827,7 +827,7 @@ Optimierung eingingen.
 vorab: `MPLBACKEND=Agg` (keine Fenster) und Projektwurzel auf `sys.path`.
 
 ```bash
-MPLBACKEND=Agg venv/bin/python -m pytest tests/ -q
+MPLBACKEND=Agg python -m pytest tests/ -q
 ```
 
 Die Tests prüfen bewusst **Eigenschaften**, nicht Zahlenwerte aus einem
@@ -883,8 +883,8 @@ rein kosmetisch.
 
 **Die Fairness-Optionen sind Standard, nicht Extras.** `mvo_turnover_limit`,
 `turnover_ref_drifted`, `min_variance_fallback`, `use_purged_cv` und
-`deterministic` stehen alle auf „an". Wer sie ausschaltet, reproduziert die
-Vorstufen in `../Archiv/Robustheitslaeufe/` — die in der Arbeit bewusst nicht
+`deterministic` stehen alle auf „an". Wer sie ausschaltet, erhält die
+fehlerbehafteten Vorstufen des Experiments — die in der Arbeit bewusst nicht
 vorkommen.
 
 **`signifikanz.py` ist eine Kontrollrechnung, keine Quelle.**

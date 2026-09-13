@@ -95,7 +95,7 @@ def sharpe_ratio(returns: pd.Series, rf: float = RISK_FREE_RATE,
     Das mischt ein geometrisches Maß mit einem linear annualisierten Nenner,
     entspricht nicht Sharpes Definition — und lieferte für dieselbe Strategie
     einen anderen Wert als der Signifikanztest in ``significance.py``, der
-    schon immer arithmetisch rechnet. Seit 15.08.2026 rechnen beide gleich.
+    schon immer arithmetisch rechnet. Jetzt rechnen beide gleich.
     """
     d  = returns - rf / freq                 # Überschussrendite je Tag
     sd = d.std(ddof=1)

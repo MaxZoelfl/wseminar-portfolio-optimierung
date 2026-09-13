@@ -6,7 +6,7 @@ in 'backtest.py' erst nachträglich vom ersten Tag jeder Halteperiode abgezogen
 Kostensatz unabhängig, und die Kennzahlen für einen anderen Satz lassen sich
 exakt aus den gespeicherten Tagesrenditen zurückrechnen — ohne neuen Backtest.
 
-Aufruf:  venv/bin/python kosten_sensitivitaet.py [ordner]   (Standard: output)
+Aufruf:  python kosten_sensitivitaet.py [ordner]   (Standard: output)
 Ergebnis: <ordner>/kosten_sensitivitaet.csv und 13_kosten_sensitivitaet.png
 """
 import sys

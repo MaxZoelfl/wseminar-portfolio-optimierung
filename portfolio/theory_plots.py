@@ -39,12 +39,11 @@ mit denen später auch der Backtest läuft:
       17 gehalten, weil der weite Massstab den interessanten Teil der Kurve
       zusammendrückt — genau das ist hier aber die Aussage.
 
-WARUM DIESE DATEI ÜBERHAUPT ENTSTAND
-Die drei Bilder lagen bis zum 17.08.2026 nur als fertige PNG-Dateien im
-Ordner ``Abbildungen/`` vor, ohne erzeugenden Code. Sie waren damit weder
-reproduzierbar noch korrigierbar — ein Widerspruch zu Anhang C der Arbeit,
-der Reproduzierbarkeit für alles behauptet. Jetzt entstehen sie bei jedem
-Backtestlauf neu, aus derselben eingefrorenen Kursdatei.
+WARUM DIE BILDER HIER ENTSTEHEN UND NICHT ALS FERTIGE GRAFIKEN VORLIEGEN
+Die Arbeit beansprucht in Anhang C Reproduzierbarkeit für alle Ergebnisse —
+das schließt die Theorie-Abbildungen ein. Deshalb entstehen sie bei jedem
+Backtestlauf neu, aus derselben eingefrorenen Kursdatei wie alles andere, und
+lassen sich jederzeit korrigieren statt nur austauschen.
 
 WICHTIG — WELCHE DATEN HINEINGEHEN
 Alle drei Funktionen erwarten ``asset_returns`` bereits eingeschränkt auf den
@@ -65,8 +64,8 @@ from .config import *
 # ---------------------------------------------------------------------------
 # In der Seminararbeit steht unter jeder Abbildung eine Bildunterschrift. Eine
 # zusätzliche Überschrift IM Bild wäre eine Dublette und in wissenschaftlichen
-# Arbeiten unüblich. Deshalb werden die Überschriften seit dem 25.08.2026 nicht
-# mehr gezeichnet.
+# Arbeiten unüblich. Deshalb werden die Überschriften standardmäßig nicht
+# gezeichnet.
 #
 # Wer sie zurückhaben will (etwa für eine Präsentation), setzt vor dem Lauf
 #     export PLOT_TITLES=1
@@ -372,11 +371,11 @@ def plot_efficient_frontier_theory(asset_returns: pd.DataFrame,
     sie liegen fast aufeinander — als in ihrer Länge, weil die Obergrenze den
     erreichbaren Renditebereich beschneidet.
 
-    KAPITALMARKTLINIE UND TANGENTIALPORTFOLIO (``show_cml``) werden seit dem
-    25.08.2026 MASSSTABSGETREU ins selbe Bild gezeichnet. Bis dahin standen sie
-    in einem Nebenbild unten links, weil das Tangentialportfolio dieser Daten bei
-    rund 53 % Volatilität und 83 % erwarteter Rendite liegt — drei- bis viermal
-    so weit draussen wie der interessante Teil der Kurve.
+    KAPITALMARKTLINIE UND TANGENTIALPORTFOLIO (``show_cml``) werden
+    MASSSTABSGETREU ins selbe Bild gezeichnet — bewusst nicht in ein Nebenbild,
+    obwohl das Tangentialportfolio dieser Daten bei rund 53 % Volatilität und
+    83 % erwarteter Rendite liegt, drei- bis viermal so weit draussen wie der
+    interessante Teil der Kurve.
 
     Der weite Massstab drückt den Bogen zusammen. Genau das ist aber die Aussage:
     Das theoretisch optimale Portfolio liegt weit ausserhalb dessen, was ein
@@ -477,9 +476,9 @@ def plot_efficient_frontier_theory(asset_returns: pd.DataFrame,
                 color="#7a6220", ha="right", zorder=6)
 
     # ---- Kapitalmarktlinie und Tangentialportfolio im Hauptbild --------
-    # Bis zum 25.08.2026 standen beide in einem Nebenbild unten links, weil das
-    # Tangentialportfolio den Massstab des Ausschnitts sprengte. Seit dem Umbau
-    # ist die Abbildung massstabsgetreu: eine Darstellung, ein Massstab.
+    # Beide stehen im Hauptbild, nicht in einem Nebenbild — auch wenn das
+    # Tangentialportfolio den Massstab des Ausschnitts sprengt. Die Abbildung
+    # bleibt so massstabsgetreu: eine Darstellung, ein Massstab.
     if show_cml:
         # Die Kapitalmarktlinie beruehrt den Rand genau im Tangentialportfolio.
         x_cml = np.array([0.0, x_max])

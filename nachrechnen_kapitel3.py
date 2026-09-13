@@ -10,10 +10,10 @@ Sie ändert NICHTS am Projekt und schreibt keine Datei. Sie liest die
 eingefrorenen Kursdaten `data/prices.pkl`, den Ergebnisordner `output/` und
 das Laufprotokoll `run.log`.
 
-AUFRUF (aus dem Ordner Code/):
-    venv/bin/python nachrechnen_kapitel3.py                    # Schritte 1-3, ~10 Sekunden
-    venv/bin/python nachrechnen_kapitel3.py --sweep            # + Schritt 4, ~7 Minuten
-    venv/bin/python nachrechnen_kapitel3.py --baumkorrelation  # + Schritt 5, ~55 Minuten
+AUFRUF (aus dem Stammordner des Repositories, virtuelle Umgebung aktiviert):
+    python nachrechnen_kapitel3.py                    # Schritte 1-3, ~10 Sekunden
+    python nachrechnen_kapitel3.py --sweep            # + Schritt 4, ~7 Minuten
+    python nachrechnen_kapitel3.py --baumkorrelation  # + Schritt 5, ~55 Minuten
 
 AUFBAU:
     Schritt 1  § 3.1 — das Panel, das der Wald zu lernen versucht

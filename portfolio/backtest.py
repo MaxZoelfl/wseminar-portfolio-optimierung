@@ -179,11 +179,11 @@ def run_backtest(asset_prices: pd.DataFrame,
         # try/except als Sicherheitsnetz: Falls der Optimierer in einem Monat
         # scheitert (selten, z. B. keine Konvergenz), wird neutral auf 1/N
         # ausgewichen statt den ganzen Backtest abzubrechen.
-        # MVO_TURNOVER_LIMIT steht seit 15.08.2026 standardmäßig auf 0.30 —
-        # dieselbe Handelsrestriktion wie für den Random Forest. Nur dann
-        # unterscheiden sich die beiden Strategien wirklich AUSSCHLIESSLICH
-        # im Renditeschätzer. Auf None gesetzt entfällt das Limit (früheres
-        # Verhalten, siehe Archiv/Robustheitslaeufe/).
+        # MVO_TURNOVER_LIMIT steht standardmäßig auf 0.30 — dieselbe
+        # Handelsrestriktion wie für den Random Forest. Nur dann unterscheiden
+        # sich die beiden Strategien wirklich AUSSCHLIESSLICH im
+        # Renditeschätzer. Auf None gesetzt entfällt das Limit (früheres,
+        # unfaires Verhalten; siehe LIMITATIONS.md, Abschnitt 10).
         try:
             w_mvo = mvo.max_sharpe(
                 mu_hist, cov_ann,

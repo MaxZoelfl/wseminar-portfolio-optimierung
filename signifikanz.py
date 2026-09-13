@@ -10,7 +10,7 @@ vierten Stelle des p-Werts ab (gemessen: 2e-4, das entspricht genau einer von
 4999 Bootstrap-Ziehungen). Die Zahlen für die Arbeit stehen in
 '<ordner>/experiment_log.json' — dort rechnet der Lauf mit voller Genauigkeit.
 
-Aufruf:  venv/bin/python signifikanz.py [ordner]     (Standard: output)
+Aufruf:  python signifikanz.py [ordner]     (Standard: output)
 Ausgabe: nur auf den Bildschirm; es wird bewusst keine Datei geschrieben,
 damit im Ergebnisordner nur EINE Signifikanzquelle liegt.
 """

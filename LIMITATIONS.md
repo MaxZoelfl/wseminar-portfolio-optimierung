@@ -104,7 +104,7 @@ Das monatliche Target wird aus **überlappenden** Tagesfenstern gebildet
 den Folgemonat. Standard-`TimeSeriesSplit` entfernt diese Überlappung nicht →
 optimistisch verzerrte CV-Scores.
 
-**Umgesetzt** (`portfolio/cross_validation.py`, seit 14.08.2026 **Standard**,
+**Umgesetzt** (`portfolio/cross_validation.py`, **Standard**,
 `use_purged_cv = True`, `cv_embargo = 0.02`): **Purged & Embargoed
 Cross-Validation** nach López de Prado (2018) — entfernt überlappende
 Label-Perioden (Purging) und eine Embargo-Zone nach dem Test-Fenster.
@@ -198,7 +198,7 @@ Optimum ein. Praktisch fällt sie im dokumentierten Lauf gering aus: Der RF
 handelt mit Ø 30,8 % Turnover ohnehin **mehr** als die MVO (Ø 13,6 %), das Limit
 bindet also selten.
 
-**Umgesetzt** (`config.mvo_turnover_limit`, seit 14.08.2026 **Standard 0.30**):
+**Umgesetzt** (`config.mvo_turnover_limit`, **Standard 0.30**):
 Dieselbe Handelsrestriktion gilt für beide Strategien; erst dann unterscheiden
 sie sich ausschließlich im Renditeschätzer.
 
@@ -212,11 +212,11 @@ messen dadurch nicht dasselbe, und der realisierte Turnover kann das nominelle
 Limit überschreiten — im dokumentierten Lauf liegt der RF-Mittelwert mit 30,8 %
 über dem Limit von 30 %.
 
-**Umgesetzt** (`config.turnover_ref_drifted`, seit 14.08.2026 **Standard `true`**):
+**Umgesetzt** (`config.turnover_ref_drifted`, **Standard `true`**):
 beide Größen nutzen dieselbe Referenz.
 
-**Ausmaß im echten Backtest 2015–2024** (archivierte Läufe in
-`Archiv/Robustheitslaeufe/`):
+**Ausmaß im echten Backtest 2015–2024** (Vergleichslauf mit der alten
+Referenz, nicht Teil des Repositories):
 Der Random Forest überschritt sein nominelles Limit von 30 % in **100 von 118**
 Monaten, im Extremfall mit 34,9 % Turnover. Mit der korrigierten Referenz sind
 es **null** Überschreitungen, der Maximalwert liegt exakt auf 30,0 %. Der
@@ -269,7 +269,7 @@ maßgebliche Grenze; hier greift die Entartung erst, wenn kein *zulässiges* Por
 mehr μ_p > r_f erreicht, also wenn max μ_i ≤ r_f — und genau das prüft der Code.
 Merton belegt deshalb die **Struktur** des Problems (die Sharpe-Maximierung verliert
 oberhalb einer Zinsschwelle ihren Sinn), nicht den Auslöser der Abfrage in
-`optimizers.py`. In dieser Abgrenzung ist der Beleg auch im Kolloquium haltbar.
+`optimizers.py`. In dieser Abgrenzung ist der Beleg haltbar.
 Betroffen sind grundsätzlich beide Strategien; praktisch trifft es eher den
 Random Forest, weil seine Prognosen konditional sind und in Abschwüngen negativ
 werden können, während der gleitende 3-Jahres-Mittelwert der MVO im Sample
@@ -278,7 +278,7 @@ werden können, während der gleitende 3-Jahres-Mittelwert der MVO im Sample
 **Umgesetzt** (`portfolio/optimizers.py`): Der Fall wird erkannt und **immer**
 protokolliert (`Max-Sharpe entartet: …`) — auch bei ausgeschalteter Option, damit
 sich im Laufprotokoll nachzählen lässt, wie oft er auftrat. Mit
-`config.min_variance_fallback` (seit 14.08.2026 **Standard `true`**) weicht die Strategie dann auf das
+`config.min_variance_fallback` (**Standard `true`**) weicht die Strategie dann auf das
 **Minimum-Varianz-Portfolio** aus (unter denselben Nebenbedingungen inklusive
 Turnover-Schranke). Ökonomisch ist das die konsistente Wahl: Wenn die
 Renditeschätzung keine Kompensation für Risiko verspricht, ist Risiko-
@@ -346,7 +346,7 @@ weshalb zwei Läufe desselben Codes minimal auseinanderliegen — an einem
 synthetischen Backtest über 47 Monate gemessen: max. 3·10⁻¹⁰ in den
 Tagesrenditen.
 
-### ⚠ Korrektur vom 15.08.2026: Der Effekt ist **nicht** vernachlässigbar
+### ⚠ Korrektur: Der Effekt ist **nicht** vernachlässigbar
 
 Frühere Fassungen dieses Abschnitts nannten die Abweichung „weit unterhalb der
 Rundung irrelevant". Das gilt für die Tagesrenditen — **nicht aber für den Weg
@@ -370,7 +370,7 @@ Unterschied über Prognosen, Gewichte und Umschlag bis in die Kennzahlen fort.
 anderen drei Strategien sind davon nicht betroffen — sie haben keine
 Hyperparameter und reproduzieren sich exakt.
 
-**Umgesetzt** (`config.deterministic`, seit 15.08.2026 **Standard `true`**):
+**Umgesetzt** (`config.deterministic`, **Standard `true`**):
 Random Forest und Hyperparametersuche laufen einkernig (`n_jobs=1`); damit ist
 der Lauf bitgenau wiederholbar. Kosten: die Tuning-Zeit steigt von rund 12 auf
 rund 41 Minuten. Für einen einmaligen Referenzlauf ist das der richtige Tausch —

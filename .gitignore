@@ -37,3 +37,6 @@ W-Seminararbeit_Formales.pdf
 # Kursdatei bewusst versionieren — ohne sie ist der Backtest nicht
 # reproduzierbar (siehe LIMITATIONS.md, Abschnitt 12).
 !data/prices.pkl
+
+# --- persoenliches Arbeitswerkzeug (misst den Umfang der Arbeit in Abgabe/) ---
+seiten_messen.py

@@ -1,7 +1,6 @@
 {
   // Startkonfigurationen für den Debug-Reiter (Play-Symbol mit Käfer, links).
   // Auswählen und F5 drücken — VS Code nimmt automatisch die venv.
-  // Stand: 22.08.2026
   "version": "0.2.0",
   "configurations": [
     {

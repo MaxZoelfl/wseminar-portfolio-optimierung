@@ -44,8 +44,8 @@ from .optimizers import *
 # ---------------------------------------------------------------------------
 # In der Seminararbeit steht unter jeder Abbildung eine Bildunterschrift. Eine
 # zusätzliche Überschrift IM Bild wäre eine Dublette und in wissenschaftlichen
-# Arbeiten unüblich. Deshalb werden die Überschriften seit dem 25.08.2026 nicht
-# mehr gezeichnet.
+# Arbeiten unüblich. Deshalb werden die Überschriften standardmäßig nicht
+# gezeichnet.
 #
 # Wer sie zurückhaben will (etwa für eine Präsentation), setzt vor dem Lauf
 #     export PLOT_TITLES=1
@@ -454,11 +454,10 @@ def plot_frontier_evolution(frontier_snapshots: list, output_path: str) -> None:
     ax.xaxis.set_major_formatter(mtick.StrMethodFormatter("{x:.0f}%"))
     ax.yaxis.set_major_formatter(mtick.StrMethodFormatter("{x:.0f}%"))
     ax.legend(loc="upper left", fontsize=9, framealpha=0.9)
-    # Der Erklaerkasten ("Die Frontier verschiebt sich mit jeder Neuschaetzung
-    # von mu und Sigma") ist am 25.08.2026 ENTFALLEN. Er sass oben links unter
-    # der Ueberschrift und lag nach deren Wegfall unter der Legende. Inhaltlich
-    # sagt er dasselbe wie die Bildunterschrift der Arbeit — eine Abbildung
-    # braucht keine zweite Beschriftung im Bild.
+    # Bewusst KEIN Erklaerkasten im Bild ("Die Frontier verschiebt sich mit
+    # jeder Neuschaetzung von mu und Sigma"): Er sagte dasselbe wie die
+    # Bildunterschrift der Arbeit und lag ohne Ueberschrift unter der Legende —
+    # eine Abbildung braucht keine zweite Beschriftung im Bild.
     plt.tight_layout()
     plt.savefig(output_path, dpi=200, bbox_inches="tight")
     plt.close()

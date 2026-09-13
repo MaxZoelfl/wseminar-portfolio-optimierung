@@ -10,8 +10,8 @@ Angabe im Text überprüfen, ohne den vollständigen Backtest laufen zu lassen
 Sie ändert NICHTS am Projekt und schreibt keine Datei. Sie liest nur die
 eingefrorenen Kursdaten `data/prices.pkl` und gibt Zahlen aus.
 
-AUFRUF (aus dem Ordner Code/):
-    venv/bin/python nachrechnen_kapitel2.py
+AUFRUF (aus dem Stammordner des Repositories, virtuelle Umgebung aktiviert):
+    python nachrechnen_kapitel2.py
 
 AUFBAU — die fünf Schritte entsprechen dem Aufbau von § 2.1:
     Schritt 1  Formel (2.1): aus Kursen werden Renditen
