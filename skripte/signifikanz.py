@@ -10,7 +10,7 @@ vierten Stelle des p-Werts ab (gemessen: 2e-4, das entspricht genau einer von
 4999 Bootstrap-Ziehungen). Die Zahlen für die Arbeit stehen in
 '<ordner>/experiment_log.json' — dort rechnet der Lauf mit voller Genauigkeit.
 
-Aufruf:  python signifikanz.py [ordner]     (Standard: output)
+Aufruf:  python skripte/signifikanz.py [ordner]     (Standard: output/ im Projekt)
 Ausgabe: nur auf den Bildschirm; es wird bewusst keine Datei geschrieben,
 damit im Ergebnisordner nur EINE Signifikanzquelle liegt.
 """
@@ -20,11 +20,17 @@ from pathlib import Path
 
 import pandas as pd
 
+# Projektstamm = eine Ebene über skripte/. Damit ist ``import portfolio`` auch
+# beim direkten Aufruf ``python skripte/signifikanz.py`` möglich, und der
+# Standard-Ergebnisordner liegt fest — unabhängig davon, von wo man startet.
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+
 from portfolio.config import RISK_FREE_RATE
 from portfolio.significance import (deflated_sharpe_from_strategies,
                                     holm_bonferroni, sharpe_difference_test)
 
-ORDNER = Path(sys.argv[1] if len(sys.argv) > 1 else "output")
+ORDNER = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "output"
 KURZ = {"Random Forest": "RF", "Markowitz MVO": "MVO",
         "Equal Weight": "EW", "Risk Parity": "RP"}
 

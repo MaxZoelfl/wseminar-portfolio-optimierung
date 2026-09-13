@@ -6,7 +6,7 @@ in 'backtest.py' erst nachträglich vom ersten Tag jeder Halteperiode abgezogen
 Kostensatz unabhängig, und die Kennzahlen für einen anderen Satz lassen sich
 exakt aus den gespeicherten Tagesrenditen zurückrechnen — ohne neuen Backtest.
 
-Aufruf:  python kosten_sensitivitaet.py [ordner]   (Standard: output)
+Aufruf:  python skripte/kosten_sensitivitaet.py [ordner]   (Standard: output/ im Projekt)
 Ergebnis: <ordner>/kosten_sensitivitaet.csv und 13_kosten_sensitivitaet.png
 """
 import sys
@@ -18,10 +18,14 @@ import matplotlib.pyplot as plt
 import os
 import pandas as pd
 
+# Projektstamm = eine Ebene über skripte/ (Erklärung siehe signifikanz.py).
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+
 from portfolio.config import TRANSACTION_COST
 from portfolio.metrics import cagr, annualized_vol, sharpe_ratio, max_drawdown
 
-ORDNER = Path(sys.argv[1] if len(sys.argv) > 1 else "output")
+ORDNER = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "output"
 SAETZE = [b / 10_000 for b in range(0, 105, 5)]        # 0 bis 100 bp in 5-bp-Schritten
 SPALTEN = {"Markowitz MVO": "turnover_mvo", "Random Forest": "turnover_rf",
            "Equal Weight": "turnover_ew",  "Risk Parity":  "turnover_rp"}

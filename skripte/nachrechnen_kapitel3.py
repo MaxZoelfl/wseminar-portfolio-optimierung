@@ -10,10 +10,10 @@ Sie ändert NICHTS am Projekt und schreibt keine Datei. Sie liest die
 eingefrorenen Kursdaten `data/prices.pkl`, den Ergebnisordner `output/` und
 das Laufprotokoll `run.log`.
 
-AUFRUF (aus dem Stammordner des Repositories, virtuelle Umgebung aktiviert):
-    python nachrechnen_kapitel3.py                    # Schritte 1-3, ~10 Sekunden
-    python nachrechnen_kapitel3.py --sweep            # + Schritt 4, ~7 Minuten
-    python nachrechnen_kapitel3.py --baumkorrelation  # + Schritt 5, ~55 Minuten
+AUFRUF (virtuelle Umgebung aktiviert):
+    python skripte/nachrechnen_kapitel3.py                    # Schritte 1-3, ~10 Sekunden
+    python skripte/nachrechnen_kapitel3.py --sweep            # + Schritt 4, ~7 Minuten
+    python skripte/nachrechnen_kapitel3.py --baumkorrelation  # + Schritt 5, ~55 Minuten
 
 AUFBAU:
     Schritt 1  § 3.1 — das Panel, das der Wald zu lernen versucht
@@ -33,7 +33,15 @@ import warnings
 import numpy as np
 import pandas as pd
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Projektstamm = eine Ebene über skripte/. Zwei Dinge hängen daran:
+#   1. ``import portfolio`` beim direkten Aufruf ``python skripte/…``.
+#   2. Das Paket liest den Kursspeicher relativ zum ARBEITSVERZEICHNIS
+#      (config.price_cache = "./data/prices.pkl"). Deshalb wird hier in den
+#      Stammordner gewechselt — sonst würde bei Aufruf aus einem anderen Ordner
+#      der Speicher verfehlt und ein frischer, abweichender Download angestoßen.
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+os.chdir(ROOT)
 
 from portfolio.config import TICKERS, SPY_TICKER, START_DATE, END_DATE, \
     TRAIN_YEARS, CV_EMBARGO

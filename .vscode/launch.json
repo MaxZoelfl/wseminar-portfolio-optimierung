@@ -53,7 +53,7 @@
       "name": "Signifikanz nachrechnen",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/signifikanz.py",
+      "program": "${workspaceFolder}/skripte/signifikanz.py",
       "console": "integratedTerminal",
       "cwd": "${workspaceFolder}",
       "justMyCode": true
@@ -64,7 +64,7 @@
       "name": "Kostensensitivität (Abb. 13)",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/kosten_sensitivitaet.py",
+      "program": "${workspaceFolder}/skripte/kosten_sensitivitaet.py",
       "console": "integratedTerminal",
       "cwd": "${workspaceFolder}",
       "justMyCode": true
@@ -76,7 +76,7 @@
       "name": "Kontrollrechnung Kapitel 3",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/nachrechnen_kapitel3.py",
+      "program": "${workspaceFolder}/skripte/nachrechnen_kapitel3.py",
       "args": [],
       "console": "integratedTerminal",
       "cwd": "${workspaceFolder}",
@@ -84,7 +84,7 @@
     },
     {
       // Die gerade offene Datei ausführen — praktisch beim Herumprobieren und
-      // für die übrigen Zusatzskripte (z. B. nachrechnen_kapitel2.py).
+      // für die übrigen Skripte (z. B. skripte/nachrechnen_kapitel2.py).
       "name": "Aktuelle Datei ausführen",
       "type": "debugpy",
       "request": "launch",

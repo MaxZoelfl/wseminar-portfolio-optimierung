@@ -10,8 +10,8 @@ Angabe im Text überprüfen, ohne den vollständigen Backtest laufen zu lassen
 Sie ändert NICHTS am Projekt und schreibt keine Datei. Sie liest nur die
 eingefrorenen Kursdaten `data/prices.pkl` und gibt Zahlen aus.
 
-AUFRUF (aus dem Stammordner des Repositories, virtuelle Umgebung aktiviert):
-    python nachrechnen_kapitel2.py
+AUFRUF (virtuelle Umgebung aktiviert):
+    python skripte/nachrechnen_kapitel2.py
 
 AUFBAU — die fünf Schritte entsprechen dem Aufbau von § 2.1:
     Schritt 1  Formel (2.1): aus Kursen werden Renditen
@@ -21,8 +21,14 @@ AUFBAU — die fünf Schritte entsprechen dem Aufbau von § 2.1:
     Schritt 5  Gegenprobe: Formel gegen direkte Berechnung
 """
 
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
+
+# Projektstamm = eine Ebene über skripte/; so findet das Skript die Kursdatei
+# unabhängig davon, aus welchem Ordner es gestartet wird.
+ROOT = Path(__file__).resolve().parent.parent
 
 # Die 15 Titel des Anlageuniversums, in der Reihenfolge aus config.py.
 TICKERS = ["AAPL", "MSFT", "NVDA", "JNJ", "UNH", "JPM", "GS", "PG",
@@ -46,12 +52,12 @@ def trennlinie(text):
 # um Splits und Dividenden. Die Datei ist eingefroren, damit die Rechnung
 # reproduzierbar bleibt — Yahoo liefert bei jedem neuen Abruf leicht andere
 # Werte (siehe Anhang C der Arbeit).
-kurse = pd.read_pickle("data/prices.pkl")[TICKERS]
+kurse = pd.read_pickle(ROOT / "data" / "prices.pkl")[TICKERS]
 
 # Zeitraum: genau der des Backtests. Die Datei daily_returns.csv aus dem
 # Ergebnisordner legt Anfangs- und Enddatum fest, damit hier dieselbe
 # Stichprobe verwendet wird wie in Kapitel 6.
-backtest = pd.read_csv("output/daily_returns.csv", index_col=0, parse_dates=True)
+backtest = pd.read_csv(ROOT / "output" / "daily_returns.csv", index_col=0, parse_dates=True)
 start, ende = backtest.index[0], backtest.index[-1]
 
 

@@ -421,7 +421,7 @@ sequenceDiagram
 Trainingszeilen aller 15 Aktien werden gestapelt (`pd.concat`), damit das Modell
 titelübergreifende Muster findet. Je Titel stehen nur rund drei Dutzend
 Monatszeilen zur Verfügung — ein Modell *pro* Aktie wäre hoffnungslos datenarm.
-Gepoolt ergibt das (gemessen mit `nachrechnen_kapitel3.py`):
+Gepoolt ergibt das (gemessen mit `skripte/nachrechnen_kapitel3.py`):
 
 | Größe | Wert |
 |---|---|
@@ -608,7 +608,7 @@ in `turnover.csv` bei jeder Strategie ein Maximum von 1,000.
 
 **Kosten gehen nicht in die Optimierung ein.** Sie werden nachträglich vom ersten
 Tag der Halteperiode abgezogen. Gewichte und Umschlag sind damit vom Kostensatz
-*unabhängig* — und genau deshalb kann `kosten_sensitivitaet.py` die Kennzahlen
+*unabhängig* — und genau deshalb kann `skripte/kosten_sensitivitaet.py` die Kennzahlen
 für jeden anderen Satz exakt zurückrechnen, ohne den Backtest zu wiederholen.
 
 **Beobachteter Turnover im maßgeblichen Lauf:**
@@ -798,7 +798,7 @@ flowchart LR
     BT --> SHP["<b>12_shap_explainability.png</b><br/>nur mit shap"]
     BT --> TH["<b>Abbildungen 14-18</b><br/>theory_plots.py"]
     BT --> JS["<b>experiment_log.json</b><br/><i>das Laborprotokoll</i>"]
-    CSV --> EXT["<b>Zusatzskripte</b><br/>signifikanz.py<br/>kosten_sensitivitaet.py → Abb. 13"]
+    CSV --> EXT["<b>skripte/</b><br/>signifikanz.py<br/>kosten_sensitivitaet.py → Abb. 13"]
 ```
 
 **`experiment_log.json` ist die maßgebliche Quelle** für jede Zahl der Arbeit.
@@ -814,7 +814,7 @@ die Kennzahlen ändern sich nicht. Das Live-Dashboard schaltet sich auf Rechnern
 ohne Bildschirm selbst ab (Agg-Fallback beim Backend-Test).
 
 **Abbildung 13 entsteht nicht im Lauf**, sondern durch
-`kosten_sensitivitaet.py`. Das Skript rechnet die im Lauf abgezogenen Kosten aus
+`skripte/kosten_sensitivitaet.py`. Das Skript rechnet die im Lauf abgezogenen Kosten aus
 den Tagesrenditen wieder heraus (`brutto`) und zu 21 anderen Sätzen zwischen 0
 und 100 Basispunkten neu ab (`netto`) — exakt, weil die Kosten nie in die
 Optimierung eingingen.
@@ -823,7 +823,7 @@ Optimierung eingingen.
 
 ## 14. Tests
 
-37 Tests, rund 4 Sekunden, kein Netzwerk. `conftest.py` erledigt zwei Dinge
+37 Tests, rund 4 Sekunden, kein Netzwerk. `tests/conftest.py` erledigt zwei Dinge
 vorab: `MPLBACKEND=Agg` (keine Fenster) und Projektwurzel auf `sys.path`.
 
 ```bash
@@ -887,7 +887,7 @@ rein kosmetisch.
 fehlerbehafteten Vorstufen des Experiments — die in der Arbeit bewusst nicht
 vorkommen.
 
-**`signifikanz.py` ist eine Kontrollrechnung, keine Quelle.**
+**`skripte/signifikanz.py` ist eine Kontrollrechnung, keine Quelle.**
 `daily_returns.csv` wird auf sechs Nachkommastellen gerundet gespeichert; die
 p-Werte weichen in der vierten Stelle ab (gemessen 2·10⁻⁴, exakt eine von 4999
 Bootstrap-Ziehungen). Maßgeblich ist `experiment_log.json`.
