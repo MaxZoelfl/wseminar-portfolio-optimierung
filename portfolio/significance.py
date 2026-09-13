@@ -298,6 +298,20 @@ def expected_max_sharpe(n_trials, sr_std):
     Erwartetes Maximum der Sharpe (per Periode) über N unabhängige Versuche
     unter H0 (wahre Sharpe = 0). Formel nach Bailey & López de Prado (2014).
 
+    HINWEIS ZUR QUELLE (Arbeitspapierfassung, SSRN 2460551):
+    Gleichung (1) auf S. 7 lautet vollständig
+        E[max{SR}] ~ E[{SR}] + sqrt(V[{SR}]) * ((1-gamma)*Z^-1(1-1/N)
+                                                + gamma*Z^-1(1-1/(N*e)))
+    Diese Funktion berechnet NUR den Wurzelterm, also SR0 wie in Gl. (2) auf
+    S. 8 — und das ist richtig so: Unter der Nullhypothese, dass die wahre
+    Sharpe null ist, entfällt der erste Summand. Die Quelle sagt das auf S. 9
+    ausdrücklich ("Under the null hypothesis that the actual Sharpe ratio is
+    zero, we know that the expected maximum can be estimated as the SR0 in
+    Eq.(2)").
+    ⚠ Den E[{SR}]-Term zu "ergänzen" wäre ein Fehler, kein Fix: SR0 stiege von
+    0,067 auf 0,950 annualisiert, und alle vier DSR fielen unter 0,5 — geprüft
+    würde dann die Hypothese, die wahre Kennzahl sei 0,95 statt 0.
+
     Anschaulich: Selbst wenn ALLE getesteten Strategien in Wahrheit wertlos
     wären (wahre Sharpe = 0), hätte die zufällig beste von N Strategien eine
     positive Schein-Sharpe — reines Auswahlglück. Diese Funktion berechnet,
@@ -332,6 +346,14 @@ def deflated_sharpe_ratio(returns, trial_sharpes_per_period, rf=0.0, freq=252):
     Ergebnis "deflated_sr": eine Wahrscheinlichkeit zwischen 0 und 1, dass
     die wahre Sharpe größer als die Zufalls-Hürde ist. Erst ab 0,95 gilt
     die Strategie hier als statistisch belastbar ("significant").
+
+    ⚠ Die Schwelle 0,95 ist eine KONVENTION dieses Projekts, kein Wert aus der
+    Quelle. Bailey & López de Prado legen keine fest; zur verwandten PSR
+    schreiben sie auf S. 8 "This rejection threshold is determined by the
+    user." In der Seminararbeit darf die 0,95 deshalb keine Fußnote auf die
+    Quelle bekommen — sie ist wie die 1,96 in § 2.4 zu behandeln: erklären,
+    nicht belegen. (Auf die Ausgabe wirkt sie ohnehin nicht: alle vier DSR
+    liegen bei 0,988 bis 0,997, jede Schwelle darunter liefert dasselbe.)
     """
     # Überschussrenditen der gewählten Strategie als Zahlenfeld:
     x = pd.Series(returns).dropna().to_numpy(float) - rf / freq

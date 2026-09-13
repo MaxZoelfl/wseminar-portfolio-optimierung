@@ -15,6 +15,7 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import os
 import pandas as pd
 
 from portfolio.config import TRANSACTION_COST
@@ -122,8 +123,12 @@ def main() -> None:
                 marker=marker, linewidth=2, markersize=6, label=name)
     ax.set_xlabel("Transaktionskosten je Umschlag (Basispunkte)")
     ax.set_ylabel("Sharpe Ratio")
-    ax.set_title("Sharpe Ratio in Abhängigkeit von den Transaktionskosten\n"
-                 "Backtest 2015–2024, 15 US-Large-Caps", fontsize=11)
+    # Die Ueberschrift bleibt aus: In der Arbeit steht unter der Abbildung eine
+    # Bildunterschrift, eine zusaetzliche Ueberschrift im Bild waere eine
+    # Dublette. Mit  export PLOT_TITLES=1  laesst sie sich zuschalten.
+    if os.getenv("PLOT_TITLES", "0") == "1":
+        ax.set_title("Sharpe Ratio in Abhängigkeit von den Transaktionskosten\n"
+                     "Backtest 2015–2024, 15 US-Large-Caps", fontsize=11)
     ax.grid(alpha=0.3)
     ax.legend(frameon=False)
     fig.tight_layout()

@@ -1,7 +1,7 @@
 {
   "experiment_meta": {
     "version": "4.2",
-    "timestamp": "2026-08-15T20:14:43.202476",
+    "timestamp": "2026-08-25T20:23:51.131566",
     "backtest_start": "2015-01-01",
     "backtest_end": "2024-12-31",
     "risk_free_rate": 0.04,

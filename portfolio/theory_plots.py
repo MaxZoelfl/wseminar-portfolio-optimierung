@@ -34,10 +34,10 @@ mit denen später auch der Backtest läuft:
       und Obergrenze folgen erst in § 2.6.
 
   18  Effizienzrand + CML   → Anhang, Ergänzung zu § 2.3
-      Dieselbe Abbildung mit einem Nebenbild, das zusätzlich die Kapital-
-      marktlinie und das Tangentialportfolio zeigt. Getrennt gehalten, weil
-      das Tangentialportfolio bei rund 53 % Volatilität liegt und den
-      Maßstab des Hauptbildes sprengt.
+      Dieselbe Abbildung, massstabsgetreu bis über das Tangentialportfolio
+      hinaus, mit der Kapitalmarktlinie zum risikofreien Zins. Getrennt von
+      17 gehalten, weil der weite Massstab den interessanten Teil der Kurve
+      zusammendrückt — genau das ist hier aber die Aussage.
 
 WARUM DIESE DATEI ÜBERHAUPT ENTSTAND
 Die drei Bilder lagen bis zum 17.08.2026 nur als fertige PNG-Dateien im
@@ -59,6 +59,34 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import minimize   # numerischer Löser für den zulässigen Rand
 from .config import *
+
+# ---------------------------------------------------------------------------
+# Abbildungsüberschriften — standardmäßig AUS
+# ---------------------------------------------------------------------------
+# In der Seminararbeit steht unter jeder Abbildung eine Bildunterschrift. Eine
+# zusätzliche Überschrift IM Bild wäre eine Dublette und in wissenschaftlichen
+# Arbeiten unüblich. Deshalb werden die Überschriften seit dem 25.08.2026 nicht
+# mehr gezeichnet.
+#
+# Wer sie zurückhaben will (etwa für eine Präsentation), setzt vor dem Lauf
+#     export PLOT_TITLES=1
+#
+# ⚠ Betroffen sind nur die ÜBERSCHRIFTEN GANZER ABBILDUNGEN. Beschriftungen
+# einzelner Teilbilder (etwa der Krisenname über einem Stresstest-Panel oder
+# der Kennzahlname über einem Balkenpaar) bleiben immer stehen — ohne sie wäre
+# die Abbildung nicht mehr lesbar. Sie rufen weiterhin direkt ax.set_title auf.
+SHOW_TITLES = os.getenv("PLOT_TITLES", "0") == "1"
+
+
+def _bildtitel(ziel, *args, **kwargs):
+    """Überschrift einer ganzen Abbildung; zeichnet nur bei PLOT_TITLES=1."""
+    if not SHOW_TITLES:
+        return
+    if hasattr(ziel, "suptitle"):        # Figure
+        ziel.suptitle(*args, **kwargs)
+    else:                                # Axes
+        ziel.set_title(*args, **kwargs)
+
 
 # Ein Börsenjahr hat rund 252 Handelstage. Damit wird von Tages- auf
 # Jahreswerte umgerechnet ("annualisiert").
@@ -148,7 +176,7 @@ def plot_two_asset_diversification(asset_returns: pd.DataFrame,
         ax.annotate(f"  {tick}", (s * 100, m * 100),
                     fontsize=13, va="center", zorder=5)
 
-    ax.set_title("Diversifikationseffekt im Zwei-Anlagen-Fall\n"
+    _bildtitel(ax, "Diversifikationseffekt im Zwei-Anlagen-Fall\n"
                  f"{asset_a} und {asset_b}, Tagesdaten "
                  f"{asset_returns.index[0]:%d.%m.%Y} – {asset_returns.index[-1]:%d.%m.%Y}",
                  fontweight="bold")
@@ -233,7 +261,7 @@ def plot_diversification_limit(asset_returns: pd.DataFrame,
     ax.axhline(grenze * 100, color="#2ca02c", linestyle="--", linewidth=2,
                label=rf"Diversifikationsgrenze $\sqrt{{\bar{{C}}}}$ = {grenze*100:.1f} %")
 
-    ax.set_title("Diversifikation senkt das Risiko – aber nur bis zu einer Grenze",
+    _bildtitel(ax, "Diversifikation senkt das Risiko – aber nur bis zu einer Grenze",
                  fontweight="bold")
     ax.set_xlabel("Anzahl gleichgewichteter Aktien N")
     ax.set_ylabel("Portfoliovolatilität (% p. a.)")
@@ -288,7 +316,7 @@ def plot_estimation_uncertainty(asset_returns: pd.DataFrame,
 
     ax.set_yticks(y)
     ax.set_yticklabels(reihenfolge)
-    ax.set_title("Erwartungswerte lassen sich kaum schätzen\n"
+    _bildtitel(ax, "Erwartungswerte lassen sich kaum schätzen\n"
                  "Punktschätzer und Unsicherheit, "
                  f"{jahre:.0f} Jahre Tagesdaten "
                  f"({asset_returns.index[0]:%Y}–{asset_returns.index[-1]:%Y})",
@@ -344,19 +372,20 @@ def plot_efficient_frontier_theory(asset_returns: pd.DataFrame,
     sie liegen fast aufeinander — als in ihrer Länge, weil die Obergrenze den
     erreichbaren Renditebereich beschneidet.
 
-    KAPITALMARKTLINIE UND TANGENTIALPORTFOLIO stehen in einem NEBENBILD unten
-    links (``show_cml``). Sie passen nicht ins Hauptbild: Das Tangentialportfolio
-    dieser Daten liegt bei rund 53 % Volatilität und 83 % erwarteter Rendite —
-    also drei- bis viermal so weit draussen wie der interessante Teil der Kurve.
-    Zeichnete man es massstabsgetreu mit hinein, schrumpfte der Bogen auf ein
-    Viertel der Bildbreite.
+    KAPITALMARKTLINIE UND TANGENTIALPORTFOLIO (``show_cml``) werden seit dem
+    25.08.2026 MASSSTABSGETREU ins selbe Bild gezeichnet. Bis dahin standen sie
+    in einem Nebenbild unten links, weil das Tangentialportfolio dieser Daten bei
+    rund 53 % Volatilität und 83 % erwarteter Rendite liegt — drei- bis viermal
+    so weit draussen wie der interessante Teil der Kurve.
 
-    Genau diese Zweiteilung ist aber die Aussage: Das Nebenbild zeigt in einem
-    Blick, wie extrem das theoretisch optimale Portfolio bei echten Daten liegt.
-    Der eingezeichnete Rahmen markiert den Ausschnitt des Hauptbildes.
+    Der weite Massstab drückt den Bogen zusammen. Genau das ist aber die Aussage:
+    Das theoretisch optimale Portfolio liegt weit ausserhalb dessen, was ein
+    Anleger halten würde, und weit ausserhalb dessen, was die Arbeit zulässt.
+    Eine Darstellung, ein Massstab — das Nebenbild verlangte vom Leser, zwei
+    verschiedene Achsenskalen gleichzeitig im Kopf zu halten.
     """
     log.info(f"Theorieplot {os.path.basename(output_path)[:2]}: Effizienzrand"
-             + (" mit Nebenbild …" if show_cml else " …"))
+             + (" mit Kapitalmarktlinie …" if show_cml else " …"))
     mu_v, sigma, cov, _ = _annualised_moments(asset_returns)
     mu_a, S = mu_v.values, cov.values
     n = len(mu_a)
@@ -372,15 +401,33 @@ def plot_efficient_frontier_theory(asset_returns: pd.DataFrame,
 
     fig, ax = plt.subplots(figsize=(11, 7))
 
+    # ---- Tangentialportfolio (nur fuer die CML-Fassung) -----------------
+    # Der Punkt auf dem Rand mit der steilsten Verbindungsgeraden zum
+    # risikofreien Zins — geschlossene Loesung, keine Optimierung noetig.
+    if show_cml:
+        w_tan = S_inv @ (mu_a - rf * one)
+        w_tan = w_tan / (one @ S_inv @ (mu_a - rf * one))
+        sig_tan, mu_tan = np.sqrt(w_tan @ S @ w_tan), w_tan @ mu_a
+        sharpe_tan = (mu_tan - rf) / sig_tan
+
     # ---- Ausschnitt -----------------------------------------------------
-    # An der Hyperbel ausgerichtet: vom MVP aus so weit nach oben, dass der
-    # Bogen gut sichtbar ist. Die volatilsten Titel liegen bewusst ausserhalb —
-    # sie würden die Kurve sonst ins linke Fünftel drängen.
-    y_max = 36.0
-    y_min = max(0.0, mu_mvp * 100 - 7.0)
+    # Ohne Kapitalmarktlinie: an der Hyperbel ausgerichtet, vom MVP aus so weit
+    # nach oben, dass der Bogen gut sichtbar ist. Die volatilsten Titel liegen
+    # bewusst ausserhalb — sie wuerden die Kurve sonst ins linke Fuenftel
+    # draengen.
+    # MIT Kapitalmarktlinie: massstabsgetreu bis ueber das Tangentialportfolio
+    # hinaus. Das ist die ehrliche Darstellung — und die Aussage der Abbildung:
+    # Das theoretisch optimale Portfolio liegt bei rund 53 % Volatilitaet, also
+    # weit ausserhalb dessen, was die Arbeit ueberhaupt zulaesst.
+    if show_cml:
+        y_max = mu_tan * 100 * 1.10
+        y_min = 0.0
+    else:
+        y_max = 36.0
+        y_min = max(0.0, mu_mvp * 100 - 7.0)
     mu_g = np.linspace(y_min / 100, y_max / 100, 400)
     sig_g = np.sqrt((a * mu_g ** 2 - 2 * b * mu_g + c) / d)
-    x_max = sig_g.max() * 100 * 1.30
+    x_max = (sig_tan * 100 * 1.18) if show_cml else (sig_g.max() * 100 * 1.30)
 
     # ---- Der Rand: effizienter Ast kräftig, ineffizienter dünn ----------
     ob = mu_g >= mu_mvp
@@ -424,49 +471,33 @@ def plot_efficient_frontier_theory(asset_returns: pd.DataFrame,
     # ---- Das Minimum-Varianz-Portfolio ----------------------------------
     ax.scatter([sig_mvp * 100], [mu_mvp * 100], marker="D", s=80, color="#e7ba52",
                edgecolor="black", linewidth=0.9, zorder=6,
-               label=f"Minimum-Varianz-Portfolio ({sig_mvp*100:.2f} %)")
+               label=f"Minimum-Varianz-Portfolio ({sig_mvp*100:.2f} %)".replace(".", ","))
     ax.annotate(rf"$\sigma = 1/\sqrt{{a}}$", (sig_mvp * 100, mu_mvp * 100),
                 xytext=(-12, -22), textcoords="offset points", fontsize=9,
                 color="#7a6220", ha="right", zorder=6)
 
-    # ---- Nebenbild: Gesamtansicht mit Kapitalmarktlinie -----------------
+    # ---- Kapitalmarktlinie und Tangentialportfolio im Hauptbild --------
+    # Bis zum 25.08.2026 standen beide in einem Nebenbild unten links, weil das
+    # Tangentialportfolio den Massstab des Ausschnitts sprengte. Seit dem Umbau
+    # ist die Abbildung massstabsgetreu: eine Darstellung, ein Massstab.
     if show_cml:
-        # Tangentialportfolio in geschlossener Form: der Punkt auf dem Rand mit
-        # der steilsten Verbindungsgeraden zum risikofreien Zins.
-        w_tan = S_inv @ (mu_a - rf * one)
-        w_tan = w_tan / (one @ S_inv @ (mu_a - rf * one))
-        sig_tan, mu_tan = np.sqrt(w_tan @ S @ w_tan), w_tan @ mu_a
-        sharpe_tan = (mu_tan - rf) / sig_tan
-
-        axi = ax.inset_axes([0.055, 0.075, 0.27, 0.28])
-        gy = np.linspace(0.0, mu_tan * 1.12, 400)
-        gx = np.sqrt((a * gy ** 2 - 2 * b * gy + c) / d)
-        obg = gy >= mu_mvp
-        axi.plot(gx[obg] * 100, gy[obg] * 100, color="#1f77b4", linewidth=1.8)
-        axi.plot(gx[~obg] * 100, gy[~obg] * 100, color="#9ec5e8",
-                 linewidth=0.9, linestyle="--")
-        # Die Kapitalmarktlinie berührt den Rand genau im Tangentialportfolio.
-        axi.plot([0, sig_tan * 100 * 1.12], [rf * 100, rf * 100 + sharpe_tan * sig_tan * 1.12 * 100],
-                 color="#9467bd", linestyle=":", linewidth=1.5)
-        axi.scatter([sig_tan * 100], [mu_tan * 100], marker="*", s=110,
-                    color="#9467bd", edgecolor="black", linewidth=0.6, zorder=5)
-        # Rahmen um den Ausschnitt des Hauptbildes — er macht den Massstabs-
-        # unterschied sofort sichtbar.
-        axi.add_patch(plt.Rectangle((0, y_min), x_max, y_max - y_min,
-                                    fill=False, edgecolor="#d62728",
-                                    linewidth=1.0, zorder=6))
-        axi.set_xlim(0, sig_tan * 100 * 1.12)
-        axi.set_ylim(0, mu_tan * 100 * 1.10)
-        axi.tick_params(labelsize=6)
-        axi.set_xticks([0, 20, 40, 60]); axi.set_yticks([0, 40, 80])
-        axi.annotate(f"Tangentialportfolio\n{sig_tan*100:.0f} % / {mu_tan*100:.0f} %",
-                     (sig_tan * 100, mu_tan * 100), xytext=(-4, -6),
-                     textcoords="offset points", fontsize=6.5,
-                     ha="right", va="top", color="#5b3a8e")
-        axi.set_title(f"Gesamtansicht mit Kapitalmarktlinie ($r_f$ = {rf:.0%})\n"
-                      "roter Rahmen = Ausschnitt des Hauptbildes",
-                      fontsize=6.5)
-        axi.grid(alpha=0.25)
+        # Die Kapitalmarktlinie beruehrt den Rand genau im Tangentialportfolio.
+        x_cml = np.array([0.0, x_max])
+        ax.plot(x_cml, rf * 100 + sharpe_tan * x_cml, color="#9467bd",
+                linestyle=":", linewidth=1.8, zorder=4,
+                label=f"Kapitalmarktlinie ($r_f$ = {rf:.0%})")
+        ax.scatter([rf * 100 * 0], [rf * 100], marker="o", s=42, color="#9467bd",
+                   edgecolor="black", linewidth=0.6, zorder=6)
+        ax.annotate(rf"$r_f$ = {rf:.0%}", (0, rf * 100), xytext=(8, -12),
+                    textcoords="offset points", fontsize=8.5, color="#5b3a8e")
+        ax.scatter([sig_tan * 100], [mu_tan * 100], marker="*", s=260,
+                   color="#9467bd", edgecolor="black", linewidth=0.7, zorder=7,
+                   label=("Tangentialportfolio  "
+                      f"{sig_tan*100:.1f} % / {mu_tan*100:.1f} %  "
+                      f"| Sharpe {sharpe_tan:.2f}").replace(".", ","))
+        # Bewusst KEINE Beschriftung am Stern: Rechts von ihm laeuft die
+        # Kapitalmarktlinie weiter, links der Effizienzrand — jeder Text laege
+        # auf einer der beiden Linien. Die Legende nennt alle drei Zahlen.
 
         log.info(f"  Tangentialportfolio: sigma = {sig_tan*100:.2f} %, "
                  f"mu = {mu_tan*100:.2f} %, Sharpe = {sharpe_tan:.3f}, "
@@ -474,7 +505,7 @@ def plot_efficient_frontier_theory(asset_returns: pd.DataFrame,
 
     ax.set_xlim(0, x_max)
     ax.set_ylim(y_min, y_max)
-    ax.set_title("Der Effizienzrand nach Markowitz\n"
+    _bildtitel(ax, "Der Effizienzrand nach Markowitz\n"
                  f"{n} Titel, Tagesdaten "
                  f"{asset_returns.index[0]:%d.%m.%Y} – {asset_returns.index[-1]:%d.%m.%Y}",
                  fontweight="bold")
@@ -515,8 +546,8 @@ def create_theory_plots(asset_returns: pd.DataFrame, returns_df: pd.DataFrame,
     plot_estimation_uncertainty(
         zeitraum, os.path.join(output_dir, "16_theorie_schaetzunsicherheit.png"))
     # Zwei Fassungen derselben Abbildung. 17 ist die schlichte für den Fließtext
-    # (§ 2.3, Abbildung 2 der Arbeit); 18 ergänzt das Nebenbild mit Kapital-
-    # marktlinie und Tangentialportfolio und eignet sich für den Anhang.
+    # (§ 2.3, Abbildung 2 der Arbeit); 18 zeigt massstabsgetreu zusätzlich die
+    # Kapitalmarktlinie und das Tangentialportfolio und steht im Anhang (A2).
     plot_efficient_frontier_theory(
         zeitraum, os.path.join(output_dir, "17_theorie_effizienzrand.png"),
         show_cml=False)
