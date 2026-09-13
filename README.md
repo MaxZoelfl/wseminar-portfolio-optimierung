@@ -83,7 +83,6 @@ laufen aus jedem Arbeitsverzeichnis heraus.
 
 | Datei | Inhalt |
 |---|---|
-| `config.example.json` | Alle Standardwerte — dokumentiert damit den kanonischen Lauf |
 | `config.schnell.json` | Gefahrloser Probelauf → `output_probelauf/` |
 | `requirements.txt` · `requirements-dev.txt` | Abhängigkeiten für Lauf bzw. Tests |
 | `README.md` | diese Datei — was das Projekt ist und wie man es bedient |
@@ -204,17 +203,16 @@ Alle einstellbaren Parameter liegen typisiert in der `dataclass` `Config`
 
 ```bash
 # Weg A: Datei config.json im Projektordner ablegen — wird automatisch geladen
-cp config.example.json config.json    # darin die gewünschten Werte ändern
+echo '{ "rf_retune_every": 3 }' > config.json     # nur die Schlüssel, die abweichen sollen
 python -m portfolio
 
 # Weg B: eine beliebige Datei per Umgebungsvariable benennen
 PORTFOLIO_CONFIG=config.schnell.json python -m portfolio
 ```
 
-`config.json` wieder löschen = Originalverhalten. `config.example.json` enthält
-**alle Standardwerte** und dokumentiert damit genau den Lauf, aus dem die Zahlen
-der Arbeit stammen — es ist keine „Beispielabweichung", sondern die
-Nachschlagefassung des kanonischen Laufs.
+`config.json` wieder löschen = Originalverhalten. Die Standardwerte selbst stehen
+nur an **einer** Stelle, in `portfolio/config.py` (und zur Übersicht in der
+Tabelle unten); `config.schnell.json` zeigt, wie ein Override aussieht.
 
 Nur die angegebenen Schlüssel werden überschrieben; der Rest bleibt auf Default.
 Unbekannte Schlüssel werden gemeldet und ignoriert, eine kaputte Datei bricht den

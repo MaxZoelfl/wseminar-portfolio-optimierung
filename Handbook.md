@@ -856,7 +856,7 @@ gespeicherten Lauf — sonst würde jede legitime Änderung sie rot färben:
 | **Anderes ML-Modell** | `_build_pipeline` und `_param_grid` in `RFPortfolioOptimizer` ersetzen — der Rest der Klasse bleibt, weil die Schnittstelle `predict → optimize` unverändert ist |
 | **Andere Rebalancing-Frequenz** | `resample("ME")` in `aggregate_to_monthly`; Annualisierungsfaktor 12 in `predict_monthly_returns`; `shift(-1)` bleibt |
 | **Neue Abbildung** | Funktion in `plots.py` nach dem Muster *subplots → zeichnen → beschriften → savefig → close*; Aufruf in Abschnitt F von `run.py` |
-| **Neuer Parameter** | Feld in `Config`; Modulkonstante darunter; Eintrag in `config.example.json`; wenn ergebnisrelevant: auch in `save_experiment_json` |
+| **Neuer Parameter** | Feld in `Config`; Modulkonstante darunter; Zeile in der Parametertabelle der README; wenn ergebnisrelevant: auch in `save_experiment_json` |
 
 **Faustregel:** Alles, was das *Ergebnis* verändern kann, gehört ins
 `experiment_log.json`. Sonst ist ein Lauf im Nachhinein nicht mehr eindeutig

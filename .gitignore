@@ -27,7 +27,7 @@ run_*.log
 output_probelauf/
 output_backup/
 
-# --- lokale Konfigurations-Overrides (Vorlage: config.example.json ist getrackt) ---
+# --- lokale Konfigurations-Overrides (Beispiel: config.schnell.json ist getrackt) ---
 config.json
 
 # Kursdatei bewusst versionieren — ohne sie ist der Backtest nicht

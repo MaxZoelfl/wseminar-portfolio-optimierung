@@ -54,7 +54,7 @@ Technischer Inhalt dieser Datei:
 Konfiguration überschreiben (ohne Code-Änderung):
   - eine Datei ``config.json`` im Arbeitsverzeichnis ablegen, ODER
   - Umgebungsvariable ``PORTFOLIO_CONFIG=/pfad/zu/meiner.json`` setzen.
-Beispiel siehe ``config.example.json``. Overrides werden beim Import dieses
+Beispiel siehe ``config.schnell.json``. Overrides werden beim Import dieses
 Moduls eingelesen und wirken dadurch projektweit (vor allen ``from .config import *``).
 
 Dieses Modul hat selbst KEINE projektinternen Abhängigkeiten (Layer 0),
