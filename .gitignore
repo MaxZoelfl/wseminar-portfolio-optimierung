@@ -1,4 +1,4 @@
-# --- Python virtual environment (521 MB, maschinenspezifisch, reproduzierbar aus requirements.txt) ---
+# --- Python virtual environment (maschinenspezifisch, reproduzierbar aus requirements.txt) ---
 venv/
 .venv/
 env/
@@ -29,10 +29,6 @@ output_backup/
 
 # --- lokale Konfigurations-Overrides (Vorlage: config.example.json ist getrackt) ---
 config.json
-
-# Urheberrechtlich geschützte Quell-PDFs (nicht verteilen)
-Quellen/
-W-Seminararbeit_Formales.pdf
 
 # Kursdatei bewusst versionieren — ohne sie ist der Backtest nicht
 # reproduzierbar (siehe LIMITATIONS.md, Abschnitt 12).

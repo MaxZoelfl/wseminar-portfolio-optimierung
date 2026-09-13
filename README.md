@@ -26,12 +26,11 @@ Ideen samt Status in [Ideen-Backlog.md](Ideen-Backlog.md).
 ## Projektstruktur
 
 ```
-Code/
+wseminar-portfolio-optimierung/
 ├── portfolio/      das Paket — hier steckt die gesamte Implementierung
 ├── tests/          37 Unit-Tests, ohne Netzwerk, ~4 s
 ├── data/           prices.pkl — eingefrorene Kurse, Abruf 15.08.2026
 ├── output/         DER Ergebnisordner — 20 Abbildungen, 8 CSV, 1 JSON-Protokoll
-├── archive/        eingefrorene v4.1-Baseline als Einzeldatei
 ├── venv/           Python-Umgebung (nicht versioniert, ~547 MB)
 ├── .vscode/        Interpreter-, Test- und Startkonfiguration
 └── (Stammordner)   4 Kontrollskripte · 2 Konfigurationen · 4 Doku-Dateien
@@ -70,14 +69,13 @@ Keines braucht den Backtest — sie lesen `output/` bzw. `data/prices.pkl`.
 | `nachrechnen_kapitel2.py` | § 2.1 der Arbeit, Schritt für Schritt | ~2 s |
 | `nachrechnen_kapitel3.py` | § 3.1–3.3 der Arbeit | ~10 s · `--sweep` 7 min · `--baumkorrelation` 55 min |
 
-### Daten, Ergebnisse, Referenz
+### Daten und Ergebnisse
 
 | Pfad | Inhalt |
 |---|---|
 | `data/prices.pkl` | Schlusskurse vom 15.08.2026, splitt- und dividendenbereinigt. **Ohne sie ist der Backtest nicht reproduzierbar** — Yahoo liefert bei jedem Abruf minimal andere Werte. |
 | `output/` | Der maßgebliche Lauf: 19 PNG + 1 GIF, 8 CSV und `experiment_log.json` — Letzteres ist die **verbindliche Quelle** für jede Zahl der Arbeit. |
 | `run.log` | Protokoll dieses Laufs (15.08.2026, 77 min). `nachrechnen_kapitel3.py` liest daraus die gewählten Baumtiefen. |
-| `archive/projekt1.6.py` | Eingefrorene v4.1-Baseline als Einzeldatei. Enthält **nicht** die späteren Erweiterungen — keine Purged CV, keine Fairness-Optionen, die alten Sharpe- und Sortino-Definitionen. Referenz, nicht Alternative. |
 
 ### Konfiguration und Dokumentation
 
@@ -92,9 +90,12 @@ Keines braucht den Backtest — sie lesen `output/` bzw. `data/prices.pkl`.
 | [`LIMITATIONS.md`](LIMITATIONS.md) | wissenschaftliche Limitationen und Literatur |
 | [`Ideen-Backlog.md`](Ideen-Backlog.md) | Ideensammlung vom Mai, je Punkt mit Umsetzungsstatus |
 
-> Frühere Entwicklungsstufen (projekt1.0–1.5 sowie der abgebrochene 2.x-Zweig)
-> wurden entfernt; sie bleiben über den ersten Commit (`Initial snapshot`) in der
-> Git-Historie erhalten und sind bei Bedarf wiederherstellbar.
+> Frühere Entwicklungsstufen — die Einzeldatei-Fassungen projekt1.0–1.6 und der
+> abgebrochene 2.x-Zweig — sind nicht mehr im Arbeitsbaum; sie bleiben über die
+> Git-Historie (ab `Initial snapshot`) erhalten. Die letzte Einzeldatei
+> `projekt1.6.py` enthält weder Purged CV noch die Fairness-Optionen und rechnet
+> Sharpe und Sortino noch nach den alten Definitionen — sie ist Historie, keine
+> Alternative.
 
 
 ## Loslegen

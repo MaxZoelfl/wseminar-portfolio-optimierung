@@ -892,10 +892,6 @@ vorkommen.
 p-Werte weichen in der vierten Stelle ab (gemessen 2·10⁻⁴, exakt eine von 4999
 Bootstrap-Ziehungen). Maßgeblich ist `experiment_log.json`.
 
-**`archive/projekt1.6.py` ist eingefroren.** Die v4.1-Einzeldatei enthält
-*keine* der späteren Erweiterungen — keine Purged CV, keine Fairness-Optionen,
-die alten Sharpe- und Sortino-Definitionen. Sie ist Referenz, nicht Alternative.
-
 **Die ersten Backtest-Termine haben ein kürzeres Trainingsfenster.** `train_years
 = 3`, aber die Kursdaten beginnen am 01.01.2013. Vor Februar 2016 stehen also
 weniger als drei Jahre zur Verfügung; der Qualitätscheck (252 Tage, 24 Monate)
