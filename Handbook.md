@@ -133,7 +133,7 @@ laufen in Millisekunden.
 `main()` ist im Code mit den Buchstaben **A–I** durchnummeriert:
 
 ```mermaid
-flowchart TD
+flowchart LR
     START(["python -m portfolio"]) --> CHK{"yfinance<br/>installiert?"}
     CHK -- nein --> ABBRUCH["Fehlermeldung, Abbruch"]
     CHK -- ja --> A
