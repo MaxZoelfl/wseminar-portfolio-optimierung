@@ -36,3 +36,6 @@ config.json
 
 # --- persoenliches Arbeitswerkzeug (misst den Umfang der Arbeit in Abgabe/) ---
 seiten_messen.py
+textsammlung_bauen.py
+textsammlung_vorbemerkung.md
+textsammlung_nachbemerkung.md

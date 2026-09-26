@@ -29,7 +29,7 @@ Ideen samt Status in [Ideen-Backlog.md](Ideen-Backlog.md).
 wseminar-portfolio-optimierung/
 ├── portfolio/      das Paket — hier steckt die gesamte Implementierung
 ├── tests/          37 Unit-Tests, ohne Netzwerk, ~4 s (+ conftest.py)
-├── skripte/        4 Kontrollskripte — rechnen Zahlen der Arbeit ohne Backtest nach
+├── skripte/        5 Kontrollskripte — rechnen Zahlen der Arbeit ohne Backtest nach
 ├── data/           prices.pkl — eingefrorene Kurse, Abruf 15.08.2026
 ├── output/         DER Ergebnisordner — 20 Abbildungen, 8 CSV, 1 JSON-Protokoll
 ├── venv/           Python-Umgebung (nicht versioniert, ~547 MB)
@@ -69,6 +69,7 @@ laufen aus jedem Arbeitsverzeichnis heraus.
 | `skripte/signifikanz.py` | Signifikanzblock aus `output/daily_returns.csv` | Sekunden |
 | `skripte/kosten_sensitivitaet.py` | Sharpe über Kostensätze 0–100 bp → Abb. 13 + CSV | Sekunden |
 | `skripte/nachrechnen_kapitel2.py` | § 2.1 der Arbeit, Schritt für Schritt | ~2 s |
+| `skripte/nachrechnen_nvidia.py` | § 6.2 und § 6.6: Gewicht und Renditebeitrag von NVIDIA, Zinsschwelle des Befunds Risk Parity < 1/N | ~1 min |
 | `skripte/nachrechnen_kapitel3.py` | § 3.1–3.3 der Arbeit | ~10 s · `--sweep` 7 min · `--baumkorrelation` 55 min |
 
 ### Daten und Ergebnisse
@@ -169,7 +170,7 @@ Kurse, siehe LIMITATIONS.md § 12).
 ### 3. Einzelne Bausteine nachrechnen (Sekunden statt Stunden)
 
 Damit lässt sich jede in der Arbeit genannte Zahl einzeln nachrechnen — was die
-vier Skripte jeweils tun, steht [oben in der Übersicht](#die-kontrollskripte-in-skripte).
+fünf Skripte jeweils tun, steht [oben in der Übersicht](#die-kontrollskripte-in-skripte).
 
 ```bash
 python skripte/signifikanz.py                # Signifikanzblock nachrechnen (Sekunden)
@@ -178,6 +179,7 @@ python skripte/nachrechnen_kapitel2.py       # Kontrollrechnung § 2.1
 python skripte/nachrechnen_kapitel3.py       # Kontrollrechnung § 3.1–3.2
 python skripte/nachrechnen_kapitel3.py --sweep            # + Tiefensweep (~7 min)
 python skripte/nachrechnen_kapitel3.py --baumkorrelation  # + Baumkorrelation (~55 min)
+python skripte/nachrechnen_nvidia.py         # NVIDIA-Effekt und Zinsschwelle, § 6.2/§ 6.6
 ```
 
 `skripte/signifikanz.py` liest die auf sechs Nachkommastellen gerundete
