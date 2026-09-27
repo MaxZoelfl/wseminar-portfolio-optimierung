@@ -1,4 +1,4 @@
-"""Sensitivität der Ergebnisse gegenüber dem Transaktionskostensatz.
+"""Abbildung 5 der Arbeit (output/13_kosten_sensitivitaet.png): Sharpe-Quotient je Kostensatz.
 
 Die Handelskosten gehen im Backtest NICHT in die Optimierung ein — sie werden
 in 'backtest.py' erst nachträglich vom ersten Tag jeder Halteperiode abgezogen
@@ -6,7 +6,7 @@ in 'backtest.py' erst nachträglich vom ersten Tag jeder Halteperiode abgezogen
 Kostensatz unabhängig, und die Kennzahlen für einen anderen Satz lassen sich
 exakt aus den gespeicherten Tagesrenditen zurückrechnen — ohne neuen Backtest.
 
-Aufruf:  python skripte/kosten_sensitivitaet.py [ordner]   (Standard: output/ im Projekt)
+Aufruf:  python skripte/abbildung_kostensensitivitaet.py [ordner]   (Standard: output/ im Projekt)
 Ergebnis: <ordner>/kosten_sensitivitaet.csv und 13_kosten_sensitivitaet.png
 """
 import sys
@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 import os
 import pandas as pd
 
-# Projektstamm = eine Ebene über skripte/ (Erklärung siehe signifikanz.py).
+# Projektstamm = eine Ebene über skripte/ (Erklärung siehe _werkzeuge.py).
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
@@ -63,13 +63,10 @@ def netto(roh: pd.DataFrame, umschlag: pd.DataFrame, satz: float) -> pd.DataFram
     return aus
 
 
-def main() -> None:
-    renditen = pd.read_csv(ORDNER / "daily_returns.csv", index_col=0, parse_dates=True)
-    umschlag = pd.read_csv(ORDNER / "turnover.csv",      index_col=0, parse_dates=True)
-    referenz = pd.read_csv(ORDNER / "performance_metrics.csv", index_col=0)
-
+def tabelle(renditen: pd.DataFrame, umschlag: pd.DataFrame) -> pd.DataFrame:
+    """Kennzahlen jeder Strategie bei jedem Kostensatz von 0 bis 100 bp.
+    Wird auch von kapitel_6_ergebnisse.py benutzt (ohne dass Dateien entstehen)."""
     roh = brutto(renditen, umschlag)
-
     zeilen = []
     for satz in SAETZE:
         n = netto(roh, umschlag, satz)
@@ -83,7 +80,31 @@ def main() -> None:
                 "Sharpe":    sharpe_ratio(r),
                 "Max. DD (%)": max_drawdown(r) * 100,
             })
-    tab = pd.DataFrame(zeilen)
+    return pd.DataFrame(zeilen)
+
+
+def sharpe_tabelle(tab: pd.DataFrame) -> pd.DataFrame:
+    """Sharpe-Quotienten als Tabelle: Zeilen = Kostensatz in bp, Spalten = Strategien."""
+    pivot = tab.pivot(index="Kostensatz (bp)", columns="Strategie", values="Sharpe")
+    return pivot[["Random Forest", "Markowitz MVO", "Equal Weight", "Risk Parity"]]
+
+
+def schnittpunkt(pivot: pd.DataFrame, name: str, gegen: str = "Equal Weight"):
+    """Kostensatz (bp), bei dem 'name' unter 'gegen' fällt — linear interpoliert.
+    None, wenn es keinen Wechsel gibt."""
+    d = pivot[name] - pivot[gegen]
+    for a, b in zip(d.index[:-1], d.index[1:]):
+        if d[a] > 0 >= d[b]:
+            return a + (b - a) * d[a] / (d[a] - d[b])
+    return None
+
+
+def main() -> None:
+    renditen = pd.read_csv(ORDNER / "daily_returns.csv", index_col=0, parse_dates=True)
+    umschlag = pd.read_csv(ORDNER / "turnover.csv",      index_col=0, parse_dates=True)
+    referenz = pd.read_csv(ORDNER / "performance_metrics.csv", index_col=0)
+
+    tab = tabelle(renditen, umschlag)
 
     # Kontrolle: bei 10 bp muss der Referenzlauf exakt reproduziert werden.
     probe = tab[tab["Kostensatz (bp)"] == 10].set_index("Strategie")["Sharpe"]
@@ -94,8 +115,7 @@ def main() -> None:
     print("  ✓ im Rahmen der Rundung exakt reproduziert\n"
           if abw < 1e-4 else "  ⚠ Rekonstruktion weicht ab!\n")
 
-    pivot = tab.pivot(index="Kostensatz (bp)", columns="Strategie", values="Sharpe")
-    pivot = pivot[["Random Forest", "Markowitz MVO", "Equal Weight", "Risk Parity"]]
+    pivot = sharpe_tabelle(tab)
     print("Sharpe Ratio je Kostensatz")
     print("─" * 26)
     print(pivot.loc[[0, 10, 25, 50, 75, 100]].round(4).to_string())
@@ -103,18 +123,13 @@ def main() -> None:
     # Schnittpunkte mit der 1/N-Benchmark linear interpolieren.
     print("\nWo eine Strategie die 1/N-Benchmark unterschreitet")
     print("─" * 50)
-    ew = pivot["Equal Weight"]
     for name in ["Random Forest", "Markowitz MVO"]:
-        d = pivot[name] - ew
-        wechsel = [(a, b) for a, b in zip(d.index[:-1], d.index[1:])
-                   if d[a] > 0 >= d[b]]
-        if not wechsel:
-            lage = "durchgehend darüber" if (d > 0).all() else "durchgehend darunter"
-            print(f"  {name:<15} {lage}")
-            continue
-        a, b = wechsel[0]
-        x = a + (b - a) * d[a] / (d[a] - d[b])
-        print(f"  {name:<15} bei rund {x:.0f} bp")
+        x = schnittpunkt(pivot, name)
+        if x is None:
+            d = pivot[name] - pivot["Equal Weight"]
+            print(f"  {name:<15} {'durchgehend darüber' if (d > 0).all() else 'durchgehend darunter'}")
+        else:
+            print(f"  {name:<15} bei rund {x:.0f} bp")
 
     tab.to_csv(ORDNER / "kosten_sensitivitaet.csv", index=False)
 

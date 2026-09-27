@@ -29,7 +29,7 @@ Ideen samt Status in [Ideen-Backlog.md](Ideen-Backlog.md).
 wseminar-portfolio-optimierung/
 ├── portfolio/      das Paket — hier steckt die gesamte Implementierung
 ├── tests/          37 Unit-Tests, ohne Netzwerk, ~4 s (+ conftest.py)
-├── skripte/        5 Kontrollskripte — rechnen Zahlen der Arbeit ohne Backtest nach
+├── skripte/        Nachrechnung: prüft jede eigene Zahl der Arbeit ohne neuen Backtest
 ├── data/           prices.pkl — eingefrorene Kurse, Abruf 15.08.2026
 ├── output/         DER Ergebnisordner — 20 Abbildungen, 8 CSV, 1 JSON-Protokoll
 ├── venv/           Python-Umgebung (nicht versioniert, ~547 MB)
@@ -59,18 +59,20 @@ jedes importiert nur nach unten, deshalb gibt es keine Zyklen
 | `run.py` | Orchestrierung: `main()` mit den Abschnitten A–I | 3 |
 | `__init__.py` · `__main__.py` | Paketkennung und Einstiegspunkt für `python -m portfolio` | — |
 
-### Die Kontrollskripte in `skripte/`
+### Die Nachrechnung in `skripte/`
 
-Keines braucht den Backtest — sie lesen `output/` bzw. `data/prices.pkl` und
-laufen aus jedem Arbeitsverzeichnis heraus.
+Für jedes Kapitel mit eigenen Zahlen gibt es ein Skript, das diese Zahlen aus den
+Ergebnisdateien neu berechnet und mit dem Wortlaut der Arbeit vergleicht (✅ stimmt ·
+≈ ungefähr · ❌ weicht ab). Keines führt den großen Backtest aus. Ausführlich, mit
+Anleitung zum Lesen der Ausgabe: **[skripte/README.md](skripte/README.md)**.
 
-| Skript | Rechnet nach | Dauer |
+| Skript | Prüft | Dauer |
 |---|---|---|
-| `skripte/signifikanz.py` | Signifikanzblock aus `output/daily_returns.csv` | Sekunden |
-| `skripte/kosten_sensitivitaet.py` | Sharpe über Kostensätze 0–100 bp → Abb. 13 + CSV | Sekunden |
-| `skripte/nachrechnen_kapitel2.py` | § 2.1 der Arbeit, Schritt für Schritt | ~2 s |
-| `skripte/nachrechnen_nvidia.py` | § 6.2 und § 6.6: Gewicht und Renditebeitrag von NVIDIA, Zinsschwelle des Befunds Risk Parity < 1/N | ~1 min |
-| `skripte/nachrechnen_kapitel3.py` | § 3.1–3.3 der Arbeit | ~10 s · `--sweep` 7 min · `--baumkorrelation` 55 min |
+| **`skripte/alle_kapitel.py`** | alles auf einmal, mit Übersicht am Ende | ~1 min |
+| `skripte/kapitel_2_theorie.py` … `kapitel_7_fazit.py` | je ein Kapitel (Kapitel 1 enthält nur Literaturzahlen) | Sekunden |
+| `skripte/kapitel_3_random_forest.py --baumkorrelation` | zusätzlich die Baumkorrelation aus § 3.3 | ~55 min |
+| `skripte/anhang.py` | Anhang A–C | Sekunden |
+| `skripte/abbildung_kostensensitivitaet.py` | **erzeugt** Abbildung 5 (`output/13_…`) und ihre CSV neu | Sekunden |
 
 ### Daten und Ergebnisse
 
@@ -78,7 +80,7 @@ laufen aus jedem Arbeitsverzeichnis heraus.
 |---|---|
 | `data/prices.pkl` | Schlusskurse vom 15.08.2026, splitt- und dividendenbereinigt. **Ohne sie ist der Backtest nicht reproduzierbar** — Yahoo liefert bei jedem Abruf minimal andere Werte. |
 | `output/` | Der maßgebliche Lauf: 19 PNG + 1 GIF, 8 CSV und `experiment_log.json` — Letzteres ist die **verbindliche Quelle** für jede Zahl der Arbeit. |
-| `run.log` | Protokoll dieses Laufs (15.08.2026, 77 min). `skripte/nachrechnen_kapitel3.py` liest daraus die gewählten Baumtiefen. |
+| `run.log` | Protokoll dieses Laufs (15.08.2026, 77 min), nur lokal. Die daraus benötigten Einstellungen je Termin liegen in `skripte/daten/rf_hyperparameter.csv`. |
 
 ### Konfiguration und Dokumentation
 
@@ -167,26 +169,16 @@ sein, sonst bricht `main()` früh ab. Frischer Download: Datei löschen oder
 Zahlen der Arbeit vergleichbar (Yahoo liefert bei jedem Abruf minimal andere
 Kurse, siehe LIMITATIONS.md § 12).
 
-### 3. Einzelne Bausteine nachrechnen (Sekunden statt Stunden)
-
-Damit lässt sich jede in der Arbeit genannte Zahl einzeln nachrechnen — was die
-fünf Skripte jeweils tun, steht [oben in der Übersicht](#die-kontrollskripte-in-skripte).
+### 3. Alle Zahlen der Arbeit nachrechnen (rund eine Minute)
 
 ```bash
-python skripte/signifikanz.py                # Signifikanzblock nachrechnen (Sekunden)
-python skripte/kosten_sensitivitaet.py       # Abb. 13 + kosten_sensitivitaet.csv
-python skripte/nachrechnen_kapitel2.py       # Kontrollrechnung § 2.1
-python skripte/nachrechnen_kapitel3.py       # Kontrollrechnung § 3.1–3.2
-python skripte/nachrechnen_kapitel3.py --sweep            # + Tiefensweep (~7 min)
-python skripte/nachrechnen_kapitel3.py --baumkorrelation  # + Baumkorrelation (~55 min)
-python skripte/nachrechnen_nvidia.py         # NVIDIA-Effekt und Zinsschwelle, § 6.2/§ 6.6
+python skripte/alle_kapitel.py
 ```
 
-`skripte/signifikanz.py` liest die auf sechs Nachkommastellen gerundete
-`output/daily_returns.csv` und weicht deshalb in der vierten Stelle des p-Werts
-ab (gemessen 2·10⁻⁴, exakt eine von 4999 Bootstrap-Ziehungen). **Maßgeblich
-bleibt `output/experiment_log.json`.** Das Skript schreibt bewusst keine Datei,
-damit im Ergebnisordner nur eine Signifikanzquelle liegt.
+Rechnet jede eigene Zahl der Arbeit aus den Ergebnisdateien neu, vergleicht sie mit
+dem Text und listet am Ende alle Abweichungen auf. Einzelne Kapitel lassen sich
+auch getrennt prüfen (`python skripte/kapitel_6_ergebnisse.py`); wie die Ausgabe zu
+lesen ist, erklärt [skripte/README.md](skripte/README.md).
 
 Die fünf Theorie-Abbildungen (`output/14`–`18`) zeigen keine Strategieergebnisse,
 sondern Eigenschaften der Kursdaten (Modul `portfolio/theory_plots.py`). Sie
@@ -311,10 +303,10 @@ automatisch die venv:
 | **Tests (alle 37)** | die Prüfung von oben |
 | **Backtest komplett (⚠ ÜBERSCHREIBT output/)** | der volle Lauf, rund 77 min |
 | **Backtest schnell (→ output_probelauf/)** | der Probelauf |
-| **Signifikanz nachrechnen** | `skripte/signifikanz.py` |
-| **Kostensensitivität (Abb. 13)** | `skripte/kosten_sensitivitaet.py` |
-| **Kontrollrechnung Kapitel 3** | `skripte/nachrechnen_kapitel3.py` |
-| **Aktuelle Datei ausführen** | die geöffnete Datei, z. B. `skripte/nachrechnen_kapitel2.py` |
+| **Alle Zahlen der Arbeit prüfen** | `skripte/alle_kapitel.py` |
+| **Abbildung 5: Kostensensitivität** | `skripte/abbildung_kostensensitivitaet.py` |
+| **Kapitel 3 vollständig (lang)** | `skripte/kapitel_3_random_forest.py --baumkorrelation` |
+| **Aktuelle Datei ausführen** | die geöffnete Datei, z. B. `skripte/kapitel_6_ergebnisse.py` |
 
 ## Tests
 
@@ -410,7 +402,7 @@ Literaturverzeichnis steht in **[LIMITATIONS.md](LIMITATIONS.md)**.
 | `10_turnover_performance.png` | Handelsumsatz gegen Folgemonatsrendite |
 | `11_frontier_animation.gif` | Abbildung 8 als Film |
 | `12_shap_explainability.png` | SHAP-Erklärbarkeit (nur wenn `shap` installiert) |
-| `13_kosten_sensitivitaet.png` | aus `skripte/kosten_sensitivitaet.py`, nicht aus dem Lauf |
+| `13_kosten_sensitivitaet.png` | aus `skripte/abbildung_kostensensitivitaet.py`, nicht aus dem Lauf |
 | `14`–`18_theorie_*.png` | Theorie-Abbildungen zu Kapitel 2 |
 | `daily_returns.csv`, `cumulative_returns.csv` | Tagesrenditen und Depotwertverlauf |
 | `performance_metrics.csv` | Kennzahlentabelle |
@@ -424,7 +416,7 @@ Literaturverzeichnis steht in **[LIMITATIONS.md](LIMITATIONS.md)**.
 | Ich möchte … | Befehl | Dauer |
 |---|---|---|
 | prüfen, ob alles funktioniert | `MPLBACKEND=Agg python -m pytest tests/ -q` | ~4 s |
-| eine Zahl der Arbeit nachrechnen | `python skripte/signifikanz.py` | Sekunden |
+| alle Zahlen der Arbeit nachrechnen | `python skripte/alle_kapitel.py` | ~1 min |
 | gefahrlos ausprobieren | `PORTFOLIO_CONFIG=config.schnell.json python -m portfolio` | Minuten |
 | das volle Experiment laufen lassen | `python -m portfolio` | ~77 min |
 

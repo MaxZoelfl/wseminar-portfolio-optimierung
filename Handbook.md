@@ -277,7 +277,7 @@ Am Beispiel des zweiten Termins, 28.02.2015:
 | Schrittdauer | 14,1 Sekunden, davon 13,3 s Hyperparametersuche |
 
 Die ersten Termine arbeiten also mit einem **kürzeren** Fenster als drei Jahre,
-weil die Kursdaten erst 2013 beginnen. Ab Februar 2016 ist das Fenster voll.
+weil die Kursdaten erst 2013 beginnen. Ab dem Termin Ende Dezember 2015 ist das Fenster voll.
 
 ### Rückgabe
 
@@ -421,7 +421,7 @@ sequenceDiagram
 Trainingszeilen aller 15 Aktien werden gestapelt (`pd.concat`), damit das Modell
 titelübergreifende Muster findet. Je Titel stehen nur rund drei Dutzend
 Monatszeilen zur Verfügung — ein Modell *pro* Aktie wäre hoffnungslos datenarm.
-Gepoolt ergibt das (gemessen mit `skripte/nachrechnen_kapitel3.py`):
+Gepoolt ergibt das (gemessen mit `skripte/kapitel_3_random_forest.py`):
 
 | Größe | Wert |
 |---|---|
@@ -608,7 +608,7 @@ in `turnover.csv` bei jeder Strategie ein Maximum von 1,000.
 
 **Kosten gehen nicht in die Optimierung ein.** Sie werden nachträglich vom ersten
 Tag der Halteperiode abgezogen. Gewichte und Umschlag sind damit vom Kostensatz
-*unabhängig* — und genau deshalb kann `skripte/kosten_sensitivitaet.py` die Kennzahlen
+*unabhängig* — und genau deshalb kann `skripte/abbildung_kostensensitivitaet.py` die Kennzahlen
 für jeden anderen Satz exakt zurückrechnen, ohne den Backtest zu wiederholen.
 
 **Beobachteter Turnover im maßgeblichen Lauf:**
@@ -798,7 +798,7 @@ flowchart LR
     BT --> SHP["<b>12_shap_explainability.png</b><br/>nur mit shap"]
     BT --> TH["<b>Abbildungen 14-18</b><br/>theory_plots.py"]
     BT --> JS["<b>experiment_log.json</b><br/><i>das Laborprotokoll</i>"]
-    CSV --> EXT["<b>skripte/</b><br/>signifikanz.py<br/>kosten_sensitivitaet.py → Abb. 13"]
+    CSV --> EXT["<b>skripte/</b><br/>Nachrechnung je Kapitel<br/>Abbildung 5 (Kosten)"]
 ```
 
 **`experiment_log.json` ist die maßgebliche Quelle** für jede Zahl der Arbeit.
@@ -814,7 +814,7 @@ die Kennzahlen ändern sich nicht. Das Live-Dashboard schaltet sich auf Rechnern
 ohne Bildschirm selbst ab (Agg-Fallback beim Backend-Test).
 
 **Abbildung 13 entsteht nicht im Lauf**, sondern durch
-`skripte/kosten_sensitivitaet.py`. Das Skript rechnet die im Lauf abgezogenen Kosten aus
+`skripte/abbildung_kostensensitivitaet.py`. Das Skript rechnet die im Lauf abgezogenen Kosten aus
 den Tagesrenditen wieder heraus (`brutto`) und zu 21 anderen Sätzen zwischen 0
 und 100 Basispunkten neu ab (`netto`) — exakt, weil die Kosten nie in die
 Optimierung eingingen.
@@ -887,12 +887,15 @@ rein kosmetisch.
 fehlerbehafteten Vorstufen des Experiments — die in der Arbeit bewusst nicht
 vorkommen.
 
-**`skripte/signifikanz.py` ist eine Kontrollrechnung, keine Quelle.**
-`daily_returns.csv` wird auf sechs Nachkommastellen gerundet gespeichert; die
-p-Werte weichen in der vierten Stelle ab (gemessen 2·10⁻⁴, exakt eine von 4999
-Bootstrap-Ziehungen). Maßgeblich ist `experiment_log.json`.
+**`daily_returns.csv` ist gerundet, `experiment_log.json` nicht.** Die Tagesrenditen
+werden auf sechs Nachkommastellen gespeichert. Für Renditen und Volatilitäten genügt
+das; ein daraus neu gerechneter Sharpe-Quotient kann aber in der vierten Stelle
+abweichen, ein neu gebootstrappter p-Wert ebenso. Die Nachrechnung in `skripte/`
+verwendet deshalb für Sharpe-Quotienten und Testergebnisse die exakten Werte aus
+`experiment_log.json`.
 
 **Die ersten Backtest-Termine haben ein kürzeres Trainingsfenster.** `train_years
-= 3`, aber die Kursdaten beginnen am 01.01.2013. Vor Februar 2016 stehen also
-weniger als drei Jahre zur Verfügung; der Qualitätscheck (252 Tage, 24 Monate)
-lässt sie trotzdem passieren.
+= 3`, aber die Kursdaten beginnen am 01.01.2013. Für die ersten elf Termine (bis
+November 2015) stehen also weniger als drei Jahre zur Verfügung; ab dem Termin
+Ende Dezember 2015 ist das Fenster vollständig. Der Qualitätscheck (252 Tage,
+24 Monate) lässt die kürzeren Fenster trotzdem passieren.

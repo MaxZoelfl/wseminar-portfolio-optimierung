@@ -46,45 +46,41 @@
       "justMyCode": true
     },
     {
-      // Rechnet den Signifikanzblock aus output/daily_returns.csv nach.
-      // Sekunden statt 77 Minuten. Schreibt keine Datei.
-      // ⚠ Kontrollrechnung auf gerundeten Daten — maßgeblich bleibt
-      // output/experiment_log.json.
-      "name": "Signifikanz nachrechnen",
+      // Rechnet ALLE eigenen Zahlen der Arbeit nach (Kapitel 2–7, Anhang) und
+      // vergleicht sie mit dem Wortlaut. Rund eine Minute, schreibt keine Datei.
+      "name": "Alle Zahlen der Arbeit prüfen",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/skripte/signifikanz.py",
+      "program": "${workspaceFolder}/skripte/alle_kapitel.py",
       "console": "integratedTerminal",
       "cwd": "${workspaceFolder}",
       "justMyCode": true
     },
     {
-      // Sharpe Ratio über Transaktionskosten von 0 bis 100 Basispunkten.
-      // Erzeugt output/13_kosten_sensitivitaet.png und die zugehörige CSV.
-      "name": "Kostensensitivität (Abb. 13)",
+      // Erzeugt Abbildung 5 der Arbeit (output/13_kosten_sensitivitaet.png)
+      // und die zugehörige CSV neu.
+      "name": "Abbildung 5: Kostensensitivität",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/skripte/kosten_sensitivitaet.py",
+      "program": "${workspaceFolder}/skripte/abbildung_kostensensitivitaet.py",
       "console": "integratedTerminal",
       "cwd": "${workspaceFolder}",
       "justMyCode": true
     },
     {
-      // Kontrollrechnung zu § 3.1/§ 3.2 der Arbeit, rund 10 Sekunden.
-      // Für die langen Zusatzschritte in args "--sweep" (~7 min) oder
-      // "--baumkorrelation" (~55 min) ergänzen.
-      "name": "Kontrollrechnung Kapitel 3",
+      // Kapitel 3 einschließlich der Baumkorrelation (rund 55 Minuten).
+      "name": "Kapitel 3 vollständig (lang)",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/skripte/nachrechnen_kapitel3.py",
-      "args": [],
+      "program": "${workspaceFolder}/skripte/kapitel_3_random_forest.py",
+      "args": ["--baumkorrelation"],
       "console": "integratedTerminal",
       "cwd": "${workspaceFolder}",
       "justMyCode": true
     },
     {
       // Die gerade offene Datei ausführen — praktisch beim Herumprobieren und
-      // für die übrigen Skripte (z. B. skripte/nachrechnen_kapitel2.py).
+      // für einzelne Kapitel (z. B. skripte/kapitel_6_ergebnisse.py).
       "name": "Aktuelle Datei ausführen",
       "type": "debugpy",
       "request": "launch",
