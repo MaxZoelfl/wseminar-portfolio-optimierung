@@ -9,7 +9,7 @@ die Tests EIGENSCHAFTEN der Lösung statt konkreter Zahlen.
 """
 import numpy as np
 
-from portfolio import optimizers          # fuer monkeypatch der Modul-Schalter
+from portfolio import optimizers          # für monkeypatch der Modul-Schalter
 from portfolio.optimizers import MarkowitzLedoitWolf, RiskParityPortfolio
 from portfolio.config import MAX_WEIGHT
 
@@ -112,9 +112,9 @@ def test_rf_refit_falls_back_without_tuning():
 
 
 def test_min_variance_is_least_volatile():
-    # Eigenschaft des Minimum-Varianz-Portfolios: Kein anderes zulaessiges
+    # Eigenschaft des Minimum-Varianz-Portfolios: Kein anderes zulässiges
     # Portfolio (hier verglichen mit 1/N und mit Zufallsgewichten) darf eine
-    # kleinere Volatilitaet haben.
+    # kleinere Volatilität haben.
     n = 8
     cov = _spd_cov(n, seed=7)
     m = MarkowitzLedoitWolf()
@@ -124,6 +124,7 @@ def test_min_variance_is_least_volatile():
     assert (w_mv <= MAX_WEIGHT + 1e-6).all()
 
     def vol(w):
+        # Volatilität eines Gewichtsvektors: Wurzel aus w'·Σ·w (Formel 3).
         return float(np.sqrt(w @ cov @ w))
 
     rng = np.random.default_rng(11)
@@ -136,35 +137,36 @@ def test_min_variance_is_least_volatile():
 
 
 def test_max_sharpe_degenerate_falls_back_to_min_variance(monkeypatch):
-    # Punkt 3: Liegt die erwartete Rendite JEDER Aktie unter dem risikofreien
+    # Liegt die erwartete Rendite JEDER Aktie unter dem risikofreien
     # Zins, ist die Sharpe-Maximierung nicht sinnvoll definiert — der
-    # Optimierer wuerde die Volatilitaet absichtlich VERGROESSERN. Mit
+    # Optimierer würde die Volatilität absichtlich VERGROESSERN. Mit
     # aktiviertem Fallback muss stattdessen Minimum-Varianz herauskommen.
     n = 8
     cov = _spd_cov(n, seed=2)
     mu = np.full(n, -0.05)          # alle Prognosen negativ, r_f = 4 %
     m = MarkowitzLedoitWolf(rf=0.04)
 
-    # Beide Zustaende explizit setzen — der Test darf nicht davon abhaengen,
+    # Beide Zustände explizit setzen — der Test darf nicht davon abhängen,
     # wie der Default in config.py gerade steht.
     monkeypatch.setattr(optimizers, "MIN_VARIANCE_FALLBACK", False)
-    w_ohne = m.max_sharpe(mu, cov)   # entartete Loesung
+    w_ohne = m.max_sharpe(mu, cov)   # entartete Lösung
 
     monkeypatch.setattr(optimizers, "MIN_VARIANCE_FALLBACK", True)
     w_mit = m.max_sharpe(mu, cov)
 
     def vol(w):
+        # Volatilität eines Gewichtsvektors: Wurzel aus w'·Σ·w (Formel 3).
         return float(np.sqrt(w @ cov @ w))
 
-    # Der Fallback muss echt risikoaermer sein als die entartete Loesung …
+    # Der Fallback muss echt risikoärmer sein als die entartete Lösung …
     assert vol(w_mit) < vol(w_ohne)
     # … und exakt dem Minimum-Varianz-Portfolio entsprechen.
     assert np.allclose(w_mit, m.min_variance(cov), atol=1e-6)
 
 
 def test_max_sharpe_normal_case_unaffected_by_fallback(monkeypatch):
-    # Gegenprobe: Im Normalfall (positive Ueberrendite erreichbar) darf die
-    # Option NICHTS aendern — sonst waere sie kein reiner Sicherheitsnetz-Fix.
+    # Gegenprobe: Im Normalfall (positive Überrendite erreichbar) darf die
+    # Option NICHTS ändern — sie ist ein reines Sicherheitsnetz.
     n = 8
     cov = _spd_cov(n, seed=2)
     rng = np.random.default_rng(3)

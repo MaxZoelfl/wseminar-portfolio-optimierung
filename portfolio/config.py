@@ -44,21 +44,26 @@ KLEINES PROGRAMMIER-GLOSSAR (gilt für alle Dateien des Projekts):
   - "DataFrame"     : eine Tabelle (wie in Excel) aus der Bibliothek pandas;
                       eine "Series" ist eine einzelne Tabellen-Spalte.
 
-Technischer Inhalt dieser Datei:
-  - Matplotlib-Backend-Auswahl (interaktiv mit Agg-Fallback)
-  - Logging, Warnungen, Plot-Design
-  - optionale Abhängigkeiten mit graceful Fallback (shap, yfinance, animation)
-  - die typisierte Konfiguration (dataclass ``Config``) als Single Source of Truth
-  - rückwärtskompatible Modulkonstanten (TICKERS, RISK_FREE_RATE, …)
+Was in dieser Datei sonst noch passiert, in der Reihenfolge von oben:
+  - Grafikausgabe einrichten: Diagramme in einem Fenster, wenn ein Bildschirm
+    da ist, sonst nur als Dateien
+  - Zusatzpakete prüfen (shap, yfinance, Animation): Fehlt eines, läuft das
+    Programm trotzdem, nur die betroffene Abbildung entfällt
+  - das Logbuch (Protokollausgaben im Terminal) einrichten
+  - die Einstellungen selbst (Abschnitt "class Config"); sie sind der einzige
+    Ort, an dem ein Wert festgelegt wird
+  - Kurznamen in Großbuchstaben (TICKERS, RISK_FREE_RATE, …), unter denen die
+    übrigen Dateien die Einstellungen lesen
+  - das einheitliche Aussehen aller Diagramme
 
-Konfiguration überschreiben (ohne Code-Änderung):
+Einstellungen ändern, ohne den Code anzufassen:
   - eine Datei ``config.json`` im Arbeitsverzeichnis ablegen, ODER
-  - Umgebungsvariable ``PORTFOLIO_CONFIG=/pfad/zu/meiner.json`` setzen.
-Beispiel siehe ``config.schnell.json``. Overrides werden beim Import dieses
-Moduls eingelesen und wirken dadurch projektweit (vor allen ``from .config import *``).
+  - die Umgebungsvariable ``PORTFOLIO_CONFIG=/pfad/zu/meiner.json`` setzen.
+Beispiel siehe ``config.schnell.json``. Die Datei wird beim ersten Laden dieses
+Moduls gelesen und gilt dann für das ganze Projekt.
 
-Dieses Modul hat selbst KEINE projektinternen Abhängigkeiten (Layer 0),
-d. h. es ist das Fundament, auf dem alle anderen Dateien aufbauen.
+Diese Datei benutzt selbst keine andere Datei des Projekts; sie ist das
+Fundament, auf dem alle anderen aufbauen.
 """
 
 # ---------------------------------------------------------------------------
@@ -141,7 +146,7 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)-8s | %(message)s",  # Zeilenaufbau
     datefmt="%H:%M:%S",                                  # Uhrzeit-Format
 )
-log = logging.getLogger("portfolio_v4")
+log = logging.getLogger("portfolio")
 
 
 # ---------------------------------------------------------------------------
@@ -162,22 +167,23 @@ class Config:
     # "Ticker" = das Kürzel, unter dem eine Aktie an der Börse gehandelt wird
     # (z. B. AAPL für Apple). Die 15 Titel sind bewusst über viele Branchen
     # gestreut, damit nicht alle gleichzeitig fallen (Diversifikation).
+    # Sektoren nach GICS, wie in Tabelle A1 der Arbeit.
     tickers: list = field(default_factory=lambda: [
-        "AAPL",   # Apple            — Technologie
-        "MSFT",   # Microsoft        — Technologie
-        "NVDA",   # NVIDIA           — Halbleiter
-        "JNJ",    # Johnson & Johnson — Gesundheit
-        "UNH",    # UnitedHealth     — Gesundheit
-        "JPM",    # JPMorgan         — Finanzen
-        "GS",     # Goldman Sachs    — Finanzen
-        "PG",     # Procter & Gamble — Konsum (nicht-zyklisch)
-        "KO",     # Coca-Cola        — Konsum (nicht-zyklisch)
-        "XOM",    # Exxon Mobil      — Energie
-        "CAT",    # Caterpillar      — Industrie
-        "HON",    # Honeywell        — Industrie
-        "VZ",     # Verizon          — Telekommunikation
-        "PLD",    # Prologis         — Immobilien (REIT)
-        "LIN",    # Linde            — Grundstoffe
+        "AAPL",   # Apple             — Informationstechnologie
+        "MSFT",   # Microsoft         — Informationstechnologie
+        "NVDA",   # NVIDIA            — Informationstechnologie
+        "JNJ",    # Johnson & Johnson — Gesundheitswesen
+        "UNH",    # UnitedHealth      — Gesundheitswesen
+        "JPM",    # JPMorgan Chase    — Finanzen
+        "GS",     # Goldman Sachs     — Finanzen
+        "PG",     # Procter & Gamble  — Basiskonsumgüter
+        "KO",     # Coca-Cola         — Basiskonsumgüter
+        "XOM",    # Exxon Mobil       — Energie
+        "CAT",    # Caterpillar       — Industrie
+        "HON",    # Honeywell         — Industrie
+        "VZ",     # Verizon           — Kommunikationsdienste
+        "PLD",    # Prologis          — Immobilien
+        "LIN",    # Linde             — Grundstoffe
     ])
     # SPY = börsengehandelter Fonds auf den S&P-500-Index; dient als
     # Vergleichsmaßstab ("der Markt") für einige Kennzahlen.
@@ -212,7 +218,7 @@ class Config:
     # use_purged_cv weiter unten fest; Standard ist Purged & Embargoed CV.
     rf_cv_splits: int        = 5           # Prüfblöcke der Kreuzvalidierung
     # Keine Aktie darf mehr als 20 % des Depots ausmachen (Klumpenrisiko-Schutz).
-    max_weight: float        = 0.20        # Positionsobergrenze je Asset
+    max_weight: float        = 0.20        # Positionsobergrenze je Titel
     # Handelskosten: 0,10 % des umgeschichteten Betrags gehen bei jedem
     # Umbau des Depots "verloren" (Gebühren, Geld-Brief-Spanne).
     transaction_cost: float  = 0.0010      # 0.10 % auf Handelsumsatz
@@ -220,9 +226,10 @@ class Config:
     # sonst würden die Handelskosten seine Prognosegewinne auffressen.
     rf_turnover_limit: float = 0.30        # max. einseitiger Turnover/Monat (RF)
 
-    # ---- Performance-Hebel (Default 1 = exakt bisheriges Verhalten) --------
+    # ---- Stellschrauben für die Rechenzeit (Standard 1 = jeden Monat alles) --
     rf_retune_every: int        = 1  # RF-Hyperparametersuche nur alle k Monate;
-                                     # dazwischen nur Refit auf neuem Fenster.
+                                     # dazwischen wird der Wald mit den zuletzt
+                                     # gefundenen Einstellungen nur neu trainiert.
                                      # >1 beschleunigt deutlich, ändert Ergebnisse.
     dashboard_update_every: int = 1  # Live-Dashboard nur alle k Schritte rendern;
                                      # rein kosmetisch (kein Ergebniseinfluss).
@@ -230,11 +237,9 @@ class Config:
     # ---- Reproduzierbarkeit -------------------------------------------------
     # random_state=42 fixiert zwar den Zufallsgenerator, nicht aber die
     # Reihenfolge, in der parallele Threads ihre Teilergebnisse aufsummieren.
-    # Gleitkommaaddition ist nicht assoziativ — zwei Läufe weichen daher
-    # minimal ab. Bei der Hyperparametersuche genügt das, um bei nahezu
-    # gleichwertigen Kandidaten einen ANDEREN Sieger zu küren; gemessen an
-    # zwei sonst identischen Läufen geschah das in 4 von 119 Monaten und
-    # verschob den Sharpe-Quotienten des Random Forest um rund 0,010.
+    # Gleitkommaaddition ist nicht assoziativ: Parallel gerechnet weichen zwei
+    # Läufe minimal voneinander ab, und bei nahezu gleichwertigen Kandidaten
+    # kann die Hyperparametersuche dann einen ANDEREN Sieger wählen.
     # True = einkernig rechnen (n_jobs=1) und damit bitgenau reproduzierbar,
     # dafür deutlich langsamer. Siehe LIMITATIONS.md, Abschnitt 12.
     deterministic: bool = True
@@ -245,26 +250,25 @@ class Config:
     # stammen (Momentum über 252 Tage) und das Monatsziel in den Folgemonat
     # reicht: benachbarte Trainings- und Testabschnitte teilen dadurch
     # Information. TimeSeriesSplit verhindert Look-Ahead, aber nicht dieses
-    # Leck. Auf False gesetzt ergibt sich der frühere, leckbehaftete Lauf —
-    # der Random Forest erscheint dann um rund 0,044 Sharpe besser, als er ist.
+    # Leck. Auf False gesetzt (nur für den Vergleichslauf in § 4.3 der Arbeit)
+    # erscheint der Random Forest um rund 0,025 Sharpe besser, als er ist.
     use_purged_cv: bool = True
     cv_embargo: float    = 0.02  # Embargo-Anteil (nur wirksam bei use_purged_cv).
 
     # ---- Fairness des Strategievergleichs ----------------------------------
-    # Früher bekam NUR der Random Forest ein Turnover-Limit, die klassische
-    # Markowitz-Strategie nicht. Damit unterschieden sich die beiden Strategien
-    # in ZWEI Punkten (Renditeschätzer UND Handelsrestriktion) statt nur in
-    # einem — der Vergleich war also nicht streng "ceteris paribus".
-    # Ist hier eine Zahl eingetragen, gilt dasselbe Limit auch für Markowitz;
-    # ``null`` in der JSON bzw. None = kein Limit (früheres Verhalten).
+    # Markowitz bekommt dieselbe Umschlagsschranke wie der Random Forest. Dann
+    # unterscheiden sich die beiden Strategien in genau EINEM Punkt, dem
+    # Renditeschätzer — der Vergleich ist "ceteris paribus" (lateinisch: "unter
+    # sonst gleichen Bedingungen"). ``null`` in der JSON bzw. None = keine
+    # Schranke für Markowitz.
     mvo_turnover_limit: Optional[float] = 0.30
 
-    # Bezugspunkt der Turnover-Schranke im Optimierer. Der AUSGEWIESENE
-    # Turnover wird gegen die kursgedrifteten Vorgängergewichte gemessen; die
-    # Schranke IM Optimierer verglich dagegen bisher mit den ungedrifteten
-    # Zielgewichten des Vormonats. Dadurch konnte der realisierte Turnover das
-    # nominelle Limit überschreiten. True = beide nutzen dieselbe Referenz.
-    # Mit False überschritt der RF sein 30-%-Limit in 100 von 118 Monaten.
+    # Bezugspunkt der Umschlagsschranke im Optimierer. True = die mit den
+    # Kursen gedrifteten Vorgängergewichte, also derselbe Bezugspunkt, gegen
+    # den der ausgewiesene Umschlag gemessen wird (Formel 26 der Arbeit). Dann
+    # hält der gemessene Umschlag die Schranke exakt ein. False = die
+    # Zielgewichte des Vormonats; der gemessene Umschlag kann dann über der
+    # Schranke liegen.
     turnover_ref_drifted: bool = True
 
     # Sharpe-Maximierung ist nur sinnvoll, solange überhaupt ein zulässiges
@@ -278,7 +282,8 @@ class Config:
 
 
 def _load_config() -> Config:
-    """Erzeugt die Konfiguration aus Defaults + optionalen JSON-Overrides.
+    """Erzeugt die Einstellungen: Standardwerte, dazu optionale Änderungen
+    aus einer JSON-Datei (einem einfachen Textformat für Schlüssel-Wert-Paare).
 
     Ablauf in Worten:
       1. Starte mit den Standardwerten von oben (``Config()``).
@@ -317,11 +322,10 @@ def _load_config() -> Config:
 CFG = _load_config()
 
 # ---------------------------------------------------------------------------
-# RÜCKWÄRTSKOMPATIBLE MODULKONSTANTEN (Single Source of Truth = CFG)
-# Historisch sprach der Code die Einstellungen über GROSSBUCHSTABEN-Namen an
+# KURZNAMEN DER EINSTELLUNGEN (maßgeblich sind allein die Werte in CFG)
+# Die übrigen Dateien lesen die Einstellungen über diese GROSSBUCHSTABEN-Namen
 # (Python-Konvention für "Konstanten", also Werte, die sich zur Laufzeit nicht
-# mehr ändern sollen). Diese Namen zeigen jetzt einfach auf die CFG-Felder,
-# damit bestehender Code unverändert weiterläuft.
+# ändern). Jeder Name zeigt auf das gleichnamige Feld in CFG.
 # ---------------------------------------------------------------------------
 TICKERS           = CFG.tickers
 SPY_TICKER        = CFG.spy_ticker
@@ -375,6 +379,34 @@ plt.rcParams.update({
     "xtick.labelsize"   : 9,
     "ytick.labelsize"   : 9,
 })
+
+# ---------------------------------------------------------------------------
+# ABBILDUNGSÜBERSCHRIFTEN — standardmäßig AUS
+# ---------------------------------------------------------------------------
+# In der Seminararbeit steht unter jeder Abbildung eine Bildunterschrift. Eine
+# zusätzliche Überschrift IM Bild wäre doppelt und in wissenschaftlichen
+# Arbeiten unüblich. Deshalb werden die Überschriften standardmäßig nicht
+# gezeichnet. Wer sie zurückhaben will (etwa für eine Präsentation), setzt vor
+# dem Lauf im Terminal:   export PLOT_TITLES=1
+# Betroffen sind nur Überschriften GANZER Abbildungen. Beschriftungen einzelner
+# Teilbilder (etwa der Krisenname über einem Stresstest-Panel) bleiben immer
+# stehen — ohne sie wäre die Abbildung nicht lesbar.
+SHOW_TITLES = os.getenv("PLOT_TITLES", "0") == "1"
+
+
+def bildtitel(ziel, *args, **kwargs):
+    """Überschrift einer ganzen Abbildung; zeichnet nur bei PLOT_TITLES=1.
+
+    ``ziel`` ist entweder die ganze Abbildung (dann Gesamtüberschrift über allen
+    Teilbildern) oder ein einzelnes Koordinatensystem (dann dessen Titel).
+    Benutzt von plots.py und theory_plots.py."""
+    if not SHOW_TITLES:
+        return
+    if hasattr(ziel, "suptitle"):        # ganze Abbildung ("Figure")
+        ziel.suptitle(*args, **kwargs)
+    else:                                # einzelnes Koordinatensystem ("Axes")
+        ziel.set_title(*args, **kwargs)
+
 
 # Feste Farbzuordnung je Strategie (Hex-Farbcodes), damit z. B. "Random
 # Forest" in JEDER Abbildung dieselbe rote Linie hat.

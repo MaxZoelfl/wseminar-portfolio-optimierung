@@ -5,7 +5,7 @@ Walk-Forward-Backtest (2015–2024) auf 15 US-Large-Caps.
 
 **Strategien:** Markowitz MVO (Ledoit-Wolf) · Random Forest · Equal Weight (1/N) · Risk Parity (ERC)
 
-**Paketversion:** 4.2.0 · **Tests:** 37 grün · **Maßgeblicher Lauf:** `output/` (15.08.2026, 77 min; am 25.08.2026 mit identischen Kennzahlen reproduziert)
+**Paketversion:** 4.2.0 · **Tests:** 37 grün · **Maßgeblicher Lauf:** `output/` (25.08.2026; ein unabhängiger zweiter Lauf erzeugte bitgleiche Ergebnisdateien)
 
 Dieses Repository ist der Begleitcode zu einer W-Seminararbeit (Mathematik,
 Abiturjahrgang 2026/27). Es enthält den vollständigen Quellcode des Backtests,
@@ -14,9 +14,7 @@ stützt — jede dort genannte Zahl lässt sich hier nachrechnen.
 
 > **Ein Code, ein Ergebnis.** Es gibt genau **eine** Konfiguration — die
 > Standardwerte in `portfolio/config.py` — und genau **einen** Ergebnisordner:
-> `output/`. Frühere Entwicklungsläufe sind nicht Teil des Repositories; es
-> waren Vorstufen mit inzwischen behobenen Fehlern, keine methodischen
-> Alternativen.
+> `output/`. Alle Zahlen der Arbeit stammen aus diesem einen Lauf.
 
 Diese Datei erklärt, **was** das Projekt ist und **wie man es bedient**. Die
 *Funktionsweise* des Codes steht in [Handbook.md](Handbook.md), die
@@ -54,34 +52,38 @@ jedes importiert nur nach unten, deshalb gibt es keine Zyklen
 | `significance.py` | Ledoit-Wolf-2008-Test, Holm-Bonferroni, Deflated Sharpe Ratio | 0 |
 | `backtest.py` | Rollierender Walk-Forward-Backtest — **die Hauptschleife** | 3 |
 | `dashboard.py` | Live-Training-Dashboard (optional, nur mit Bildschirm) | 2 |
-| `plots.py` | Ergebnis-Abbildungen 01–12, CSV- und JSON-Export | 3 |
-| `theory_plots.py` | Theorie-Abbildungen 14–18 zu Kapitel 2 der Arbeit | 3 |
+| `plots.py` | Ausgabebilder 01–12, rollierender Sharpe-Quotient (auch für die Skripte), CSV- und JSON-Export | 3 |
+| `theory_plots.py` | die Formeln aus Kapitel 2 der Arbeit und die Ausgabebilder 14–18 dazu | 3 |
 | `run.py` | Orchestrierung: `main()` mit den Abschnitten A–I | 3 |
 | `__init__.py` · `__main__.py` | Paketkennung und Einstiegspunkt für `python -m portfolio` | — |
 
 ### Die Nachrechnung in `skripte/`
 
-Für jedes Kapitel mit eigenen Zahlen gibt es ein Skript, das diese Zahlen aus den
-Ergebnisdateien neu berechnet und mit dem Wortlaut der Arbeit vergleicht (✅ stimmt ·
-≈ ungefähr · ❌ weicht ab). Keines führt den großen Backtest aus. Ausführlich, mit
-Anleitung zum Lesen der Ausgabe: **[skripte/README.md](skripte/README.md)**.
+Für jedes Kapitel gibt es ein Skript, das seine Zahlen in der Reihenfolge des
+Textes durchgeht, jede eigene Zahl aus den Ergebnisdateien neu berechnet und mit
+dem Wortlaut der Arbeit vergleicht (✅ stimmt · ≈ ungefähr · ❌ weicht ab ·
+⏭ Zahl aus der Literatur). Keines führt den großen Backtest aus, und keines hat
+eigene Formeln: Sie benutzen dieselben Funktionen wie der Backtest und die
+Abbildungen. Ausführlich, mit Anleitung zum Lesen der Ausgabe:
+**[skripte/README.md](skripte/README.md)**.
 
 | Skript | Prüft | Dauer |
 |---|---|---|
-| **`skripte/alle_kapitel.py`** | alles auf einmal, mit Übersicht am Ende | ~1,5 min |
-| `skripte/alle_kapitel.py --text DATEI` | zusätzlich: steht jede eingetragene Zahl noch in dieser Fassung der Arbeit? | ~1,5 min |
-| `skripte/kapitel_2_theorie.py` … `kapitel_7_fazit.py` | je ein Kapitel (Kapitel 1 enthält nur Literaturzahlen) | Sekunden |
-| `skripte/kapitel_3_random_forest.py --baumkorrelation` | zusätzlich die Baumkorrelation aus § 3.3 | ~55 min |
+| **`skripte/alle_kapitel.py`** | alles auf einmal, mit Übersicht am Ende | ~1 min |
+| `skripte/alle_kapitel.py --text DATEI` | zusätzlich: steht jede eingetragene Zahl noch im passenden Abschnitt dieser Fassung der Arbeit? | ~1 min |
+| `skripte/kapitel_1_einleitung.py` … `kapitel_7_fazit.py` | je ein Kapitel (Kapitel 1 enthält nur Literaturzahlen) | Sekunden |
+| `skripte/kapitel_3_random_forest.py --baumkorrelation` | rechnet die Baumkorrelation aus § 3.3 neu, statt sie aus der Referenzdatei zu lesen | ~55 min |
 | `skripte/anhang.py` | Anhang A–C | Sekunden |
 | `skripte/abbildung_kostensensitivitaet.py` | **erzeugt** Abbildung 5 (`output/13_…`) und ihre CSV neu | Sekunden |
+| `skripte/gegenrechnung_drift.py` | beziffert die festen Gewichte im Monat (LIMITATIONS.md § 11.1) | Sekunden |
 
 ### Daten und Ergebnisse
 
 | Pfad | Inhalt |
 |---|---|
-| `data/prices.pkl` | Schlusskurse vom 15.08.2026, splitt- und dividendenbereinigt. **Ohne sie ist der Backtest nicht reproduzierbar** — Yahoo liefert bei jedem Abruf minimal andere Werte. |
+| `data/prices.pkl` | Schlusskurse, abgerufen am 15.08.2026, split- und dividendenbereinigt. **Ohne sie ist der Backtest nicht reproduzierbar** — Yahoo liefert bei jedem Abruf minimal andere Werte. |
 | `output/` | Der maßgebliche Lauf: 19 PNG + 1 GIF, 8 CSV und `experiment_log.json` — Letzteres ist die **verbindliche Quelle** für jede Zahl der Arbeit. |
-| `run.log` | Protokoll dieses Laufs (15.08.2026, 77 min), nur lokal. Die daraus benötigten Einstellungen je Termin liegen in `skripte/daten/rf_hyperparameter.csv`. |
+| `skripte/daten/` | Referenzdateien der Nachrechnung: die je Termin gewählten Einstellungen des Random Forest (`rf_hyperparameter.csv`), die Baumkorrelation aus § 3.3 (`baumkorrelation.csv`) und die Tagesrenditen des Vergleichslaufs ohne Purging aus § 4.3 (`vergleichslauf_ohne_purging.csv`). |
 
 ### Konfiguration und Dokumentation
 
@@ -94,17 +96,13 @@ Anleitung zum Lesen der Ausgabe: **[skripte/README.md](skripte/README.md)**.
 | [`LIMITATIONS.md`](LIMITATIONS.md) | wissenschaftliche Limitationen und Literatur |
 | [`Ideen-Backlog.md`](Ideen-Backlog.md) | Ideensammlung vom Mai, je Punkt mit Umsetzungsstatus |
 
-> Frühere Entwicklungsstufen — die Einzeldatei-Fassungen projekt1.0–1.6 und der
-> abgebrochene 2.x-Zweig — sind nicht mehr im Arbeitsbaum; sie bleiben über die
-> Git-Historie (ab `Initial snapshot`) erhalten. Die letzte Einzeldatei
-> `projekt1.6.py` enthält weder Purged CV noch die Fairness-Optionen und rechnet
-> Sharpe und Sortino noch nach den alten Definitionen — sie ist Historie, keine
-> Alternative.
-
 
 ## Loslegen
 
-Voraussetzung ist Python 3 (entwickelt und getestet mit 3.14). Alle Befehle
+Voraussetzung ist Python 3 (entwickelt und getestet mit 3.14). Bitgleiche
+Ergebnisse liefert ein Neulauf mit den Versionen aus `requirements.txt` unter
+macOS 26.6.1; in anderen Umgebungen können einzelne Zahlen in der letzten Stelle
+abweichen ([LIMITATIONS.md](LIMITATIONS.md) § 12). Alle Befehle
 werden im Terminal aus dem Stammordner des Repositories heraus ausgeführt:
 
 ```bash
@@ -147,7 +145,7 @@ welches den Dirigenten `main()` in `portfolio/run.py` aufruft. Was passiert:
 3. **Auswertung** — Kennzahlen und Signifikanztests erscheinen im Terminal,
    Abbildungen, Tabellen und das Experimentprotokoll landen in `output/`.
 
-**Laufzeit rund 77 Minuten** (gemessen am maßgeblichen Lauf).
+**Laufzeit rund 77 Minuten** (gemessen am 15.08.2026; sie hängt vom Rechner ab).
 **98 % davon** entfallen auf die Hyperparametersuche des Random Forest, die in
 jedem der 119 Rebalancing-Monate neu läuft — und zwar einkernig, weil
 `deterministic=True` bitgenaue Reproduzierbarkeit erzwingt (siehe
@@ -170,14 +168,15 @@ sein, sonst bricht `main()` früh ab. Frischer Download: Datei löschen oder
 Zahlen der Arbeit vergleichbar (Yahoo liefert bei jedem Abruf minimal andere
 Kurse, siehe LIMITATIONS.md § 12).
 
-### 3. Alle Zahlen der Arbeit nachrechnen (rund eineinhalb Minuten)
+### 3. Alle Zahlen der Arbeit nachrechnen (gut eine Minute)
 
 ```bash
 python skripte/alle_kapitel.py
 ```
 
-Rechnet jede eigene Zahl der Arbeit aus den Ergebnisdateien neu, vergleicht sie mit
-dem Text und listet am Ende alle Abweichungen auf. Einzelne Kapitel lassen sich
+Geht die Arbeit Kapitel für Kapitel in Textreihenfolge durch, rechnet jede eigene
+Zahl aus den Ergebnisdateien neu, vergleicht sie mit dem Text und listet am Ende
+alle Abweichungen auf. Einzelne Kapitel lassen sich
 auch getrennt prüfen (`python skripte/kapitel_6_ergebnisse.py`); wie die Ausgabe zu
 lesen ist, erklärt [skripte/README.md](skripte/README.md).
 
@@ -243,20 +242,17 @@ Nicht über JSON einstellbar (strukturell festgelegt): `RANK_COLS`,
 
 ### Methodikoptionen (alle standardmäßig an)
 
-Die folgenden fünf Schalter waren zunächst als abschaltbare Korrekturen
-eingeführt und sind inzwischen der kanonische Standard. Wer sie ausschaltet,
-erhält die früheren, fehlerbehafteten Entwicklungsläufe; der Random Forest
-erscheint dann um rund 0,044 Sharpe besser, als er ist. Hintergrund und
-Literatur: [LIMITATIONS.md](LIMITATIONS.md) § 5 und § 10–12.
+Die folgenden fünf Schalter legen die Methodik der Arbeit fest; alle stehen
+standardmäßig an. Hintergrund und Literatur: [LIMITATIONS.md](LIMITATIONS.md)
+§ 5, § 9, § 10 und § 12.
 
-- **`mvo_turnover_limit = 0.30`** — früher hatte nur der Random Forest ein
-  Turnover-Limit. Auf denselben Wert wie `rf_turnover_limit` gesetzt,
-  unterscheiden sich die beiden Strategien wirklich **nur** im Renditeschätzer.
-  `null` = kein Limit (früheres Verhalten).
+- **`mvo_turnover_limit = 0.30`** — dieselbe Umschlagsschranke wie
+  `rf_turnover_limit`. Damit unterscheiden sich Markowitz und Random Forest
+  **nur** im Renditeschätzer. `null` = keine Schranke für Markowitz.
 - **`turnover_ref_drifted = true`** — die Turnover-Schranke *im Optimierer*
   misst gegen die kursgedrifteten Vorgängergewichte, also dieselbe Referenz, die
-  auch der ausgewiesene Turnover benutzt. Mit `false` überschritt der RF sein
-  30-%-Limit in 100 von 118 Monaten.
+  auch der ausgewiesene Turnover benutzt (Formel 26). So hält der gemessene
+  Umschlag die Schranke exakt ein.
 - **`min_variance_fallback = true`** — erwartet kein zulässiges Portfolio mehr
   als den risikofreien Zins, ist die Sharpe-Maximierung entartet: Der Optimierer
   würde die Volatilität *maximieren*. Dann weicht er auf das
@@ -265,11 +261,14 @@ Literatur: [LIMITATIONS.md](LIMITATIONS.md) § 5 und § 10–12.
   2015–2024 trat er in keinem der 119 Monate ein.
 - **`use_purged_cv = true`** — Purging und Embargo im RF-Tuning statt
   `TimeSeriesSplit`. Nötig, weil die Merkmale aus überlappenden Fenstern stammen
-  (Momentum über 252 Tage) und das Monatslabel in den Folgemonat reicht.
+  (Momentum über 252 Tage) und das Monatslabel in den Folgemonat reicht. Mit
+  `false` erscheint der Random Forest um rund 0,025 Sharpe besser, als er ist
+  (§ 4.3 der Arbeit).
 - **`deterministic = true`** — `n_jobs=1` in Wald und Hyperparametersuche.
-  Gleitkommaaddition ist nicht assoziativ; bei paralleler Reduktion kürte die
-  Suche in 4 von 119 Monaten einen anderen Sieger und verschob den RF-Sharpe um
-  rund 0,010. Kostet Laufzeit, kauft Reproduzierbarkeit.
+  Gleitkommaaddition ist nicht assoziativ; parallel gerechnet kann die Suche bei
+  nahezu gleichwertigen Kandidaten einen anderen Sieger wählen, und der
+  Sharpe-Quotient des Random Forest schwankt dann von Lauf zu Lauf um rund 0,01.
+  Kostet Laufzeit, kauft Reproduzierbarkeit.
 
 ### Performance-Hebel
 
@@ -339,13 +338,13 @@ MPLBACKEND=Agg python -m pytest tests/ -q
 - **Deflated Sharpe Ratio** (Bailey & López de Prado 2014) je Strategie.
 - **Purged & Embargoed Cross-Validation** (López de Prado 2018) im RF-Tuning.
 
-### Ergebnisse des maßgeblichen Laufs (`output/`, 15.08.2026)
+### Ergebnisse des maßgeblichen Laufs (`output/`, 25.08.2026)
 
 | Strategie | CAGR | Vola | **Sharpe** | Sortino | Max. DD | Calmar |
 |---|---:|---:|---:|---:|---:|---:|
 | Markowitz MVO | 23,14 % | 21,00 % | 0,9063 | 1,2956 | −34,28 % | 0,675 |
 | Random Forest | 22,12 % | 19,03 % | **0,9357** | 1,3502 | −33,77 % | 0,655 |
-| Equal Weight | 20,03 % | 17,56 % | 0,9005 | 1,2830 | −33,25 % | 0,603 |
+| Equal Weight | 20,03 % | 17,56 % | 0,9005 | 1,2830 | −33,25 % | 0,602 |
 | Risk Parity | 16,92 % | 16,45 % | 0,7901 | 1,1214 | −32,44 % | 0,522 |
 
 | Vergleich | ΔSharpe | p (LW) | p (Holm) | Befund |
@@ -355,7 +354,7 @@ MPLBACKEND=Agg python -m pytest tests/ -q
 | RF vs. RP | +0,146 | 0,257 | 1,000 | n. s. |
 | MVO vs. EW | +0,006 | 0,971 | 1,000 | n. s. |
 | MVO vs. RP | +0,116 | 0,489 | 1,000 | n. s. |
-| **Risk Parity vs. EW** | **−0,110** | **0,004** | **0,022** | **signifikant** |
+| **Risk Parity vs. EW** | **−0,110** | **0,0036** | **0,0216** | **signifikant** |
 
 **Zentraler Befund (robust):** Nach Holm-Korrektur schlägt *kein* aktiver Ansatz
 die Equal-Weight-Benchmark signifikant. Signifikant ist allein, dass Risk Parity
@@ -364,25 +363,26 @@ die Equal-Weight-Benchmark signifikant. Signifikant ist allein, dass Risk Parity
 Sharpe-Quotienten als 1/N; der Random Forest gewinnt ausschließlich
 risikoadjustiert, und auch das nicht signifikant.
 
-Die Deflated Sharpe Ratio liegt für alle vier Strategien über 0,95 (Hürde
-SR₀ = 0,067 annualisiert) — die Sharpe-Werte selbst sind also nicht bloßes
-Auswahlglück; nur die *Unterschiede* zwischen ihnen sind es.
+Die Deflated Sharpe Ratio liegt für alle vier Strategien zwischen 0,988 und
+0,997 (Hürde SR₀ = 0,067 annualisiert): Die Sharpe-Quotienten selbst sind kein
+bloßes Auswahlglück; die *Unterschiede* zwischen ihnen lassen sich dagegen
+statistisch nicht von null trennen.
 
 Eine ausführliche Diskussion der Grenzen (u. a. **Survivorship Bias**) inkl.
 Literaturverzeichnis steht in **[LIMITATIONS.md](LIMITATIONS.md)**.
 
-## Methodische Korrekturen v4.1/v4.2
+## Methodische Festlegungen
 
-- **Einfache (arithmetische) Renditen** statt Log-Renditen: die Portfoliorendite
-  ist exakt die gewichtete Summe der Asset-Renditen und konsistent zur
-  Kennzahl-Berechnung. Monatsrenditen werden korrekt aufgezinst.
-- **Driftbewusster Turnover:** neue Zielgewichte werden mit den über die letzte
-  Halteperiode gedrifteten Vorgängergewichten verglichen. Equal Weight erhält so
-  einen realistischen Rebalancing-Turnover (vorher fälschlich 0).
-- **Sharpe und Sortino auf die Lehrbuchdefinition umgestellt:**
-  Sharpe rechnet arithmetisch (nicht mehr CAGR im Zähler) und stimmt damit exakt
+- **Einfache (arithmetische) Renditen** statt Log-Renditen: Die Portfoliorendite
+  ist exakt die gewichtete Summe der Titelrenditen. Monatsrenditen werden
+  aufgezinst, nicht addiert.
+- **Driftbewusster Turnover:** Neue Zielgewichte werden mit den über die letzte
+  Halteperiode gedrifteten Vorgängergewichten verglichen (Formel 26). Auch Equal
+  Weight hat so einen Umschlag: Es führt die Kursdrift auf 1/N zurück.
+- **Sharpe und Sortino nach Lehrbuchdefinition:** Der Sharpe-Quotient rechnet
+  mit dem arithmetischen Mittel der Überschussrenditen und stimmt damit exakt
   mit `significance.py` überein; Sortinos Downside-Abweichung mittelt über alle
-  Tage statt nur über die Verlusttage.
+  Tage.
 - **Theorie-Abbildungen reproduzierbar:** Die Bilder zu Kapitel 2 entstehen in
   `theory_plots.py` aus derselben eingefrorenen Kursdatei wie der Backtest —
   nicht als vorgefertigte Grafiken ohne erzeugenden Code.
@@ -399,9 +399,9 @@ Literaturverzeichnis steht in **[LIMITATIONS.md](LIMITATIONS.md)**.
 | `06_rollierender_sharpe.png` | rollierender 1-Jahres-Sharpe |
 | `07_feature_importance.png` | MDI-Wichtigkeit der RF-Merkmale |
 | `08_frontier_evolution.png` | Wanderung der Effizienzlinie über die Zeit |
-| `09_stress_test.png` | COVID-Crash 2020 und Zinswende 2021/22 |
+| `09_stress_test.png` | COVID-Crash (Jan.–Jun. 2020) und Zinserhöhungen (Nov. 2021–Dez. 2022) |
 | `10_turnover_performance.png` | Handelsumsatz gegen Folgemonatsrendite |
-| `11_frontier_animation.gif` | Abbildung 8 als Film |
+| `11_frontier_animation.gif` | Ausgabebild 08 als Film |
 | `12_shap_explainability.png` | SHAP-Erklärbarkeit (nur wenn `shap` installiert) |
 | `13_kosten_sensitivitaet.png` | aus `skripte/abbildung_kostensensitivitaet.py`, nicht aus dem Lauf |
 | `14`–`18_theorie_*.png` | Theorie-Abbildungen zu Kapitel 2 |
@@ -417,7 +417,7 @@ Literaturverzeichnis steht in **[LIMITATIONS.md](LIMITATIONS.md)**.
 | Ich möchte … | Befehl | Dauer |
 |---|---|---|
 | prüfen, ob alles funktioniert | `MPLBACKEND=Agg python -m pytest tests/ -q` | ~4 s |
-| alle Zahlen der Arbeit nachrechnen | `python skripte/alle_kapitel.py` | ~1,5 min |
+| alle Zahlen der Arbeit nachrechnen | `python skripte/alle_kapitel.py` | ~1 min |
 | gefahrlos ausprobieren | `PORTFOLIO_CONFIG=config.schnell.json python -m portfolio` | Minuten |
 | das volle Experiment laufen lassen | `python -m portfolio` | ~77 min |
 

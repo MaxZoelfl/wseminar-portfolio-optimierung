@@ -21,7 +21,7 @@ im Code (siehe den Kommentar "Look-Ahead-Schutz" und den Abschnitt
 Transaktionskosten).
 
 Zwei bewusste Vereinfachungen sind unten an Ort und Stelle kommentiert und in
-LIMITATIONS.md, Abschnitt 13, beziffert: feste Gewichte innerhalb des Monats
+LIMITATIONS.md, Abschnitt 11, beziffert: feste Gewichte innerhalb des Monats
 (Abschnitt 6b) und ein Kalenderdetail beim Abschneiden des Lernstoffs
 (Abschnitt 4). Beide ändern keine Aussage der Arbeit.
 
@@ -96,7 +96,7 @@ def run_backtest(asset_prices: pd.DataFrame,
     # keine Vorperiode.
     prev_hold_growth = None
 
-    # RF-Tuning-Zähler (Performance-Hebel RF_RETUNE_EVERY) und Index des letzten
+    # RF-Tuning-Zähler (Stellschraube RF_RETUNE_EVERY in config.py) und Index des letzten
     # Backtest-Schritts (für gezielte Dashboard-Updates).
     rf_tune_count = 0
     _last_i = len(backtest_months) - 2
@@ -176,9 +176,9 @@ def run_backtest(asset_prices: pd.DataFrame,
         prev_w_rp  = _drift(hist_w_rp[-1].values)  if hist_w_rp  else np.ones(n) / n
         prev_w_ew  = _drift(np.ones(n) / n)
 
-        # Bezugspunkt für die Turnover-SCHRANKE im Optimierer: entweder die
-        # gedrifteten (konsistent mit der Messung) oder — wie bisher — die
-        # ungedrifteten Zielgewichte des Vormonats.
+        # Bezugspunkt für die Turnover-SCHRANKE im Optimierer: die gedrifteten
+        # Gewichte (Standard, derselbe Bezugspunkt wie bei der Messung) oder
+        # die ungedrifteten Zielgewichte des Vormonats (turnover_ref_drifted).
         ref_rf  = prev_w_rf  if TURNOVER_REF_DRIFTED else w_prev_rf
         ref_mvo = prev_w_mvo if TURNOVER_REF_DRIFTED else w_prev_mvo
 
@@ -188,9 +188,8 @@ def run_backtest(asset_prices: pd.DataFrame,
         # ausgewichen statt den ganzen Backtest abzubrechen.
         # MVO_TURNOVER_LIMIT steht standardmäßig auf 0.30 — dieselbe
         # Handelsrestriktion wie für den Random Forest. Nur dann unterscheiden
-        # sich die beiden Strategien wirklich AUSSCHLIESSLICH im
-        # Renditeschätzer. Auf None gesetzt entfällt das Limit (früheres,
-        # unfaires Verhalten; siehe LIMITATIONS.md, Abschnitt 10).
+        # sich die beiden Strategien AUSSCHLIESSLICH im Renditeschätzer
+        # (LIMITATIONS.md, Abschnitt 9). Auf None gesetzt entfällt das Limit.
         try:
             w_mvo = mvo.max_sharpe(
                 mu_hist, cov_ann,
@@ -292,7 +291,7 @@ def run_backtest(asset_prices: pd.DataFrame,
                 w_rf  = np.ones(n) / n
                 mu_rf = mu_hist.copy()
 
-        # ---- Efficient Frontier Snapshot (jeden 3. Monat) ----------------
+        # ---- Momentaufnahme der Effizienzlinie (jeden 3. Monat) -----------
         # Nur für die Ausgabebilder 08 und 11 (nicht Teil der Arbeit):
         # gelegentlich ein "Foto" der aktuellen Effizienzlinie aufheben.
         # Hat keinerlei Einfluss auf die Ergebnisse.
@@ -314,7 +313,7 @@ def run_backtest(asset_prices: pd.DataFrame,
         # ---- 6a) Transaktionskosten ----------------------------------------
         # Turnover = 0.5 * Σ|w_neu − w_alt| (Formel 26 der Arbeit). Als "w_alt" werden die über die
         # letzte Halteperiode GEDRIFTETEN Vorgängergewichte verwendet (nicht
-        # die ursprünglichen Zielgewichte) — sie wurden oben vor den
+        # die Zielgewichte des Vormonats) — sie wurden oben vor den
         # Optimierern berechnet (prev_w_*). Dadurch erhält auch Equal Weight
         # einen realistischen Rebalancing-Turnover (Rückführung der Kursdrift
         # auf 1/N), und alle Strategien werden konsistent und FAIR bewertet.
@@ -347,7 +346,7 @@ def run_backtest(asset_prices: pd.DataFrame,
         # Umschlagsmessung in 6a (prev_w_*) annimmt. Nachgerechnet: Mit Drift
         # innerhalb des Monats lägen alle vier Sharpe-Quotienten um 0,005 bis
         # 0,007 niedriger; Rangfolge, Testentscheidungen und Deflated Sharpe
-        # Ratios blieben unverändert (LIMITATIONS.md, Abschnitt 13).
+        # Ratios blieben unverändert (LIMITATIONS.md, Abschnitt 11.1).
         ret_mvo = (hold_period * w_mvo).sum(axis=1).copy()
         ret_rf  = (hold_period * w_rf ).sum(axis=1).copy()
         ret_rp  = (hold_period * w_rp ).sum(axis=1).copy()
@@ -384,7 +383,7 @@ def run_backtest(asset_prices: pd.DataFrame,
         w_prev_rf  = w_rf.copy()
         w_prev_mvo = w_mvo.copy()
 
-        # Wachstumsfaktoren dieser Halteperiode je Asset (prod(1+r)) für den
+        # Wachstumsfaktoren dieser Halteperiode je Titel (prod(1+r)) für den
         # driftbewussten Turnover der nächsten Iteration sichern.
         prev_hold_growth = (1 + hold_period).prod(axis=0).reindex(tickers).to_numpy()
 

@@ -126,7 +126,7 @@ class MarkowitzLedoitWolf:
             steilsten Verbindungsgeraden zum risikofreien Zins — genau das
             Portfolio mit maximaler Sharpe Ratio.
           - "Long-Only": keine Leerverkäufe, alle Gewichte ≥ 0.
-          - "Turnover-Constraint": Wenn Vorgängergewichte (w_prev) und ein
+          - "Umschlagschranke" (Turnover-Constraint): Wenn Vorgängergewichte (w_prev) und ein
             Limit übergeben werden, darf die neue Lösung nur begrenzt vom
             alten Depot abweichen — das begrenzt Handelskosten.
 
@@ -208,7 +208,7 @@ class MarkowitzLedoitWolf:
         liegt das Markowitz-Tangentialportfolio auf der gezeichneten Kurve, und
         die Kurve endet bei der unter dieser Obergrenze erreichbaren
         Maximalrendite statt bei einer 100-%-Einzelwette. ``None`` = keine
-        Obergrenze (0 ≤ w ≤ 1), wie bisher.
+        Obergrenze (0 ≤ w ≤ 1).
         """
         n      = len(mu)
         upper  = 1.0 if max_weight is None else float(max_weight)
@@ -263,7 +263,7 @@ class RiskParityPortfolio:
     """
     Equal Risk Contribution (Risk Parity) Portfolio.
 
-    Jedes Asset trägt gleich viel zum gesamten Portfoliorisiko bei.
+    Jeder Titel trägt gleich viel zum gesamten Portfoliorisiko bei.
     Formell (Formel 19 der Arbeit, Maillard u. a. 2009):
       Risikobeitrag RC_i = w_i · (Σw)_i / sqrt(w'Σw).
       Die Beiträge summieren sich zur Portfoliovolatilität σ_P = sqrt(w'Σw);
@@ -362,6 +362,7 @@ class RFPortfolioOptimizer:
     def __init__(self, rf: float = RISK_FREE_RATE,
                  n_iter: int = RF_N_ITER,
                  cv_splits: int = RF_CV_SPLITS):
+        """Merkt sich die Einstellungen; trainiert wird erst in fit_with_tuning()."""
         self.rf               = rf          # risikofreier Zins (für max_sharpe)
         self.n_iter           = n_iter      # Anzahl getesteter Einstellungs-Kombis
         self.cv_splits        = cv_splits   # Anzahl Validierungs-Zeitabschnitte
@@ -437,7 +438,7 @@ class RFPortfolioOptimizer:
         Mit use_purged_cv = False: TimeSeriesSplit (Testdaten liegen zeitlich
         NACH dem Training). Das verhindert den Blick in die Zukunft, nicht aber
         das Überlappungs-Leck; der Vergleichslauf damit ergab für den Random
-        Forest einen um rund 0,04 zu hohen Sharpe-Quotienten (0,980 statt 0,936).
+        Forest einen um rund 0,025 zu hohen Sharpe-Quotienten (0,961 statt 0,936).
         ``sample_times`` ist die Periode (Monatsende) je Zeile von X_train.
 
         (X_train = Tabelle der Merkmale, eine Zeile pro Aktie und Monat;
@@ -471,7 +472,7 @@ class RFPortfolioOptimizer:
         fit_with_tuning() gefundenen Parameter und passt das Modell nur an das
         aktuelle (rollierende) Trainingsfenster an. Spart den teuren
         RandomizedSearchCV, wenn nicht in jedem Monat neu getunt werden soll
-        (Performance-Hebel RF_RETUNE_EVERY). Fällt auf volle Suche zurück,
+        (Stellschraube RF_RETUNE_EVERY in config.py). Fällt auf volle Suche zurück,
         falls noch keine Parameter bekannt sind.
         """
         if not self.best_params_:

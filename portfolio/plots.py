@@ -44,32 +44,8 @@ from .metrics import *
 from .indicators import *
 from .optimizers import *
 
-# ---------------------------------------------------------------------------
-# Abbildungsüberschriften — standardmäßig AUS
-# ---------------------------------------------------------------------------
-# In der Seminararbeit steht unter jeder Abbildung eine Bildunterschrift. Eine
-# zusätzliche Überschrift IM Bild wäre eine Dublette und in wissenschaftlichen
-# Arbeiten unüblich. Deshalb werden die Überschriften standardmäßig nicht
-# gezeichnet.
-#
-# Wer sie zurückhaben will (etwa für eine Präsentation), setzt vor dem Lauf
-#     export PLOT_TITLES=1
-#
-# ⚠ Betroffen sind nur die ÜBERSCHRIFTEN GANZER ABBILDUNGEN. Beschriftungen
-# einzelner Teilbilder (etwa der Krisenname über einem Stresstest-Panel oder
-# der Kennzahlname über einem Balkenpaar) bleiben immer stehen — ohne sie wäre
-# die Abbildung nicht mehr lesbar. Sie rufen weiterhin direkt ax.set_title auf.
-SHOW_TITLES = os.getenv("PLOT_TITLES", "0") == "1"
-
-
-def _bildtitel(ziel, *args, **kwargs):
-    """Überschrift einer ganzen Abbildung; zeichnet nur bei PLOT_TITLES=1."""
-    if not SHOW_TITLES:
-        return
-    if hasattr(ziel, "suptitle"):        # Figure
-        ziel.suptitle(*args, **kwargs)
-    else:                                # Axes
-        ziel.set_title(*args, **kwargs)
+# Überschriften ganzer Abbildungen schaltet bildtitel() aus config.py
+# (standardmäßig aus, mit PLOT_TITLES=1 an).
 
 
 def plot_cumulative_returns(returns_df: pd.DataFrame, output_path: str) -> None:
@@ -110,7 +86,7 @@ def plot_cumulative_returns(returns_df: pd.DataFrame, output_path: str) -> None:
     ax_main.set_ylabel("Kumulierter Wert (Start = 1 €)")
     ax_main.yaxis.set_major_formatter(mtick.StrMethodFormatter("{x:.2f} €"))
     ax_main.legend(loc="upper left", framealpha=0.9)
-    _bildtitel(ax_main, 
+    bildtitel(ax_main, 
         "Kumulierte Portfoliorenditen im Vergleich\n"
         "(MVO | Random Forest | Equal Weight | Risk Parity | "
         "monatliches Rebalancing)",
@@ -155,7 +131,7 @@ def plot_weight_heatmap(weights_df: pd.DataFrame, title: str,
     visible = [lbl if j % 2 == 0 else "" for j, lbl in enumerate(col_labels)]
     ax.set_xticklabels(visible, rotation=45, ha="right", fontsize=8)
     ax.set_yticklabels(ax.get_yticklabels(), rotation=0, fontsize=9)
-    _bildtitel(ax, f"Portfolio-Gewichtungen: {title}\n(% | je Rebalancing-Monat)", pad=12)
+    bildtitel(ax, f"Portfolio-Gewichtungen: {title}\n(% | je Rebalancing-Monat)", pad=12)
     ax.set_xlabel("Rebalancing-Datum")
     ax.set_ylabel("Asset")
     plt.tight_layout()
@@ -177,8 +153,10 @@ def plot_efficient_frontier(mu_hist: np.ndarray, cov_ann: np.ndarray,
       - die Effizienzlinie (Kurve der bestmöglichen Portfolios),
       - die Capital Market Line (CML): Gerade vom risikofreien Zins durch das
         Tangentialportfolio — Mischungen aus sicherer Anlage und Depot,
-      - alle 15 Einzelaktien (kleine Punkte, stets UNTER der Kurve — einzeln
-        ist man nie effizient, das ist der Diversifikationsgewinn),
+      - alle 15 Einzelaktien (kleine Punkte; die meisten liegen rechts unter
+        der Kurve — das ist der Diversifikationsgewinn. Sehr renditestarke
+        Titel wie NVIDIA können oberhalb ihres Endes liegen, weil die
+        20-%-Grenze ein Depot aus nur diesem Titel nicht zulässt),
       - die vier Strategie-Portfolios und das Minimum-Varianz-Portfolio (MVP).
     """
     log.info("Plot 4: Efficient Frontier …")
@@ -248,7 +226,7 @@ def plot_efficient_frontier(mu_hist: np.ndarray, cov_ann: np.ndarray,
                    label=f"MVP  Vol: {mvp['vol']*100:.1f}%  "
                          f"Sharpe: {mvp['sr']:.2f}")
 
-    _bildtitel(ax, 
+    bildtitel(ax, 
         "Effizienzkurve (Efficient Frontier) mit Capital Market Line\n"
         "Markowitz (1952) | Kovarianz: Ledoit-Wolf (2004)", pad=12,
     )
@@ -306,7 +284,7 @@ def plot_performance_metrics(metrics_df: pd.DataFrame, output_path: str) -> None
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
 
-    _bildtitel(fig, 
+    bildtitel(fig, 
         "Performance-Kennzahlen im Vergleich | Rollierendes Backtest (2015–2024)",
         fontsize=13, fontweight="bold", y=1.01,
     )
@@ -314,6 +292,22 @@ def plot_performance_metrics(metrics_df: pd.DataFrame, output_path: str) -> None
     plt.savefig(output_path, dpi=200, bbox_inches="tight")
     plt.close()
     log.info(f"  → {output_path}")
+
+
+def rollierender_sharpe(returns_df: pd.DataFrame, window: int = 252) -> pd.DataFrame:
+    """Sharpe-Quotient in jedem gleitenden Fenster von ``window`` Handelstagen.
+
+    Je Zeitpunkt dieselbe Rechnung wie Formel 13 und 14 der Arbeit, nur auf die
+    letzten ``window`` Tage beschränkt: (Ø Tagesrendite − Tageszins) geteilt
+    durch die Streuung, mal √252. Benutzt von Abbildung A4 (unten) und von den
+    Nachrechnungsskripten. Die ersten window − 1 Tage haben noch kein volles
+    Fenster und bleiben leer (NaN)."""
+    rf_daily = RISK_FREE_RATE / 252     # Jahreszins auf einen Tag herunterbrechen
+    return pd.DataFrame({
+        col: (returns_df[col].rolling(window).mean() - rf_daily)
+             / returns_df[col].rolling(window).std() * np.sqrt(252)
+        for col in returns_df.columns
+    })
 
 
 def plot_rolling_sharpe(returns_df: pd.DataFrame, output_path: str,
@@ -327,20 +321,18 @@ def plot_rolling_sharpe(returns_df: pd.DataFrame, output_path: str,
     Arbeit gegen vorschnelle "Strategie X ist besser"-Schlüsse.
     """
     log.info("Plot 6: Rollierender Sharpe Ratio …")
-    rf_daily = RISK_FREE_RATE / 252     # Jahreszins auf einen Tag herunterbrechen
     fig, ax  = plt.subplots(figsize=(13, 5))
 
+    rollierend = rollierender_sharpe(returns_df, window)
     for col in returns_df.columns:
-        r  = returns_df[col]
-        # Je Zeitpunkt: (Ø Tagesrendite − Tageszins) / Streuung, annualisiert.
-        rs = (r.rolling(window).mean() - rf_daily) / r.rolling(window).std() * np.sqrt(252)
+        rs = rollierend[col]                  # Sharpe-Quotient je Fenster
         ax.plot(rs.index, rs.values, label=col,
                 color=COLORS.get(col, "gray"), linewidth=1.8, alpha=0.9)
 
     # Orientierungslinien: 0 = kein Mehrwert übers Sparbuch, 1 = sehr gut.
     ax.axhline(0, color="black", linewidth=0.8, linestyle="--", alpha=0.4)
     ax.axhline(1, color="grey",  linewidth=0.6, linestyle=":",  alpha=0.5)
-    _bildtitel(ax, f"Rollierender Sharpe Ratio ({window}-Tage-Fenster ≈ 1 Jahr)", pad=10)
+    bildtitel(ax, f"Rollierender Sharpe Ratio ({window}-Tage-Fenster ≈ 1 Jahr)", pad=10)
     ax.set_xlabel("Datum")
     ax.set_ylabel("Sharpe Ratio (annualisiert)")
     ax.legend(loc="upper left")
@@ -390,8 +382,8 @@ def plot_feature_importance(rf_optimizer: RFPortfolioOptimizer,
         for bar, val in zip(bars, importance_df["Importance"] * 100):
             ax.text(val + 0.1, bar.get_y() + bar.get_height() / 2,
                     f"{val:.2f}%", va="center", ha="left", fontsize=9)
-        _bildtitel(ax, 
-            "Random Forest: Feature Importance (v4 mit Cross-sectional Ranks)\n"
+        bildtitel(ax, 
+            "Random Forest: Merkmalswichtigkeit\n"
             "Mean Decrease in Impurity | letzter Trainingsschritt", pad=12,
         )
         ax.set_xlabel("Relative Wichtigkeit (%)")
@@ -454,7 +446,7 @@ def plot_frontier_evolution(frontier_snapshots: list, output_path: str) -> None:
         ax.plot(snap["vol"] * 100, snap["ret"] * 100,
                 color=cmap(norm(idx)), linewidth=lw, alpha=1.0, label=label, zorder=5)
 
-    _bildtitel(ax, 
+    bildtitel(ax, 
         "Evolution der Effizienzlinie über den Backtestzeitraum (2015–2024)\n"
         "Jede Kurve = Frontier zu einem Rebalancing-Termin | Rauten = Tangentialpunkte",
         pad=12,
@@ -464,9 +456,9 @@ def plot_frontier_evolution(frontier_snapshots: list, output_path: str) -> None:
     ax.xaxis.set_major_formatter(mtick.StrMethodFormatter("{x:.0f}%"))
     ax.yaxis.set_major_formatter(mtick.StrMethodFormatter("{x:.0f}%"))
     ax.legend(loc="upper left", fontsize=9, framealpha=0.9)
-    # Bewusst KEIN Erklaerkasten im Bild ("Die Frontier verschiebt sich mit
-    # jeder Neuschaetzung von mu und Sigma"): Er sagte dasselbe wie die
-    # Bildunterschrift der Arbeit und lag ohne Ueberschrift unter der Legende —
+    # Bewusst KEIN Erklärkasten im Bild ("Die Frontier verschiebt sich mit
+    # jeder Neuschätzung von mu und Sigma"): Er sagte dasselbe wie die
+    # Bildunterschrift der Arbeit und lag ohne Überschrift unter der Legende —
     # eine Abbildung braucht keine zweite Beschriftung im Bild.
     plt.tight_layout()
     plt.savefig(output_path, dpi=200, bbox_inches="tight")
@@ -495,7 +487,7 @@ def plot_stress_test(returns_df: pd.DataFrame, output_path: str) -> None:
     }
 
     fig, axes = plt.subplots(1, 2, figsize=(15, 6))   # ein Panel je Krise
-    _bildtitel(fig, 
+    bildtitel(fig, 
         "Stress-Test: Krisenresistenz der Portfoliostrategien",
         fontsize=13, fontweight="bold", y=1.02,
     )
@@ -572,7 +564,7 @@ def plot_turnover_performance(turnover_df: pd.DataFrame,
     monthly_returns = (1 + returns_df).resample("ME").prod() - 1
 
     fig, axes = plt.subplots(1, 2, figsize=(13, 5))
-    _bildtitel(fig, 
+    bildtitel(fig, 
         "Turnover-Effizienz-Analyse\n"
         "Monatlicher Handelsumsatz vs. nachfolgende Monatsrendite",
         fontsize=12, fontweight="bold", y=1.02,
@@ -702,7 +694,7 @@ def create_animated_frontier_gif(frontier_snapshots: list,
         ax.set_ylim(ret_min, ret_max)
         ax.set_xlabel("Annualisierte Volatilität (%)")
         ax.set_ylabel("Annualisierte Erwartungsrendite (%)")
-        _bildtitel(ax, 
+        bildtitel(ax, 
             "Efficient Frontier — Evolution (2015–2024)\n"
             "Jeder Frame = ein Rebalancing-Termin | "
             "Raute = Tangentialpunkt (max. Sharpe)",
@@ -834,7 +826,7 @@ def plot_shap_values(rf_optimizer: RFPortfolioOptimizer,
         )
         ax2.set_xlabel("|SHAP-Wert| (Einfluss auf Renditeprognose)")
 
-        _bildtitel(fig, 
+        bildtitel(fig, 
             "SHAP-Erklärbarkeit des Random Forest (Lundberg & Lee, 2017)",
             fontsize=13, fontweight="bold", y=1.01,
         )
@@ -876,8 +868,8 @@ def save_experiment_json(metrics_df: pd.DataFrame,
     """
     Speichert Experimentparameter + Ergebnisse als JSON.
     Dient der Reproduzierbarkeit und wissenschaftlichen Dokumentation.
-    Enthält die robuste Signifikanzanalyse (Ledoit-Wolf 2008, Holm,
-    Deflated Sharpe Ratio) statt des früheren i.i.d.-Bootstraps.
+    Enthält die Signifikanzanalyse (Ledoit-Wolf 2008, Holm, Deflated Sharpe
+    Ratio).
 
     JSON ist ein maschinen- UND menschenlesbares Textformat. In der Datei
     steht das komplette "Laborprotokoll": Wer später wissen will, mit welchen

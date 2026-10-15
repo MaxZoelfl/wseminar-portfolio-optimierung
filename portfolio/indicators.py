@@ -168,12 +168,12 @@ def compute_alpha_beta(asset_returns: pd.Series,
         #   Beta  = Kovarianz(Aktie, Markt) / Varianz(Markt)
         #   Alpha = Mittelwert(Aktie) − Beta · Mittelwert(Markt)
         # (+1e-12 verhindert wieder eine Division durch null.)
-        # ⚠ Kleine Unschärfe: np.cov teilt durch n−1, np.var durch n. Beta
-        # fällt dadurch um den Faktor 63/62 (rund 1,6 %) größer aus als die
-        # exakte Regressionssteigung, Alpha entsprechend minimal anders. Für
-        # den Random Forest ist ein fester Faktor bei Beta ohne Wirkung (Bäume
-        # teilen nach der Rangfolge der Werte). Im maßgeblichen Lauf bewusst
-        # belassen, damit dessen Ergebnisse gültig bleiben.
+        # np.cov teilt durch n−1, np.var durch n: Beta liegt dadurch um den
+        # festen Faktor 63/62 (1,6 %) über der Steigung der Regression. Für den
+        # Random Forest ist das ohne Belang (ein Baum teilt nach der Reihenfolge
+        # der Werte, die ein fester Faktor nicht ändert); Alpha verschiebt sich
+        # an den Monatsenden im Median um 0,27 Prozentpunkte pro Jahr
+        # (LIMITATIONS.md, Abschnitt 11.3).
         beta   = np.cov(ra, rm)[0, 1] / (np.var(rm) + 1e-12)
         alpha  = ra.mean() - beta * rm.mean()
         alphas.append(alpha * 252)      # Alpha auf Jahresbasis hochrechnen
@@ -186,7 +186,7 @@ def build_all_indicators(daily_prices: pd.DataFrame,
                           daily_returns: pd.DataFrame,
                           spy_returns: pd.Series,
                           tickers: list) -> dict:
-    """Berechnet alle technischen Indikatoren für jedes Asset (täglich).
+    """Berechnet alle technischen Indikatoren für jeden Titel (täglich).
 
     Sammelfunktion: ruft für jede der 15 Aktien nacheinander alle obigen
     Indikator-Funktionen auf und klebt die Ergebnisse spaltenweise zu EINER

@@ -1,17 +1,19 @@
 """
-Kapitel 7 — Eine Antwort und drei offene Fragen: jede eigene Zahl nachgerechnet.
+Kapitel 7 — Eine Antwort und drei offene Fragen: jede Zahl des Kapitels, in
+Textreihenfolge.
 
 FÜR EINSTEIGER — WAS MACHT DIESES SKRIPT?
-Kapitel 7 fasst zusammen und wiederholt dabei einige Zahlen aus Kapitel 6
-(p-Werte) und aus der Einleitung (die Beobachtungsdauer nach DeMiguel u. a.).
-Dieses Skript prüft, ob die Wiederholungen mit den Ergebnissen übereinstimmen
-und ob der Vergleich "rund fünfundzwanzigmal kürzer" aufgeht.
-§ 7.2 (Ausblick) enthält keine eigenen Zahlen.
+Kapitel 7 beantwortet die Forschungsfrage und greift dafür Zahlen aus den
+Kapiteln 1, 5 und 6 wieder auf: die p-Werte der Tests, die Länge des
+Auswertungszeitraums und den Vergleich mit DeMiguel u. a. Dieses Skript
+prüft, ob sie hier genauso stehen, wie sie dort berechnet wurden.
+§ 7.2 (Ausblick) enthält keine Zahlen.
 
 AUFRUF (virtuelle Umgebung aktiviert, aus einem beliebigen Ordner):
-    python skripte/kapitel_7_fazit.py             # eine Sekunde
+    python skripte/kapitel_7_fazit.py             # unter einer Sekunde
 """
 
+import inspect
 import sys
 from pathlib import Path
 
@@ -19,11 +21,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _werkzeuge import *                              # noqa: E402,F401,F403
 
 from portfolio.significance import holm_bonferroni    # noqa: E402
-
-DEMIGUEL_MONATE = 3000                                # DeMiguel/Garlappi/Uppal (2009), Quelle, § 1.1
+from kapitel_1_einleitung import DEMIGUEL_MONATE      # noqa: E402  (Zahl aus der Quelle, § 1.1)
 
 
 def pruefe() -> Pruefung:
+    """Alle Zahlen aus Kapitel 7, in der Reihenfolge des Textes."""
     p = Pruefung("Kapitel 7 — Eine Antwort und drei offene Fragen")
     log = protokoll()
     test = log["significance"]["sharpe_difference_tests"]
@@ -31,25 +33,24 @@ def pruefe() -> Pruefung:
 
     # ──────────────────────────────────────────────────────────────────
     p.abschnitt("7.1 Beantwortung der Forschungsfrage")
-    p.zahl("paarweise Vergleiche", "6", len(test))
-    import inspect
+    p.zahl("paarweise Vergleiche", "sechs", len(test))
     alpha = inspect.signature(holm_bonferroni).parameters["alpha"].default
-    p.zahl("Niveau α (Voreinstellung im Code)", "5", alpha * 100, "%")
-    p.zahl("p Random Forest gegen 1/N", "0,77", test["RF vs. EW"]["p_value"])
-    p.zahl("p Markowitz gegen 1/N", "0,97", test["MVO vs. EW"]["p_value"])
-    p.zahl("p nach Holm, Risk Parity gegen 1/N", "0,0216", test["Risk Parity vs. EW"]["p_holm"])
-    p.offen("beide Vorsprünge gehen auf NVIDIA zurück", "(§ 6.6)",
-            "wird in kapitel_6_ergebnisse.py, § 6.6, nachgerechnet")
-    p.offen("DeMiguel u. a.: Beobachtungsdauer", "3000 Monate", "Zahl aus der Quelle")
-    p.offen("DeMiguel u. a.: Portfolio aus", "25 Titeln", "Zahl aus der Quelle")
+    p.zahl("Signifikanzniveau (Voreinstellung im Code)", "fünf", alpha * 100, "%")
+    p.zahl("p Random Forest gegen Gleichgewichtung", "0,77", test["RF vs. EW"]["p_value"])
+    p.zahl("p Markowitz gegen Gleichgewichtung", "0,97", test["MVO vs. EW"]["p_value"])
+    p.zahl("p nach Holm, Risk Parity gegen Gleichgewichtung", "0,0216", test["Risk Parity vs. EW"]["p_holm"])
+    p.zahl("aktive Verfahren (alle außer der Gleichgewichtung)", "drei", len(s.columns) - 1)
+    p.quelle("DeMiguel u. a.: nötige Beobachtungsdauer in Monaten", "3000", "§ 1.1, Fn 6")
+    p.quelle("DeMiguel u. a.: Titel im Portfolio", "25", "§ 1.1, Fn 6")
     monate = len(gewichte()["Risk Parity"])
-    p.zahl("Auswertungszeitraum", "119", monate, "Monate", notiz="Text: „knapp 119 Monate“")
-    p.zahl("so viel kürzer", "25", DEMIGUEL_MONATE / monate, "-mal", ungefaehr=True,
-           notiz="Text: „rund fünfundzwanzigmal“")
-    p.zahl("Standardwerte", "15", log["experiment_meta"]["n_assets"])
+    p.zahl("Auswertungszeitraum in Monaten", "119", monate)
+    p.zahl("so viel kürzer als bei DeMiguel u. a.", "fünfundzwanzig", DEMIGUEL_MONATE / monate,
+           ungefaehr=True, toleranz=1, notiz=f"Text: „rund fünfundzwanzigmal“; 3000 ÷ 119 = "
+                                              f"{de(DEMIGUEL_MONATE / monate, 1)}")
+    p.zahl("Standardwerte", "fünfzehn", log["experiment_meta"]["n_assets"])
     jahre = (s.index[-1] - s.index[0]).days / 365.25
-    p.zahl("Jahre", "10", jahre, ungefaehr=True, toleranz=0.5, notiz="Text: „zehn Jahre“")
-    p.zahl("Verfahren", "4", len(s.columns))
+    p.zahl("Jahre", "zehn", jahre, ungefaehr=True, toleranz=0.5, notiz=f"genau {de(jahre, 2)} Jahre")
+    p.zahl("Verfahren", "vier", len(s.columns))
     return p
 
 

@@ -79,7 +79,7 @@ def download_data(tickers: list, spy_ticker: str, start: str, end: str):
     # pct_change() macht genau diese Rechnung für jede Spalte automatisch;
     # der erste Tag hat keinen Vortag und wird per dropna() entfernt.
     # Bewusst KEINE Log-Renditen: Einfache Renditen sind über Assets additiv,
-    # d.h. die Portfoliorendite ist exakt die gewichtete Summe der Asset-
+    # d.h. die Portfoliorendite ist exakt die gewichtete Summe der Titel-
     # Renditen ( sum_i w_i * r_i ). Log-Renditen sind das NICHT — ihre
     # gewichtete Summe über Assets ergibt keine gültige Portfoliorendite und
     # wäre inkonsistent mit der Kennzahl-Berechnung via (1 + r).cumprod().

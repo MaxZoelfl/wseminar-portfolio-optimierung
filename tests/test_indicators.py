@@ -58,7 +58,7 @@ def _daily(ticker_ret, cols=("rsi",)):
 
 
 def test_monthly_return_is_compounded():
-    # v4.1: Monatsrendite = prod(1+r) - 1 (nicht Summe)
+    # Monatsrendite = prod(1+r) - 1 (nicht Summe)
     # Hintergrund: Renditen verketten sich multiplikativ (+10 % dann −10 %
     # ist NICHT 0 %). Der Test rechnet die Januar-Rendite von Hand nach.
     idx = pd.bdate_range("2020-01-01", "2020-02-28")

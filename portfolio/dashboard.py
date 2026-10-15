@@ -25,7 +25,7 @@ class LiveDashboard:
     Echtzeit-Visualisierung während des Backtests.
 
     Zeigt 4 Panels (Teilfenster):
-      1. Kumulierte Renditen aller Strategien (wird mit jedem Step erweitert)
+      1. Kumulierte Renditen aller Strategien (wächst mit jedem Rebalancing-Schritt)
       2. Aktuelle MVO-Gewichtung (Balkendiagramm)
       3. Rollierender Sharpe Ratio (gleitend, letztes verfügbares Fenster)
       4. Fortschritt & aktuelle Kennzahlen (Texttafel)
@@ -36,6 +36,7 @@ class LiveDashboard:
     """
 
     def __init__(self, tickers: list, n_steps: int):
+        """Legt das Dashboard an; tickers = Aktienkürzel, n_steps = Zahl der Termine."""
         # Grunddaten merken; die eigentliche Fenster-Einrichtung macht _setup().
         self.tickers  = tickers
         self.n_steps  = n_steps          # Gesamtzahl der Backtest-Schritte (für Fortschritt/ETA)

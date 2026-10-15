@@ -86,8 +86,8 @@ flowchart TD
 
     subgraph S3["Schicht 3 — Ablauf und Ausgabe"]
         BT["backtest.py<br/><i>Walk-Forward-Schleife</i>"]
-        PLT["plots.py<br/><i>Abbildungen 1-12,<br/>CSV, JSON</i>"]
-        TPL["theory_plots.py<br/><i>Abbildungen 14-18</i>"]
+        PLT["plots.py<br/><i>Ausgabebilder 01-12,<br/>CSV, JSON</i>"]
+        TPL["theory_plots.py<br/><i>Formeln aus Kapitel 2,<br/>Ausgabebilder 14-18</i>"]
         RUN["run.py<br/><b>main</b>"]
     end
 
@@ -153,7 +153,7 @@ flowchart LR
 ```
 
 Nur die Abschnitte **A**, **C** und **E** kosten nennenswert Zeit, und **C**
-dominiert mit Abstand. Gemessen am maßgeblichen Lauf: 4619 der 4636 Sekunden
+dominiert mit Abstand. Gemessen am Lauf vom 15.08.2026: 4619 der 4636 Sekunden
 entfallen auf den Backtest, davon **4546 Sekunden allein auf
 `fit_with_tuning`** — also 98 % der Rechenzeit auf die
 RF-Hyperparametersuche, im Schnitt 38 Sekunden je Monat.
@@ -292,7 +292,7 @@ frontier_snapshots   rfo
 ```
 
 `rfo` ist das Optimierer-**Objekt** selbst, weiterverwendet für die
-Feature-Importance (Abbildung 7) und die SHAP-Analyse (Abbildung 12).
+Feature-Importance (Ausgabebild 07, Abbildung A3 der Arbeit) und die SHAP-Analyse (Ausgabebild 12).
 
 ### Sicherheitsnetze
 
@@ -332,7 +332,7 @@ classDiagram
         -_param_grid() dict
     }
     RFPortfolioOptimizer *-- MarkowitzLedoitWolf : benutzt _mvo
-    note for RFPortfolioOptimizer "Die KI ersetzt NUR die Renditeschaetzung. Die Portfoliokonstruktion ist dieselbe Sharpe-Maximierung wie bei Markowitz."
+    note for RFPortfolioOptimizer "Die KI ersetzt NUR die Renditeschätzung. Die Portfoliokonstruktion ist dieselbe Sharpe-Maximierung wie bei Markowitz."
 ```
 
 ### Markowitz MVO
@@ -357,17 +357,17 @@ würde dann das Risiko **maximieren**. Ökonomisch Unsinn:
 
 ```mermaid
 flowchart TD
-    MS["max_sharpe liefert w"] --> CHK{"Ueberrendite<br/>w·mu minus r_f<br/>positiv?"}
+    MS["max_sharpe liefert w"] --> CHK{"Überrendite<br/>w·mu minus r_f<br/>positiv?"}
     CHK -- ja --> OK["w zurückgeben"]
     CHK -- nein --> WARN["<b>immer</b> ins Log:<br/>'Max-Sharpe entartet'"]
     WARN --> OPT{"min_variance_fallback?"}
     OPT -->|"true (Standard)"| MV["min_variance mit<br/><b>denselben</b> Nebenbedingungen"]
-    OPT -->|false| KEEP["Sharpe-Lösung behalten<br/><i>frueheres Verhalten</i>"]
+    OPT -->|false| KEEP["Sharpe-Lösung behalten"]
 ```
 
 Die Warnung wird **immer** geschrieben, auch bei abgeschalteter Option — nur so
 lässt sich im Protokoll nachzählen, wie oft der Fall auftrat. Im maßgeblichen
-Lauf: **null von 119 Monaten**. Die Option ist reine Vorsorge und wurde per Test
+Lauf: **an keinem der 119 Termine**. Die Option ist reine Vorsorge und wurde per Test
 (`test_max_sharpe_degenerate_falls_back_to_min_variance`) auf einem
 konstruierten Fall abgesichert.
 
@@ -507,7 +507,7 @@ Abgesichert durch `test_target_is_next_month_and_last_is_nan`.
 höchstens 30 Tagen liegt „Monatsende minus ein Monat" vor dem Ende des Vormonats
 (30.04. − 1 Monat = 30.03.), sodass auch dessen Zeile herausfällt. An 50 der 119
 Termine endet der Lernstoff deshalb einen Monat früher — kein Look-Ahead, nur
-etwas weniger Lernstoff ([LIMITATIONS.md](LIMITATIONS.md) § 13.2).
+etwas weniger Lernstoff ([LIMITATIONS.md](LIMITATIONS.md) § 11.2).
 
 **Sicherung 3 — Purging und Embargo in der Kreuzvalidierung.** Siehe
 [§ 8](#8-purged-und-embargoed-cross-validation).
@@ -555,9 +555,10 @@ Teil der Titel eines Monats im Training und ein anderer im Test. Umgesetzt über
 `row_pos`, das jeder Zeile ihre Periodennummer zuordnet.
 
 **Was der Unterschied ausmacht:** Mit `use_purged_cv = false` erscheint der
-Random Forest um rund **0,044 Sharpe besser**, als er ist. Das ist keine
-Rundungsfrage — es ist größer als sein gesamter (insignifikanter) Vorsprung von
-0,035 gegenüber Equal Weight.
+Random Forest um rund **0,025 Sharpe besser**, als er ist (§ 4.3 der Arbeit,
+[LIMITATIONS.md](LIMITATIONS.md) § 5). Das ist keine Rundungsfrage — es sind fast
+drei Viertel seines gesamten (insignifikanten) Vorsprungs von 0,035 gegenüber
+Equal Weight.
 
 Referenz: López de Prado (2018), *Advances in Financial Machine Learning*, Kap. 7.
 
@@ -593,20 +594,21 @@ flowchart TD
 
 Drei Konsequenzen, alle im Code umgesetzt:
 
-**1. Equal Weight bekommt endlich einen echten Turnover.** Gegen ungedriftete
+**1. Auch Equal Weight hat einen Turnover.** Gegen ungedriftete
 Gewichte gemessen wäre er exakt 0 — 1/N gegen 1/N. Tatsächlich muss die
-Strategie die Drift jeden Monat zurückführen. Gemessen: **Median 2,0 %** über die 118 regulären Termine.
+Strategie die Drift jeden Monat zurückführen. Gemessen: **Median 1,9 %** über die 118 regulären Termine.
 
-**2. Die Turnover-Schranke greift dort, wo sie gemeint ist.** Bis zur Umstellung
-maß die Schranke *im Optimierer* gegen ungedriftete Zielgewichte, die
-*ausgewiesene* Messung aber gegen gedriftete. Der realisierte Turnover konnte
-das nominelle Limit überschreiten — beim Random Forest in **100 von 118
-Monaten**. Mit `turnover_ref_drifted = true` benutzen beide dieselbe Referenz.
+**2. Die Turnover-Schranke misst gegen dieselbe Referenz wie die Auswertung.**
+Die Schranke *im Optimierer* und der *ausgewiesene* Umschlag vergleichen beide
+mit den gedrifteten Gewichten (`turnover_ref_drifted = true`). Deshalb hält der
+gemessene Umschlag die Schranke exakt ein; sein Höchstwert ist 30,0 %. Gegen
+ungedriftete Zielgewichte gemessen, könnte der realisierte Umschlag über der
+Schranke liegen.
 
-**3. Beide aktiven Strategien spielen nach denselben Regeln.** Früher hatte nur
-der Random Forest ein Limit. Damit unterschieden sich MVO und RF in *zwei*
-Punkten — Renditeschätzer **und** Handelsrestriktion — statt in einem. Seit
-`mvo_turnover_limit = 0.30` ist der Vergleich wirklich *ceteris paribus*.
+**3. Beide aktiven Strategien spielen nach denselben Regeln.** Markowitz und
+Random Forest haben dieselbe Schranke (`mvo_turnover_limit = rf_turnover_limit
+= 0.30`). Damit unterscheiden sie sich in genau *einem* Punkt, dem
+Renditeschätzer — der Vergleich ist *ceteris paribus*.
 
 **Der erste Monat** ist ein Sonderfall: `turnover = 1.0` für alle vier
 Strategien, weil das Depot erst aufgebaut wird (100 % Kaufumsatz). Deshalb steht
@@ -622,7 +624,7 @@ Tag der Halteperiode die gewichtete Summe mit denselben Gewichten — als würde
 täglich kostenlos zurückgeführt. Der Umschlag rechnet dagegen mit gedrifteten
 Gewichten. Mit Drift im Monat lägen alle Sharpe-Quotienten um 0,005 bis 0,007
 niedriger, an Rangfolge und Tests ändert das nichts
-([LIMITATIONS.md](LIMITATIONS.md) § 13.1).
+([LIMITATIONS.md](LIMITATIONS.md) § 11.1).
 
 **Beobachteter Turnover im maßgeblichen Lauf:**
 
@@ -633,7 +635,7 @@ Ohne den ersten Monat, der mit 100 % Kaufumsatz ein Sonderfall ist
 |---|---:|---:|---:|---|
 | Random Forest | 30,0 % | 29,0 % | 101 Monate | Limit greift fast durchgehend |
 | Markowitz MVO | 11,9 % | 13,1 % | 1 Monat | Limit greift praktisch nie |
-| Equal Weight | 2,0 % | 2,1 % | — | reine Driftrückführung |
+| Equal Weight | 1,9 % | 2,1 % | — | reine Driftrückführung |
 | Risk Parity | 1,9 % | 2,0 % | — | Kovarianzen ändern sich langsam |
 
 Das ist ein Ergebnis für sich: Der Random Forest **will** in fast jedem Monat
@@ -657,19 +659,17 @@ stark — ohne die Schranke fräßen die Handelskosten den Prognosevorteil auf.
 | VaR 95 % | 5. Perzentil der Tagesrenditen | — |
 | Hit Rate | Anteil Tage mit `r > 0` | — |
 
-Zwei Definitionen wurden im Lauf der Entwicklung auf die Lehrbuchform gebracht — beides
-sind Korrekturen, keine Geschmacksfragen:
+Zwei Definitionen folgen bewusst der Lehrbuchform:
 
-**Sharpe arithmetisch statt geometrisch.** Frühere Fassungen setzten die CAGR in
-den Zähler. Das mischt ein geometrisches Maß mit einem linear annualisierten
-Nenner, entspricht nicht Sharpe (1994) — und lieferte für dieselbe Strategie
-einen *anderen* Wert als `significance.py`, das schon immer arithmetisch rechnet.
-Zwei Zahlen für dieselbe Größe in derselben Arbeit sind indiskutabel.
+**Sharpe arithmetisch, nicht geometrisch.** Im Zähler steht das arithmetische
+Mittel der Überschussrenditen (Sharpe 1994), nicht die CAGR. Eine CAGR im Zähler
+mischte ein geometrisches Maß mit einem linear annualisierten Nenner. So rechnen
+`metrics.py` und `significance.py` dieselbe Kennzahl — eine Größe, ein Wert.
 
 **Sortino mittelt über alle Tage.** Die Downside-Abweichung ist
-`√( 1/T · Σ min(d_t, 0)² )` — Tage über der Zielrendite gehen mit 0 ein. Früher
-stand dort die Standardabweichung *innerhalb* der Verlusttage; das misst die
-Streuung unter den Verlusten statt deren Größe. Test:
+`√( 1/T · Σ min(d_t, 0)² )` — Tage über der Zielrendite gehen mit 0 ein. Die
+Standardabweichung *innerhalb* der Verlusttage mäße dagegen die Streuung unter
+den Verlusten statt deren Größe. Test:
 `test_sortino_uses_all_days_not_only_losers`.
 
 Ein wiederkehrendes Muster: `return … if sd > _EPS else 0.0` mit
@@ -707,12 +707,12 @@ flowchart TD
     subgraph BLP["Bailey und Lopez de Prado 2014"]
         D1["Trial-Sharpes aller 4 Strategien"]
         D2["Huerde SR0 = erwartetes Maximum<br/>bei wahrer Sharpe null"]
-        D3["Korrektur fuer Schiefe g3<br/>und Woelbung g4"]
-        D4["DSR = Wahrscheinlichkeit,<br/>dass die wahre Sharpe<br/>ueber SR0 liegt"]
+        D3["Korrektur für Schiefe g3<br/>und Wölbung g4"]
+        D4["DSR = Wahrscheinlichkeit,<br/>dass die wahre Sharpe<br/>über SR0 liegt"]
         D1 --> D2 --> D3 --> D4
     end
     DSR --> BLP
-    BLP --> ERG2["<b>signifikant ab DSR ueber 0,95</b>"]
+    BLP --> ERG2["<b>signifikant ab DSR über 0,95</b>"]
 
     ERG --> JSON["experiment_log.json"]
     ERG2 --> JSON
@@ -735,7 +735,7 @@ Punkt, der den Test robust macht.
 **Vier Details einfacher als in der Quelle:** p-Wert k/M statt (k+1)/(M+1),
 Standardfehler im Bootstrap per HAC statt aus Blocksummen, Bartlett- statt
 QS-Kern, Blocklänge per Faustregel statt Kalibrierung. Keine Testentscheidung
-hängt daran ([LIMITATIONS.md](LIMITATIONS.md) § 13.3).
+hängt daran ([LIMITATIONS.md](LIMITATIONS.md) § 3.1).
 
 **Alle sechs Paare, nicht fünf.** Welche Vergleiche man rechnet, wäre sonst ein
 Freiheitsgrad des Auswertenden — genau das, wovor Harvey, Liu & Zhu (2016)
@@ -776,33 +776,35 @@ flowchart TD
     EX -- nein --> CFGF["<b>CFG</b> = alle Defaults"]
     EX -- ja --> LOAD{"lesbares JSON?"}
     LOAD -- nein --> WARN["Warnung ins Log,<br/>Defaults behalten"] --> CFGF
-    LOAD -- ja --> APPLY["bekannte Schluessel uebernehmen,<br/>unbekannte melden und ignorieren"]
+    LOAD -- ja --> APPLY["bekannte Schlüssel übernehmen,<br/>unbekannte melden und ignorieren"]
     APPLY --> CFGF
     CFGF --> CONST["Modulkonstanten setzen:<br/>TICKERS, MAX_WEIGHT, ..."]
-    CONST --> ALL["alle Module lesen sie<br/>ueber 'from .config import *'"]
+    CONST --> ALL["alle Module lesen sie<br/>über 'from .config import *'"]
 ```
 
 Die Auflösung passiert **einmal beim Import**, vor allem anderen. Deshalb wirkt
 sie projektweit, ohne dass ein einziger Parameter durch die Funktionsaufrufe
 gereicht werden müsste.
 
-Die Großbuchstaben-Konstanten (`TICKERS`, `MAX_WEIGHT`, …) sind historisch
-gewachsen und zeigen heute schlicht auf die `CFG`-Felder. Wer neue Parameter
-ergänzt, sollte **beides** anlegen: das Dataclass-Feld *und* die Konstante.
+Die Großbuchstaben-Konstanten (`TICKERS`, `MAX_WEIGHT`, …) zeigen auf die
+`CFG`-Felder; über sie lesen die übrigen Module die Einstellungen. Wer neue
+Parameter ergänzt, legt **beides** an: das Dataclass-Feld *und* die Konstante.
 
-### Drei Ebenen der Reproduzierbarkeit
+### Vier Ebenen der Reproduzierbarkeit
 
 | Ebene | Bedrohung | Maßnahme |
 |---|---|---|
 | **Rohdaten** | Yahoo liefert bei jedem Abruf minimal andere Kurse | `data/prices.pkl` friert den Abruf vom 15.08.2026 ein |
 | **Modell** | `n_jobs=-1` summiert Teilergebnisse in wechselnder Reihenfolge; Gleitkommaaddition ist nicht assoziativ | `deterministic = true` erzwingt `n_jobs=1` in Wald **und** Suche |
-| **Zufall** | Bootstrap, RandomizedSearch, Stichprobe in Abbildung 15 | überall fester Seed 42 |
+| **Zufall** | Bootstrap, RandomizedSearch, Titelauswahl in Ausgabebild 15 (Abbildung A1 der Arbeit) | überall fester Seed 42 |
+| **Umgebung** | NumPy rechnet Matrixoperationen mit Apples Accelerate, das zum Betriebssystem gehört | Paketversionen fest in `requirements.txt`; bitgleich unter macOS 26.6.1, unter macOS 27 weichen sieben Zahlen der Arbeit in der letzten Stelle ab (LIMITATIONS.md § 12) |
 
 Die mittlere Ebene ist die überraschende: `random_state=42` allein genügt
-**nicht**. Bei paralleler Reduktion kürte die Hyperparametersuche in **4 von 119
-Monaten** einen anderen Sieger unter nahezu gleichwertigen Kandidaten und
-verschob den RF-Sharpe um rund 0,010. Das kostet Laufzeit — 77 statt rund 25
-Minuten — und kauft bitgenaue Wiederholbarkeit. Ausführlich: LIMITATIONS.md § 12.
+**nicht**. Bei paralleler Reduktion kann die Hyperparametersuche unter nahezu
+gleichwertigen Kandidaten einen anderen Sieger wählen; der RF-Sharpe schwankt
+dann von Lauf zu Lauf um rund 0,01. Einkernig zu rechnen kostet Laufzeit — 77
+statt rund 25 Minuten — und kauft bitgenaue Wiederholbarkeit. Ausführlich:
+LIMITATIONS.md § 12.
 
 ---
 
@@ -811,13 +813,37 @@ Minuten — und kauft bitgenaue Wiederholbarkeit. Ausführlich: LIMITATIONS.md �
 ```mermaid
 flowchart LR
     BT["Backtest-Ergebnisse"] --> CSV["<b>7 CSV-Dateien</b><br/>daily_returns, cumulative_returns,<br/>performance_metrics, 3× weights, turnover"]
-    BT --> PNG["<b>Abbildungen 01-12</b><br/>plots.py"]
+    BT --> PNG["<b>Ausgabebilder 01-12</b><br/>plots.py"]
     BT --> GIF["<b>11_frontier_animation.gif</b><br/>nur mit Pillow"]
     BT --> SHP["<b>12_shap_explainability.png</b><br/>nur mit shap"]
-    BT --> TH["<b>Abbildungen 14-18</b><br/>theory_plots.py"]
+    BT --> TH["<b>Ausgabebilder 14-18</b><br/>theory_plots.py"]
     BT --> JS["<b>experiment_log.json</b><br/><i>das Laborprotokoll</i>"]
-    CSV --> EXT["<b>skripte/</b><br/>Nachrechnung je Kapitel<br/>Abbildung 5 (Kosten)"]
+    CSV --> EXT["<b>skripte/</b><br/>Nachrechnung je Kapitel<br/>Ausgabebild 13 = Abbildung 5"]
 ```
+
+**Ausgabebild ≠ Abbildung der Arbeit.** Die Dateien in `output/` sind nach ihrer
+Entstehung nummeriert, nicht nach der Arbeit. In der Arbeit stehen davon:
+
+| Abbildung der Arbeit | Ausgabebild | erzeugt von |
+|---|---|---|
+| 1 Zwei-Anlagen-Fall | `14_theorie_zwei_anlagen.png` | `theory_plots.py` |
+| 2 Effizienzrand | `17_theorie_effizienzrand.png` | `theory_plots.py` |
+| 3 Konfidenzintervalle | `16_theorie_schaetzunsicherheit.png` | `theory_plots.py` |
+| 4 kumulierte Wertentwicklung | `01_kumulierte_renditen.png` | `plots.py` |
+| 5 Kostensensitivität | `13_kosten_sensitivitaet.png` | `skripte/abbildung_kostensensitivitaet.py` |
+| A1 Diversifikationsgrenze | `15_theorie_diversifikationsgrenze.png` | `theory_plots.py` |
+| A2 Effizienzrand mit Kapitalmarktlinie | `18_theorie_effizienzrand_cml.png` | `theory_plots.py` |
+| A3 Merkmalswichtigkeit | `07_feature_importance.png` | `plots.py` |
+| A4 rollierender Sharpe-Quotient | `06_rollierender_sharpe.png` | `plots.py` |
+
+Alle verwenden dieselben Farben je Strategie (`COLORS` in `config.py`).
+
+**Jede Formel steht einmal.** Die Formeln aus Kapitel 2 (Zwei-Anlagen-Fall,
+Diversifikationsgrenze, Konfidenzintervalle, Effizienzrand) sind Funktionen in
+`theory_plots.py`, der rollierende Sharpe-Quotient ist `rollierender_sharpe` in
+`plots.py`. Die Abbildungen und die Nachrechnungsskripte rufen dieselben
+Funktionen auf — eine nachgerechnete Zahl kann also nie mit einer anderen Formel
+entstehen als das Bild.
 
 **`experiment_log.json` ist die maßgebliche Quelle** für jede Zahl der Arbeit.
 Es enthält Zeitstempel, sämtliche Parameter (inklusive der fünf
@@ -827,11 +853,11 @@ diese Zahl entstanden?", findet dort alles an einer Stelle.
 
 **Was optional ist und was nicht:** `shap` und `matplotlib.animation` werden in
 `config.py` mit `try/except` importiert und setzen nur ein `*_AVAILABLE`-Flag.
-Fehlen sie, entfallen die Abbildungen 11 und 12 — der Lauf bricht nicht ab und
+Fehlen sie, entfallen die Ausgabebilder 11 und 12 — der Lauf bricht nicht ab und
 die Kennzahlen ändern sich nicht. Das Live-Dashboard schaltet sich auf Rechnern
 ohne Bildschirm selbst ab (Agg-Fallback beim Backend-Test).
 
-**Abbildung 13 entsteht nicht im Lauf**, sondern durch
+**Ausgabebild 13 (Abbildung 5) entsteht nicht im Lauf**, sondern durch
 `skripte/abbildung_kostensensitivitaet.py`. Das Skript rechnet die im Lauf abgezogenen Kosten aus
 den Tagesrenditen wieder heraus (`brutto`) und zu 21 anderen Sätzen zwischen 0
 und 100 Basispunkten neu ab (`netto`) — exakt, weil die Kosten nie in die
@@ -899,11 +925,10 @@ gefüllt wäre.
 Probeläufe, keine gleichwertige Variante. `dashboard_update_every` ist dagegen
 rein kosmetisch.
 
-**Die Fairness-Optionen sind Standard, nicht Extras.** `mvo_turnover_limit`,
+**Die Methodikoptionen sind Standard, nicht Extras.** `mvo_turnover_limit`,
 `turnover_ref_drifted`, `min_variance_fallback`, `use_purged_cv` und
-`deterministic` stehen alle auf „an". Wer sie ausschaltet, erhält die
-fehlerbehafteten Vorstufen des Experiments — die in der Arbeit bewusst nicht
-vorkommen.
+`deterministic` stehen alle auf „an" und legen die Methodik der Arbeit fest.
+Ausgeschaltet entsteht ein anderes Experiment als das der Arbeit.
 
 **`daily_returns.csv` ist gerundet, `experiment_log.json` nicht.** Die Tagesrenditen
 werden auf sechs Nachkommastellen gespeichert. Für Renditen und Volatilitäten genügt
@@ -917,3 +942,14 @@ verwendet deshalb für Sharpe-Quotienten und Testergebnisse die exakten Werte au
 November 2015) stehen also weniger als drei Jahre zur Verfügung; ab dem Termin
 Ende Dezember 2015 ist das Fenster vollständig. Der Qualitätscheck (252 Tage,
 24 Monate) lässt die kürzeren Fenster trotzdem passieren.
+
+**Die Nachrechnungsskripte lesen die Arbeit nicht.** Jede Zahl, wie sie im Text
+steht, ist in `skripte/` als Zeichenkette eingetragen. Ändert sich der Text,
+fällt ein veralteter Eintrag erst mit `python skripte/alle_kapitel.py --text
+pfad/zur/Arbeit.docx` auf: Der Abgleich sucht jede eingetragene Zahl im
+zugehörigen Abschnitt der angegebenen Fassung.
+
+**Die Baumkorrelation (§ 3.3) kommt aus einer Referenzdatei.** Sie neu zu rechnen
+dauert rund 55 Minuten (`--baumkorrelation`). Nach einem Backtest mit anderen
+Einstellungen muss `skripte/daten/baumkorrelation.csv` mit
+`--baumkorrelation --speichern` neu erzeugt werden.

@@ -2,18 +2,19 @@
 Alle Nachrechnungen auf einmal — mit einer Übersicht am Ende.
 
 FÜR EINSTEIGER — WAS MACHT DIESES SKRIPT?
-Es startet nacheinander die Prüfungen für Kapitel 2 bis 7 und den Anhang und
+Es startet nacheinander die Prüfungen für Kapitel 1 bis 7 und den Anhang und
 fasst am Schluss in einer Tabelle zusammen, wie viele Zahlen je Kapitel
-stimmen und wo der Text vom Ergebnis abweicht. Das ist der schnellste Weg,
+stimmen und wo der Text vom Ergebnis abweicht. Jedes Kapitel listet seine
+Zahlen in derselben Reihenfolge wie der Text. Das ist der schnellste Weg,
 nach einer Textänderung zu sehen, ob noch alle Zahlen passen.
 
-Es laufen nur die schnellen Stufen (zusammen rund eineinhalb Minuten). Die lange
-Rechnung für Kapitel 3 (Korrelation der Bäume, rund 55 Minuten) startet man bei
-Bedarf einzeln:
+Zusammen dauert das gut eine Minute. Die lange Rechnung für Kapitel 3
+(Korrelation der Bäume, rund 55 Minuten) liest das Skript aus einer
+Referenzdatei; neu rechnen lässt sie sich einzeln:
     python skripte/kapitel_3_random_forest.py --baumkorrelation
 
-Kapitel 1 fehlt mit Absicht: Es enthält nur Zahlen aus der Literatur
-(DeMiguel u. a., Gu/Kelly/Xiu), die sich nicht aus dem Backtest berechnen lassen.
+Kapitel 1 enthält nur Zahlen aus der Literatur; sie erscheinen als ⏭ mit ihrer
+Fußnote, damit die Ausgabe aller Kapitel ein vollständiges Verzeichnis ist.
 
 STEHT DER EINGETRAGENE WORTLAUT NOCH IM TEXT?
 Die Skripte vergleichen mit dem Wortlaut, der in ihnen eingetragen ist — die
@@ -40,7 +41,8 @@ STARTORDNER = Path.cwd()
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _werkzeuge import wortlaut_fehlt                 # noqa: E402
 
-SKRIPTE = [("Kapitel 2", "kapitel_2_theorie"),
+SKRIPTE = [("Kapitel 1", "kapitel_1_einleitung"),
+           ("Kapitel 2", "kapitel_2_theorie"),
            ("Kapitel 3", "kapitel_3_random_forest"),
            ("Kapitel 4", "kapitel_4_methodik"),
            ("Kapitel 5", "kapitel_5_signifikanz"),
@@ -50,6 +52,8 @@ SKRIPTE = [("Kapitel 2", "kapitel_2_theorie"),
 
 
 def main() -> int:
+    """Alle Kapitel prüfen, Übersicht drucken, auf Wunsch den Wortlaut abgleichen.
+    Rückgabe 1, wenn eine Zahl abweicht oder (mit --text) ein Wortlaut fehlt."""
     parser = argparse.ArgumentParser(description="Alle Zahlen der Arbeit nachrechnen.")
     parser.add_argument("--text", metavar="DATEI",
                         help="Fassung der Arbeit (.docx oder .md): prüfen, ob jeder "

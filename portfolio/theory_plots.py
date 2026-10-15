@@ -60,32 +60,8 @@ import pandas as pd
 from scipy.optimize import minimize   # numerischer Löser für den zulässigen Rand
 from .config import *
 
-# ---------------------------------------------------------------------------
-# Abbildungsüberschriften — standardmäßig AUS
-# ---------------------------------------------------------------------------
-# In der Seminararbeit steht unter jeder Abbildung eine Bildunterschrift. Eine
-# zusätzliche Überschrift IM Bild wäre eine Dublette und in wissenschaftlichen
-# Arbeiten unüblich. Deshalb werden die Überschriften standardmäßig nicht
-# gezeichnet.
-#
-# Wer sie zurückhaben will (etwa für eine Präsentation), setzt vor dem Lauf
-#     export PLOT_TITLES=1
-#
-# ⚠ Betroffen sind nur die ÜBERSCHRIFTEN GANZER ABBILDUNGEN. Beschriftungen
-# einzelner Teilbilder (etwa der Krisenname über einem Stresstest-Panel oder
-# der Kennzahlname über einem Balkenpaar) bleiben immer stehen — ohne sie wäre
-# die Abbildung nicht mehr lesbar. Sie rufen weiterhin direkt ax.set_title auf.
-SHOW_TITLES = os.getenv("PLOT_TITLES", "0") == "1"
-
-
-def _bildtitel(ziel, *args, **kwargs):
-    """Überschrift einer ganzen Abbildung; zeichnet nur bei PLOT_TITLES=1."""
-    if not SHOW_TITLES:
-        return
-    if hasattr(ziel, "suptitle"):        # Figure
-        ziel.suptitle(*args, **kwargs)
-    else:                                # Axes
-        ziel.set_title(*args, **kwargs)
+# Überschriften ganzer Abbildungen schaltet bildtitel() aus config.py
+# (standardmäßig aus, mit PLOT_TITLES=1 an).
 
 
 # Ein Börsenjahr hat rund 252 Handelstage. Damit wird von Tages- auf
@@ -99,10 +75,17 @@ TRADING_DAYS = 252
 THEORY_SEED = 42
 
 
-def _annualised_moments(asset_returns: pd.DataFrame):
-    """Hilfsfunktion: annualisierte Renditen, Volatilitäten, Kovarianzmatrix.
+# ===========================================================================
+# DIE FORMELN AUS KAPITEL 2 — je einmal hier
+# ===========================================================================
+# Die Abbildungen weiter unten UND die Nachrechnungsskripte in skripte/
+# benutzen genau diese Funktionen. So steht jede Formel nur an einer Stelle,
+# und Bild und nachgerechnete Zahl können nicht auseinanderlaufen.
 
-    Wird von allen Theorie-Abbildungen gebraucht, deshalb einmal zentral.
+def jahreskennzahlen(asset_returns: pd.DataFrame):
+    """Annualisierte Renditen, Volatilitäten, Kovarianzen und Korrelationen
+    (Formel 2 der Arbeit, auf ein Jahr hochgerechnet).
+
     Rückgabe (jeweils auf Jahresbasis):
       mu    – erwartete Rendite je Titel     (Mittelwert  × 252)
       sigma – Volatilität je Titel           (Standardabw. × √252)
@@ -114,6 +97,64 @@ def _annualised_moments(asset_returns: pd.DataFrame):
     sigma = pd.Series(np.sqrt(np.diag(cov)), index=cov.index)
     corr  = asset_returns.corr()
     return mu, sigma, cov, corr
+
+
+def zwei_anlagen_varianz(w, sigma_a: float, sigma_b: float, rho: float):
+    """Formel 4: Varianz einer Mischung aus A (Anteil 1 − w) und B (Anteil w)."""
+    return ((1 - w) ** 2 * sigma_a ** 2 + w ** 2 * sigma_b ** 2
+            + 2 * w * (1 - w) * rho * sigma_a * sigma_b)
+
+
+def varianzminimale_mischung(sigma_a: float, sigma_b: float, rho: float) -> float:
+    """Anteil w von B mit der kleinsten Varianz: Formel 5 gleich null gesetzt
+    und nach w aufgelöst."""
+    return ((sigma_a ** 2 - rho * sigma_a * sigma_b)
+            / (sigma_a ** 2 + sigma_b ** 2 - 2 * rho * sigma_a * sigma_b))
+
+
+def diversifikation(cov: np.ndarray):
+    """Bausteine von Formel 6: mittlere Varianz (Durchschnitt der Diagonale)
+    und mittlere Kovarianz (Durchschnitt aller Einträge neben der Diagonale)."""
+    C = np.asarray(cov)
+    nebendiagonale = ~np.eye(C.shape[0], dtype=bool)
+    return np.diag(C).mean(), C[nebendiagonale].mean()
+
+
+def gleichgewichtete_varianz(var_quer: float, cov_quer: float, n):
+    """Formel 6: Varianz eines gleichgewichteten Portfolios aus n Titeln."""
+    return var_quer / n + (n - 1) / n * cov_quer
+
+
+def konfidenzintervalle(asset_returns: pd.DataFrame):
+    """Formel 17: Standardfehler σ/√h und halbe Breite 1,96·σ/√h des
+    95-%-Intervalls der geschätzten Jahresrendite, h = Beobachtungsdauer in Jahren.
+    Rückgabe: (mu, halbe Breite, h)."""
+    mu, sigma, _, _ = jahreskennzahlen(asset_returns)
+    jahre = len(asset_returns) / TRADING_DAYS
+    standardfehler = sigma / np.sqrt(jahre)
+    return mu, 1.96 * standardfehler, jahre
+
+
+def effizienzrand_geschlossen(mu: np.ndarray, cov: np.ndarray, rf: float) -> dict:
+    """Formeln 9 bis 11: geschlossene Lösung ohne Leerverkaufsverbot.
+
+    Rückgabe: die Hilfsgrößen a, b, c, d (Formel 9/10), das Minimum-Varianz-
+    Portfolio (Gewichte, Rendite, Volatilität) und das Tangentialportfolio
+    (Gewichte, Rendite, Volatilität, Sharpe-Quotient)."""
+    mu, S = np.asarray(mu, dtype=float), np.asarray(cov, dtype=float)
+    one = np.ones(len(mu))
+    S_inv = np.linalg.inv(S)
+    a = one @ S_inv @ one
+    b = one @ S_inv @ mu
+    c = mu @ S_inv @ mu
+    d = a * c - b * b
+    w_tan = S_inv @ (mu - rf * one)
+    w_tan = w_tan / (one @ S_inv @ (mu - rf * one))
+    sig_tan, mu_tan = np.sqrt(w_tan @ S @ w_tan), w_tan @ mu
+    return dict(a=a, b=b, c=c, d=d,
+                w_mvp=S_inv @ one / a, mu_mvp=b / a, sig_mvp=np.sqrt(1.0 / a),
+                w_tan=w_tan, mu_tan=mu_tan, sig_tan=sig_tan,
+                sharpe_tan=(mu_tan - rf) / sig_tan)
 
 
 def plot_two_asset_diversification(asset_returns: pd.DataFrame,
@@ -136,7 +177,7 @@ def plot_two_asset_diversification(asset_returns: pd.DataFrame,
     ``asset_a`` ist die Basis, ``asset_b`` die Beimischung.
     """
     log.info(f"Theorieplot 14: Zwei-Anlagen-Fall ({asset_a}/{asset_b}) …")
-    mu, sigma, _, corr = _annualised_moments(asset_returns)
+    mu, sigma, _, corr = jahreskennzahlen(asset_returns)
 
     for t in (asset_a, asset_b):
         if t not in mu.index:
@@ -166,8 +207,7 @@ def plot_two_asset_diversification(asset_returns: pd.DataFrame,
         ( 1.00, "#333333", ":",  1.4, f"ρ = +1,00"),
     ]
     for rho, farbe, stil, breite, beschriftung in kurven:
-        var_p = ((1 - w) ** 2 * sA ** 2 + w ** 2 * sB ** 2
-                 + 2 * w * (1 - w) * rho * sA * sB)
+        var_p = zwei_anlagen_varianz(w, sA, sB, rho)            # Formel 4
         ax.plot(np.sqrt(var_p) * 100, mu_p * 100,
                 color=farbe, linestyle=stil, linewidth=breite, label=beschriftung)
 
@@ -177,7 +217,7 @@ def plot_two_asset_diversification(asset_returns: pd.DataFrame,
         ax.annotate(f"  {tick}", (s * 100, m * 100),
                     fontsize=13, va="center", zorder=5)
 
-    _bildtitel(ax, "Diversifikationseffekt im Zwei-Anlagen-Fall\n"
+    bildtitel(ax, "Diversifikationseffekt im Zwei-Anlagen-Fall\n"
                  f"{asset_a} und {asset_b}, Tagesdaten "
                  f"{asset_returns.index[0]:%d.%m.%Y} – {asset_returns.index[-1]:%d.%m.%Y}",
                  fontweight="bold")
@@ -215,7 +255,7 @@ def plot_diversification_limit(asset_returns: pd.DataFrame,
     entsprechend vorsichtig formuliert.
     """
     log.info("Theorieplot 15: Diversifikationsgrenze …")
-    _, sigma, cov, _ = _annualised_moments(asset_returns)
+    _, sigma, cov, _ = jahreskennzahlen(asset_returns)
 
     C = cov.values
     n_assets = C.shape[0]
@@ -223,17 +263,14 @@ def plot_diversification_limit(asset_returns: pd.DataFrame,
         log.warning("  Weniger als zwei Titel – Abbildung übersprungen.")
         return
 
-    # Mittlere Varianz = Durchschnitt der Diagonale.
-    # Mittlere Kovarianz = Durchschnitt aller Einträge NEBEN der Diagonale.
-    nebendiagonale = ~np.eye(n_assets, dtype=bool)
-    var_quer = np.diag(C).mean()
-    cov_quer = C[nebendiagonale].mean()
+    # Mittlere Varianz und mittlere Kovarianz (Bausteine von Formel 6).
+    var_quer, cov_quer = diversifikation(C)
     grenze   = np.sqrt(cov_quer)
 
     # Modellkurve bis N = 100 (über das eigene Universum hinaus, damit der
     # Grenzwert sichtbar wird).
     n_modell  = np.arange(1, 101)
-    var_modell = var_quer / n_modell + (n_modell - 1) / n_modell * cov_quer
+    var_modell = gleichgewichtete_varianz(var_quer, cov_quer, n_modell)   # Formel 6
 
     # Simulation: eigener Zufallsgenerator mit festem Startwert, damit das Bild
     # bei jedem Lauf identisch ausfällt und den Hauptlauf nicht beeinflusst.
@@ -262,7 +299,7 @@ def plot_diversification_limit(asset_returns: pd.DataFrame,
     ax.axhline(grenze * 100, color="#2ca02c", linestyle="--", linewidth=2,
                label=rf"Diversifikationsgrenze $\sqrt{{\bar{{C}}}}$ = {grenze*100:.1f} %")
 
-    _bildtitel(ax, "Diversifikation senkt das Risiko – aber nur bis zu einer Grenze",
+    bildtitel(ax, "Diversifikation senkt das Risiko – aber nur bis zu einer Grenze",
                  fontweight="bold")
     ax.set_xlabel("Anzahl gleichgewichteter Aktien N")
     ax.set_ylabel("Portfoliovolatilität (% p. a.)")
@@ -297,12 +334,8 @@ def plot_estimation_uncertainty(asset_returns: pd.DataFrame,
     optimiert zu einem großen Teil auf Rauschen (§ 2.5, Michaud 1989).
     """
     log.info("Theorieplot 16: Schätzunsicherheit der Erwartungswerte …")
-    mu, sigma, _, _ = _annualised_moments(asset_returns)
-
-    # Länge des Beobachtungszeitraums in Jahren.
-    jahre = len(asset_returns) / TRADING_DAYS
-    standardfehler = sigma / np.sqrt(jahre)
-    halbe_breite   = 1.96 * standardfehler
+    # Punktschätzer, halbe Intervallbreite und Beobachtungsdauer (Formel 17).
+    mu, halbe_breite, jahre = konfidenzintervalle(asset_returns)
 
     # Aufsteigend sortieren, damit der höchste Wert oben landet.
     reihenfolge = mu.sort_values().index
@@ -317,7 +350,7 @@ def plot_estimation_uncertainty(asset_returns: pd.DataFrame,
 
     ax.set_yticks(y)
     ax.set_yticklabels(reihenfolge)
-    _bildtitel(ax, "Erwartungswerte lassen sich kaum schätzen\n"
+    bildtitel(ax, "Erwartungswerte lassen sich kaum schätzen\n"
                  "Punktschätzer und Unsicherheit, "
                  f"{jahre:.0f} Jahre Tagesdaten "
                  f"({asset_returns.index[0]:%Y}–{asset_returns.index[-1]:%Y})",
@@ -388,18 +421,15 @@ def plot_efficient_frontier_theory(asset_returns: pd.DataFrame,
     """
     log.info(f"Theorieplot {os.path.basename(output_path)[:2]}: Effizienzrand"
              + (" mit Kapitalmarktlinie …" if show_cml else " …"))
-    mu_v, sigma, cov, _ = _annualised_moments(asset_returns)
+    mu_v, sigma, cov, _ = jahreskennzahlen(asset_returns)
     mu_a, S = mu_v.values, cov.values
     n = len(mu_a)
     one = np.ones(n)
 
     # ---- Geschlossene Lösung: die vier Skalare und das MVP --------------
-    S_inv = np.linalg.inv(S)
-    a = one @ S_inv @ one
-    b = one @ S_inv @ mu_a
-    c = mu_a @ S_inv @ mu_a
-    d = a * c - b * b
-    mu_mvp, sig_mvp = b / a, np.sqrt(1.0 / a)
+    rand = effizienzrand_geschlossen(mu_a, S, rf)            # Formeln 9 bis 11
+    a, b, c, d = rand["a"], rand["b"], rand["c"], rand["d"]
+    mu_mvp, sig_mvp = rand["mu_mvp"], rand["sig_mvp"]
 
     fig, ax = plt.subplots(figsize=(11, 7))
 
@@ -407,10 +437,8 @@ def plot_efficient_frontier_theory(asset_returns: pd.DataFrame,
     # Der Punkt auf dem Rand mit der steilsten Verbindungsgeraden zum
     # risikofreien Zins — geschlossene Lösung, keine Optimierung nötig.
     if show_cml:
-        w_tan = S_inv @ (mu_a - rf * one)
-        w_tan = w_tan / (one @ S_inv @ (mu_a - rf * one))
-        sig_tan, mu_tan = np.sqrt(w_tan @ S @ w_tan), w_tan @ mu_a
-        sharpe_tan = (mu_tan - rf) / sig_tan
+        w_tan, sig_tan = rand["w_tan"], rand["sig_tan"]
+        mu_tan, sharpe_tan = rand["mu_tan"], rand["sharpe_tan"]
 
     # ---- Ausschnitt -----------------------------------------------------
     # Ohne Kapitalmarktlinie: an der Hyperbel ausgerichtet, vom MVP aus so weit
@@ -420,7 +448,7 @@ def plot_efficient_frontier_theory(asset_returns: pd.DataFrame,
     # MIT Kapitalmarktlinie: maßstabsgetreu bis über das Tangentialportfolio
     # hinaus. Das ist die ehrliche Darstellung — und die Aussage der Abbildung:
     # Das theoretisch optimale Portfolio liegt bei rund 53 % Volatilität, also
-    # weit außerhalb dessen, was die Arbeit ueberhaupt zulässt.
+    # weit außerhalb dessen, was die Arbeit überhaupt zulässt.
     if show_cml:
         y_max = mu_tan * 100 * 1.10
         y_min = 0.0
@@ -507,7 +535,7 @@ def plot_efficient_frontier_theory(asset_returns: pd.DataFrame,
 
     ax.set_xlim(0, x_max)
     ax.set_ylim(y_min, y_max)
-    _bildtitel(ax, "Der Effizienzrand nach Markowitz\n"
+    bildtitel(ax, "Der Effizienzrand nach Markowitz\n"
                  f"{n} Titel, Tagesdaten "
                  f"{asset_returns.index[0]:%d.%m.%Y} – {asset_returns.index[-1]:%d.%m.%Y}",
                  fontweight="bold")

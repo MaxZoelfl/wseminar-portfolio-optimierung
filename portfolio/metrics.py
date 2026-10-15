@@ -40,6 +40,8 @@ def timer(func):
     Funktion ändert sich nichts.
     """
     def wrapper(*args, **kwargs):
+        # Diese innere Funktion ersetzt die ursprüngliche: Uhr an, Funktion
+        # ausführen, Dauer ins Logbuch schreiben, Ergebnis unverändert zurück.
         t0 = time.perf_counter()            # Stoppuhr starten
         result = func(*args, **kwargs)      # die eigentliche Funktion ausführen
         log.info(f"[TIMER] {func.__name__:<40} {time.perf_counter()-t0:>7.2f}s")
@@ -92,12 +94,11 @@ def sharpe_ratio(returns: pd.Series, rf: float = RISK_FREE_RATE,
     Beispiel: 12 % erwartete Überschussrendite bei 16 % Volatilität
     → Sharpe = 0,12 / 0,16 = 0,75.
 
-    WARUM ARITHMETISCH UND NICHT ÜBER DIE CAGR? Frühere Fassungen dieser
-    Funktion setzten die geometrische Jahresrendite (CAGR) in den Zähler.
-    Das mischt ein geometrisches Maß mit einem linear annualisierten Nenner,
-    entspricht nicht Sharpes Definition — und lieferte für dieselbe Strategie
-    einen anderen Wert als der Signifikanztest in ``significance.py``, der
-    schon immer arithmetisch rechnet. Jetzt rechnen beide gleich.
+    WARUM ARITHMETISCH UND NICHT ÜBER DIE CAGR? Die geometrische Jahresrendite
+    (CAGR) im Zähler mischte ein geometrisches Maß mit einem linear
+    annualisierten Nenner und entspräche nicht Sharpes Definition. Mit dem
+    arithmetischen Mittel rechnen diese Funktion und der Signifikanztest in
+    ``significance.py`` dieselbe Kennzahl.
     """
     d  = returns - rf / freq                 # Überschussrendite je Tag
     sd = d.std(ddof=1)
@@ -148,9 +149,9 @@ def sortino_ratio(returns: pd.Series, rf: float = RISK_FREE_RATE,
     # gemittelt über ALLE Tage (nicht nur über die Verlusttage). Tage über der
     # Zielrendite gehen mit 0 ein — Schwankung nach oben soll nicht bestrafen.
     #   DD = sqrt( 1/T · Σ min(d_t, 0)² )
-    # Frühere Fassungen nahmen stattdessen die Standardabweichung INNERHALB
-    # der Verlusttage. Das misst die Streuung unter den Verlusten statt deren
-    # Größe und entspricht nicht der üblichen Definition (Sortino/Van der Meer).
+    # Die Standardabweichung INNERHALB der Verlusttage wäre etwas anderes: Sie
+    # misst die Streuung unter den Verlusten statt deren Größe und entspricht
+    # nicht der üblichen Definition (Sortino/Van der Meer).
     dd = np.sqrt((np.minimum(d, 0.0) ** 2).mean()) * np.sqrt(freq)
     return float(d.mean() * freq / dd) if dd > _EPS else 0.0
 

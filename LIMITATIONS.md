@@ -1,493 +1,95 @@
-# Limitationen & methodische Diskussion
+# Limitationen und methodische Einordnung
 
-Dieses Dokument fasst die wissenschaftlichen Grenzen der Untersuchung zusammen
-und ordnet sie in die Literatur ein. Es ist als Grundlage für das Kapitel
-„Limitationen / kritische Würdigung" der Seminararbeit gedacht. Mehrere Punkte
-wurden im Code bereits adressiert (siehe Markierungen *[behoben]* / *[optional]*);
-andere bleiben grundsätzliche Einschränkungen, die ehrlich zu benennen sind.
+Dieses Dokument beschreibt die Grenzen der Untersuchung, ordnet sie in die
+Literatur ein und beziffert, wo das möglich ist, ihren Einfluss auf die
+Ergebnisse. Alle Ergebnisse stammen aus **einem** Lauf mit den Standardwerten in
+`portfolio/config.py` (Verzeichnis `output/`, 25.08.2026). Paragrafenzeichen
+(§) verweisen auf die Seminararbeit.
 
-> **Zu den Zahlen:** Die Ergebnisse der Seminararbeit stammen aus **einem** Lauf
-> (`output/`, 25.08.2026). Wo hier Zahlen aus früheren Vorstufen stehen — etwa in
-> den Abschnitten 10 bis 12, die beschreiben, wie ein Fehler gefunden wurde —, ist
-> das ausdrücklich vermerkt. Abschnitt 13 beziffert drei Vereinfachungen der
-> Umsetzung, die im maßgeblichen Lauf stecken.
+| Abschnitt | Thema | Einfluss auf die Ergebnisse |
+|---|---|---|
+| 1 | Survivorship Bias | absolute Renditen zu hoch, Vergleich weniger betroffen |
+| 2 | Schätzfehler in den erwarteten Renditen | Kernproblem der Optimierung, Gegenstand der Arbeit |
+| 3 | Statistische Absicherung | Tests nach Ledoit/Wolf, Holm und Deflated Sharpe Ratio |
+| 4 | Ein historischer Pfad | Rangfolge nur für 2015–2024 belegt |
+| 5 | Informationsleck in der Kreuzvalidierung | durch Purged CV ausgeschlossen |
+| 6 | Annualisierung | Jahreswerte als Näherung |
+| 7 | Konstanter risikofreier Zins | Schwellen beziffert (§ 6.6) |
+| 8 | Transaktionskosten | Sensitivität 0–100 Basispunkte (§ 6.4) |
+| 9 | Gleiche Regeln für Markowitz und Random Forest | Vergleich unter sonst gleichen Bedingungen |
+| 10 | Rückfall auf das Minimum-Varianz-Portfolio | im Zeitraum nie ausgelöst |
+| 11 | Vereinfachungen der Umsetzung | beziffert, keine Aussage ändert sich |
+| 12 | Bit-genaue Reproduzierbarkeit | nachgewiesen |
 
 ---
 
-## 1. Survivorship Bias (wichtigste Limitation)
+## 1. Survivorship Bias
 
-Das Anlageuniversum besteht aus **15 heute existierenden Large-Cap-Aktien**
-(`config.py` → `tickers`), die über den gesamten Zeitraum 2015–2024 gehandelt
-wurden und überwiegend stark performt haben (u. a. AAPL, MSFT, NVDA). Damit ist
-das Universum **rückblickend selektiert**: Unternehmen, die in diesem Zeitraum
-ausschieden, fusionierten oder scheiterten, fehlen vollständig.
+Das Anlageuniversum besteht aus **15 heute existierenden Standardwerten**
+(`config.py` → `tickers`), ausgewählt nach Ablauf des Untersuchungszeitraums
+(§ 4.1). Unternehmen, die zwischen 2015 und 2024 ausschieden, fusionierten oder
+scheiterten, fehlen.
 
-**Folge:** Die absoluten Renditen *aller* Strategien — inklusive der
-Equal-Weight-Benchmark — sind **systematisch nach oben verzerrt**. Die zentrale
-Frage „schlägt eine aktive Strategie den Markt?" wird dadurch angreifbar, weil
-schon die Grundgesamtheit ein Überlebenden-Portfolio ist.
+**Folge:** Die absoluten Renditen *aller* Strategien, auch der Gleichgewichtung,
+sind nach oben verzerrt. Der Vergleich der Strategien untereinander ist weniger
+betroffen, weil alle dasselbe Universum nutzen. Eine zweite Folge benennt § 6.6:
+Mit NVIDIA ist ein Titel enthalten, dessen Erfolg bei der Auswahl bereits
+feststand; er trägt zum Vorsprung vor der Gleichgewichtung bei Markowitz
+6,8 und beim Random Forest 5,2 Prozentpunkte arithmetischer Jahresrendite bei.
 
 **Literatur:** Brown, Goetzmann, Ibbotson & Ross (1992); Elton, Gruber & Blake
 (1996).
 
-**Abmilderung:**
-- Ideal: ein **point-in-time** zusammengesetztes Universum (z. B. die
-  S&P-100/500-Mitglieder *zum jeweiligen Zeitpunkt*), das ausgeschiedene Titel
-  enthält. Solche Daten sind frei oft nicht verfügbar.
-- Pragmatisch: das Universum ist über `config.json` (`tickers`) frei wählbar —
-  ein breiteres, weniger kuratiertes Set reduziert die Verzerrung.
-- Mindestens: den Bias **explizit benennen** und Ergebnisse als *relativ*
-  (Strategie vs. Strategie), nicht als *absolut* interpretieren. Der relative
-  Vergleich ist vom Survivorship Bias deutlich weniger betroffen, da alle
-  Strategien dasselbe verzerrte Universum nutzen.
+**Erweiterung:** ein zum jeweiligen Zeitpunkt zusammengesetztes Universum
+(etwa die damaligen Mitglieder des S&P 500) einschließlich ausgeschiedener
+Titel. Das Universum ist über `config.json` (`tickers`) frei wählbar.
 
 ---
 
 ## 2. Schätzfehler in den erwarteten Renditen
 
-Die Markowitz-Optimierung verwendet **historische Mittelwerte** als Schätzer der
-erwarteten Renditen. Erwartungswerte sind notorisch schwer zu schätzen, und die
-Mean-Variance-Optimierung reagiert extrem sensibel auf Fehler in diesen Inputs
-(„Fehler-Maximierer"). Fehler in den Mittelwerten kosten empirisch **rund 10-mal
-mehr** als Fehler in den (Ko-)Varianzen.
+Die Markowitz-Optimierung schätzt die erwarteten Renditen als **historische
+Mittelwerte**. Erwartungswerte sind schwer zu schätzen, und die
+Mean-Variance-Optimierung verstärkt Fehler in diesen Eingaben („Fehler-Maximierer“).
+Fehler in den Mittelwerten wiegen empirisch rund zehnmal so schwer wie Fehler in
+den Varianzen.
 
 **Literatur:** Merton (1980); Michaud (1989); Best & Grauer (1991);
 Chopra & Ziemba (1993).
 
-**Einordnung:** Genau hier setzt der Random Forest an (bessere Renditeprognose).
-Dass RF und MVO am Ende kaum auseinanderliegen, ist **konsistent mit der
-Literatur**: ML-Renditeprognosen haben typischerweise sehr kleine prädiktive R²
-(Gu, Kelly & Xiu 2020). Die Positionsobergrenze (`max_weight = 0.20`) und das
-Long-only-Constraint wirken zudem **wie eine implizite Regularisierung** und
-verbessern die Out-of-Sample-Stabilität (Jagannathan & Ma 2003) — eine bewusste,
-literaturgedeckte Designentscheidung.
+**Einordnung:** Genau hier setzt der Random Forest an: Er ersetzt den
+historischen Mittelwert durch eine Prognose. Dass Random Forest und Markowitz am
+Ende nicht signifikant auseinanderliegen, passt zur Literatur:
+Renditeprognosen des maschinellen Lernens erreichen typischerweise nur ein sehr
+kleines R² außerhalb der Stichprobe (Gu, Kelly & Xiu 2020). Positionsobergrenze
+(`max_weight = 0.20`) und Long-only-Bedingung wirken zudem wie eine
+Regularisierung und stabilisieren die Gewichte (Jagannathan & Ma 2003).
 
-**Mögliche Erweiterung:** Shrinkage der Mittelwerte (James-Stein) oder
-Black-Litterman (1992) als zusätzliche Baseline.
-
----
-
-## 3. Statistische Signifikanz & multiples Testen  *[behoben in v4.1+]*
-
-Ein früherer i.i.d.-Bootstrap vernachlässigte Autokorrelation und
-Volatilitäts-Clustering und korrigierte nicht für multiples Testen.
-
-**Umgesetzt** (`portfolio/significance.py`):
-- **Ledoit & Wolf (2008):** HAC-studentisierter Circular-Block-Bootstrap-Test
-  für Sharpe-Differenzen (zirkulärer Block-Bootstrap nach Politis & Romano 1992,
-  zitiert nach Ledoit & Wolf 2008, S. 854).
-  Vier Details sind gegenüber der Quelle vereinfacht, siehe Abschnitt 13.
-- **Holm-Bonferroni** (Holm 1979) zur Korrektur aller **6** paarweisen
-  Vergleiche (Motivation: Harvey, Liu & Zhu 2016).
-
-**Ergebnis (robust):** Nach Korrektur ist nur „Risk Parity schlechter als
-Equal Weight" signifikant; **kein** aktiver Ansatz schlägt Equal Weight
-signifikant — konsistent mit DeMiguel, Garlappi & Uppal (2009).
+**Erweiterung:** Shrinkage der Mittelwerte (James-Stein) oder Black-Litterman
+(1992) als zusätzliche Vergleichsstrategie.
 
 ---
 
-## 4. Backtest-Overfitting & einzelner historischer Pfad  *[teilweise behoben]*
+## 3. Statistische Absicherung
 
-Die Optimierung erfolgt über **einen** historischen Pfad (2015–2024, überwiegend
-Bullenmarkt). Werden viele Strategien/Hyperparameter über denselben Pfad gewählt,
-droht Backtest-Overfitting.
+Umgesetzt in `portfolio/significance.py`:
 
-**Umgesetzt:** **Deflated Sharpe Ratio** (Bailey & López de Prado 2014) in
-`significance.py` — korrigiert die Sharpe für die Anzahl der Versuche und für
-Nicht-Normalität (Schiefe/Kurtosis). *Hinweis:* Die hier verwendete Versuchszahl
-`N` = Anzahl der Strategien ist konservativ niedrig; streng genommen müsste `N`
-auch die Hyperparameter-Suchen einschließen, was die Hürde erhöhen würde.
+- **Ledoit & Wolf (2008):** studentisierter Test für die Differenz zweier
+  Sharpe-Quotienten mit HAC-Standardfehler und zirkulärem Block-Bootstrap
+  (4999 Ziehungen, Blocklänge 14 Handelstage; zirkulärer Block-Bootstrap nach
+  Politis & Romano 1992, zitiert nach Ledoit & Wolf 2008, S. 854).
+- **Holm (1979)** über **alle sechs** paarweisen Vergleiche (Motivation:
+  Harvey, Liu & Zhu 2016).
+- **Deflated Sharpe Ratio** (Bailey & López de Prado 2014), siehe Abschnitt 4.
 
-**Verbleibende Limitation / Erweiterung:** Robustheit über mehrere Pfade via
-stationärem Bootstrap (Politis & Romano 1994) sowie Sub-Perioden-Analysen
-(z. B. COVID-Crash 2020, Zinswende 2022); minimale Backtest-Länge / PBO
-(Bailey et al. 2017).
+**Ergebnis:** Nach Holm ist allein „Risk Parity schlechter als die
+Gleichgewichtung“ signifikant (p = 0,0216); kein aktives Verfahren schlägt die
+Gleichgewichtung signifikant — im Einklang mit DeMiguel, Garlappi & Uppal (2009).
 
----
+### 3.1 Vier Details einfacher als in der Quelle
 
-## 5. Informationsleck in der Kreuzvalidierung  *[behoben, Standard an]*
-
-Die Merkmale stammen aus **überlappenden** Tagesfenstern (Momentum über bis zu
-252 Tage, rollierendes Alpha/Beta), und das Label eines Monats ist die Rendite
-des Folgemonats. Standard-`TimeSeriesSplit` entfernt diese Überlappung nicht →
-optimistisch verzerrte CV-Scores.
-
-**Umgesetzt** (`portfolio/cross_validation.py`, **Standard**,
-`use_purged_cv = True`, `cv_embargo = 0.02`): **Purged & Embargoed
-Cross-Validation** nach López de Prado (2018) — entfernt überlappende
-Label-Perioden (Purging) und eine Embargo-Zone nach dem Test-Fenster.
-
-**Ausmaß des Lecks, gemessen** (Vergleichslauf mit `use_purged_cv=false`, Tagesrenditen in
-`skripte/daten/vergleichslauf_ohne_purging.csv`, gegen den maßgeblichen Lauf):
-
-| | Sharpe RF | CAGR RF | Vola RF | max. DD RF |
-|---|---:|---:|---:|---:|
-| `TimeSeriesSplit` | 0,980 | 23,32 % | 19,19 % | −35,57 % |
-| **Purged & Embargoed** (maßgeblich) | **0,936** | **22,12 %** | **19,03 %** | **−33,77 %** |
-
-Rund **0,04 Sharpe** und ein Prozentpunkt CAGR des scheinbaren
-Random-Forest-Vorsprungs waren also Leckage (§ 4.3 der Arbeit). Der Vergleichslauf
-entstand vor dem Einfrieren der Kursdatei und vor dem Einkern-Modus; seine übrigen
-drei Strategien stimmen mit dem maßgeblichen Lauf auf drei Nachkommastellen überein. (Zur Genauigkeit dieser Zahl siehe
-Abschnitt 12: Die Lauf-zu-Lauf-Streuung des Random Forest lag vor Einführung des
-deterministischen Modus bei rund 0,010 — der Effekt ist also etwa viermal so
-groß wie das Rauschen, aber keine exakte Größe.) Markowitz, Equal Weight und Risk
-Parity bleiben praktisch unverändert — sie werden nicht kreuzvalidiert. Das ist
-zugleich die Kontrolle, dass die Änderung nur dort wirkt, wo sie wirken soll.
-
----
-
-## 6. Sharpe-Definition & Annualisierung  *[Definition behoben]*
-
-Frühere Fassungen von `metrics.py` setzten die **geometrische** Rendite (CAGR)
-in den Zähler. Heute rechnen `metrics.py` und `significance.py` einheitlich mit
-dem **arithmetischen** Mittel der Überschussrenditen nach Sharpe (1994)
-(Formel 13 und 14 der Arbeit). Bestehen bleibt: Die Annualisierung mit √252
-unterstellt **unkorrelierte** Renditen. Die Tagesrenditen der vier Strategien
-haben eine Autokorrelation erster Ordnung von etwa −0,13 (§ 5.1 der Arbeit);
-die Jahreswerte sind deshalb als Näherung zu lesen.
-
-**Literatur:** Sharpe (1994); Lo (2002).
-
----
-
-## 7. Konstanter risikofreier Zins
-
-`risk_free_rate = 0.04` ist über 2015–2024 konstant, obwohl die US-Zinsen von
-nahe 0 % (2015–2021) auf über 4 % (2023/24) stiegen. Das verzerrt die Sharpe
-periodenübergreifend. **Erweiterung:** tatsächliche 3-Monats-T-Bill-Reihe
-(Fama-French-Risikofreisatz).
-
----
-
-## 8. Transaktionskosten
-
-Die pauschalen 10 Basispunkte auf den Turnover (`transaction_cost = 0.0010`)
-ignorieren Geld-Brief-Spannen und Market Impact. **Literatur:** Almgren & Chriss
-(2000). **Umgesetzt:** Sensitivitätsanalyse über 0 bis 100 Basispunkte
-(`skripte/abbildung_kostensensitivitaet.py`, Abbildung 5 der Arbeit). Weil die
-Kosten nicht in die Optimierung eingehen, sind die Gewichte vom Kostensatz
-unabhängig; die Kurven sind eine Umrechnung der gespeicherten Renditen.
-
----
-
-## 9. Bereits behobene methodische Fehler (v4.1)
-
-- **Einfache statt logarithmischer Renditen** in der Portfolio-Aggregation
-  (gewichtete Summe nur für einfache Renditen gültig).
-- **Driftbewusster Turnover**: Equal Weight erhält einen realistischen
-  Rebalancing-Turnover statt fälschlich 0.
-
----
-
-## 10. Fairness des Vergleichs Markowitz ↔ Random Forest  *[behoben, Standard an]*
-
-### Vorbemerkung: Der Random Forest maximiert **nicht** die Rendite
-
-Ein naheliegender Einwand lautet, die KI-Strategie ziele auf Renditemaximierung
-ohne Rücksicht auf das Risiko — der Vergleich mit Markowitz sei deshalb schief.
-Das trifft auf diese Implementierung **nicht** zu. `RFPortfolioOptimizer.optimize()`
-ruft denselben Markowitz-Löser auf wie die klassische Strategie: dieselbe
-Zielfunktion (Sharpe-Maximierung, das Risiko steht als σ_p im Nenner), dieselbe
-Ledoit-Wolf-Kovarianzmatrix (in `backtest.py` **einmal** geschätzt und an alle
-Strategien weitergereicht), dieselben Nebenbedingungen (long-only, Σw = 1,
-`max_weight`). Der Random Forest ersetzt ausschließlich die **Renditeschätzung**.
-
-Damit ist der Vergleich als *Ceteris-paribus-Experiment* angelegt: Er isoliert
-genau die Größe, an der die MVO laut Literatur scheitert (μ, vgl. Abschnitt 2).
-Empirisch bestätigt sich das auch — der RF ist mit 19,0 % annualisierter
-Volatilität **weniger** schwankungsanfällig als die klassische MVO (21,0 %).
-
-### Verbleibende Asymmetrie (Turnover-Restriktion)
-
-Streng genommen unterschieden sich die beiden Strategien bisher in **zwei**
-Punkten statt in einem: Nur der Random Forest bekam ein Turnover-Limit
-(`rf_turnover_limit = 0.30`), die klassische MVO wurde unrestringiert optimiert.
-Das ist eine Verletzung des Ceteris-paribus-Prinzips. Sie wirkt in beide
-Richtungen — die Schranke senkt einerseits die Handelskosten des RF, wirkt
-andererseits aber wie eine zusätzliche Regularisierung und schränkt sein
-Optimum ein. In der damaligen Vorstufe handelte der RF mit Ø 30,8 % Turnover
-ohnehin **mehr** als die MVO (Ø 13,6 %). Im maßgeblichen Lauf (beide mit
-Schranke) sind es 29,0 % und 13,1 %; die Schranke bindet beim RF in 101 von 118
-Monaten, bei der MVO ein einziges Mal (§ 4.4 der Arbeit).
-
-**Umgesetzt** (`config.mvo_turnover_limit`, **Standard 0.30**):
-Dieselbe Handelsrestriktion gilt für beide Strategien; erst dann unterscheiden
-sie sich ausschließlich im Renditeschätzer.
-
-### Bezugspunkt der Turnover-Schranke
-
-Der *ausgewiesene* Turnover wird gegen die über die Halteperiode
-**kursgedrifteten** Vorgängergewichte gemessen (korrekt — so steht das Depot zum
-Rebalancing-Zeitpunkt tatsächlich da). Die Schranke *im Optimierer* verglich
-dagegen mit den **ungedrifteten** Zielgewichten des Vormonats. Beide Größen
-messen dadurch nicht dasselbe, und der realisierte Turnover kann das nominelle
-Limit überschreiten — in der damaligen Vorstufe lag der RF-Mittelwert mit 30,8 %
-über dem Limit von 30 %.
-
-**Umgesetzt** (`config.turnover_ref_drifted`, **Standard `true`**):
-beide Größen nutzen dieselbe Referenz.
-
-**Ausmaß im echten Backtest 2015–2024** (Vergleichslauf mit der alten
-Referenz, nicht Teil des Repositories):
-Der Random Forest überschritt sein nominelles Limit von 30 % in **100 von 118**
-Monaten, im Extremfall mit 34,9 % Turnover. Mit der korrigierten Referenz sind
-es **null** Überschreitungen, der Maximalwert liegt exakt auf 30,0 %. Der
-Fehler war also nicht kosmetisch — die Restriktion war über weite Strecken des
-Backtests faktisch wirkungslos.
-
----
-
-## 11. Entartete Sharpe-Maximierung bei negativer Überrendite  *[behoben, Standard an]*
-
-Die Zielfunktion `max_sharpe` maximiert (μ_p − r_f) / σ_p. Das ist nur sinnvoll,
-solange der **Zähler positiv** ist. Erwartet kein zulässiges Portfolio mehr als
-den risikofreien Zins (unter long-only mit Σw = 1 ist μ_p ein gewichteter
-Mittelwert der μ_i, also nie größer als max μ_i), wird der Zähler negativ — und
-dann macht ein **größeres** σ_p im Nenner den Bruch weniger negativ. Der
-Optimierer maximiert in dieser Lage also das Risiko statt es zu minimieren.
-
-Numerische Kontrolle (8 Assets, r_f = 4 %, identische Kovarianzmatrix):
-
-| Szenario | Volatilität der „Max-Sharpe"-Lösung | Minimum-Varianz |
-|---|---|---|
-| μ ≈ +12 % (Normalfall) | 0,154 | 0,146 |
-| μ ≈ −5 % (Baisse) | **0,471** | 0,146 |
-
-Im Baisse-Fall wählt der Optimierer also die gut **dreifache** Volatilität.
-
-**Theoretischer Hintergrund (Merton 1972).** Das ist keine Eigenart dieser
-Implementierung, sondern ein seit 1972 bewiesenes Ergebnis. Merton leitet den
-Effizienzrand geschlossen her und zeigt, dass ein **Tangentialportfolio** — also die
-Lösung der Sharpe-Maximierung bei Vorhandensein einer risikofreien Anlage — nur dann
-als *effizientes* Portfolio existiert, wenn
-
-$$r_f < \bar E = A/C$$
-
-gilt, wobei Ē die erwartete Rendite des Minimum-Varianz-Portfolios ist
-(S. 1865, Theorem II: „… if and only if R < Ē"). Bei r_f = Ē gibt es überhaupt keinen
-Berührpunkt — die Kapitalmarktlinien sind dann genau die Asymptoten des Rands —, bei
-r_f > Ē liegt der Berührpunkt auf dem **ineffizienten** unteren Ast. Mertons Fazit
-dazu (S. 1868): „Under no condition can one construct the entire frontier (with the
-riskless security included) by drawing tangent lines to the upper and lower parts of
-the frontier for risky assets only." Die Entartung in der Tabelle oben ist also die
-numerische Erscheinungsform eines bekannten Struktursatzes, und der Rückfall auf das
-Minimum-Varianz-Portfolio ist die theoretisch konsistente Antwort darauf.
-
-⚠ **Zwei Schwellen nicht verwechseln.** Mertons Grenze Ē = A/C ist **ohne**
-Nichtnegativitätsbedingung hergeleitet — er lässt Leerverkäufe und Kreditaufnahme
-ausdrücklich zu (S. 1852, Fn. 3: „the only constraint on the x_i is that they sum to
-unity"). Unter long-only mit Σw = 1 und Kappe 20 % ist A/C daher **nicht** die
-maßgebliche Grenze; hier greift die Entartung erst, wenn kein *zulässiges* Portfolio
-mehr μ_p > r_f erreicht. Wegen der 20-%-Kappe kann das schon eintreten, während
-einzelne Titel noch μ_i > r_f haben: Das renditestärkste zulässige Portfolio
-verteilt sich auf mindestens fünf Titel. Der Code prüft deshalb direkt die
-gefundene Lösung: erwartete Überrendite w·μ − r_f ≤ 0.
-Merton belegt deshalb die **Struktur** des Problems (die Sharpe-Maximierung verliert
-oberhalb einer Zinsschwelle ihren Sinn), nicht den Auslöser der Abfrage in
-`optimizers.py`. In dieser Abgrenzung ist der Beleg haltbar.
-Betroffen sind grundsätzlich beide Strategien; praktisch trifft es eher den
-Random Forest, weil seine Prognosen konditional sind und in Abschwüngen negativ
-werden können, während der gleitende 3-Jahres-Mittelwert der MVO im Sample
-2015–2024 fast durchgehend deutlich über 4 % liegt.
-
-**Umgesetzt** (`portfolio/optimizers.py`): Der Fall wird erkannt und **immer**
-protokolliert (`Max-Sharpe entartet: …`) — auch bei ausgeschalteter Option, damit
-sich im Laufprotokoll nachzählen lässt, wie oft er auftrat. Mit
-`config.min_variance_fallback` (**Standard `true`**) weicht die Strategie dann auf das
-**Minimum-Varianz-Portfolio** aus (unter denselben Nebenbedingungen inklusive
-Turnover-Schranke). Ökonomisch ist das die konsistente Wahl: Wenn die
-Renditeschätzung keine Kompensation für Risiko verspricht, ist Risiko-
-minimierung die einzige verbleibende Zielgröße — dieselbe Logik, aus der auch
-das Minimum-Varianz-Portfolio als renditeschätzungsfreie Strategie beliebt ist.
-
-**Befund für 2015–2024: der Fall trat in keinem einzigen der 119 Monate ein.**
-Das ist plausibel — das Sample ist überwiegend Bullenmarkt, und selbst 2022 lag
-weder der gleitende 3-Jahres-Mittelwert noch die RF-Prognose des besten Titels
-unter 4 %. Die Option ist damit **reine Absicherung**: Sie ändert an den
-Ergebnissen dieser Arbeit nichts, verhindert aber ein ökonomisch unsinniges
-Verhalten in Stichproben mit ausgeprägten Baissephasen (etwa 2000–2002 oder
-2008). Genau deshalb ist sie als Limitation interessant und nicht als Fehler in
-den Zahlen.
-
----
-
-## 11a. Ergebnis des strengen Vergleichslaufs  *[Vorstufe, historisch]*
-
-Alle drei Korrekturen wurden damals gemeinsam durchgerechnet (heute Standard;
-die damalige Konfigurationsdatei `config.fair.json` gibt es nicht mehr, ihre Werte
-sind die heutigen Standardwerte). Universum, Zeitraum, Kosten, Features und
-Hyperparameterraum waren identisch zum Referenzlauf. Die Tabellen zeigen Zahlen
-dieser Vorstufe — mit der älteren, geometrischen Sharpe-Definition (Abschnitt 6)
-und vor dem Einfrieren der Kurse —, nicht die Zahlen der Arbeit. **Der zentrale
-Befund blieb unverändert.**
-
-| Sharpe Ratio | Referenz | streng | Δ |
-|---|---|---|---|
-| Markowitz MVO | 0,9151 | 0,9114 | −0,0037 |
-| Random Forest | 1,0119 | 1,0068 | −0,0051 |
-| Equal Weight | 0,9131 | 0,9131 | 0 |
-| Risk Parity | 0,7858 | 0,7858 | 0 |
-
-Equal Weight und Risk Parity sind definitionsgemäß unberührt (keine
-Renditeschätzung, keine Turnover-Schranke). MVO und RF verlieren je rund 0,004
-bis 0,005 Sharpe-Punkte — die schärfere Turnover-Bindung kostet ein wenig
-Flexibilität, ohne die Rangfolge zu ändern.
-
-Auch die Signifikanzanalyse verschiebt sich praktisch nicht:
-
-| Test | p (Referenz) | p (streng) |
-|---|---|---|
-| RF vs. MVO | 0,688 | 0,697 |
-| RF vs. Equal Weight | 0,528 | 0,542 |
-| MVO vs. Equal Weight | 0,953 | 0,971 |
-| **Risk Parity vs. Equal Weight** | **0,004** | **0,004** |
-| MVO vs. Risk Parity | 0,476 | 0,489 |
-
-Nach Holm-Korrektur ist weiterhin **allein** „Risk Parity schlechter als Equal
-Weight" signifikant; kein aktiver Ansatz schlägt die naive 1/N-Benchmark.
-
-**Interpretation für die Arbeit:** Der Befund ist *robust gegenüber der
-Vergleichsmethodik*. Er beruht nicht darauf, dass der Random Forest heimlich
-bevorzugt wurde — auch unter streng identischen Handelsrestriktionen bleibt
-sein Vorsprung statistisch ununterscheidbar von Null. Das ist ein stärkeres
-Argument als das ursprüngliche Ergebnis allein, weil der naheliegendste
-Einwand gegen das Versuchsdesign damit empirisch ausgeräumt ist.
-
----
-
-## 12. Bit-genaue Reproduzierbarkeit  *[behoben und nachgewiesen]*
-
-`RandomForestRegressor(random_state=42, n_jobs=-1)` fixiert zwar den
-Zufallsgenerator, **nicht** aber die Reihenfolge, in der die parallelen Threads
-ihre Teilergebnisse aufsummieren. Gleitkommaaddition ist nicht assoziativ,
-weshalb zwei Läufe desselben Codes minimal auseinanderliegen — an einem
-synthetischen Backtest über 47 Monate gemessen: max. 3·10⁻¹⁰ in den
-Tagesrenditen.
-
-### ⚠ Korrektur: Der Effekt ist **nicht** vernachlässigbar
-
-Frühere Fassungen dieses Abschnitts nannten die Abweichung „weit unterhalb der
-Rundung irrelevant". Das gilt für die Tagesrenditen — **nicht aber für den Weg
-über die Hyperparametersuche.** Zwei Läufe mit identischer Konfiguration wurden
-verglichen:
-
-| | Sharpe RF | CAGR RF |
-|---|---:|---:|
-| Lauf A | 0,9626 | 22,31 % |
-| Lauf B | 0,9527 | 22,12 % |
-
-Ursache: `RandomizedSearchCV` vergleicht 30 Kandidaten anhand ihres
-CV-Scores. Liegen zwei Kandidaten nahezu gleichauf, genügt eine Abweichung in
-der 10. Nachkommastelle, um einen **anderen** Sieger zu küren — und dann
-unterscheiden sich nicht Rundungsstellen, sondern Baumtiefen. Nachgezählt an den
-Laufprotokollen: In **4 von 119 Monaten** wurde ein anderer Parametersatz
-gewählt, in einem Fall `depth=3` statt `depth=8`. Von dort pflanzt sich der
-Unterschied über Prognosen, Gewichte und Umschlag bis in die Kennzahlen fort.
-
-**Größenordnung: rund 0,010 im Sharpe-Quotienten des Random Forest.** Die
-anderen drei Strategien sind davon nicht betroffen — sie haben keine
-Hyperparameter und reproduzieren sich exakt.
-
-**Umgesetzt** (`config.deterministic`, **Standard `true`**):
-Random Forest und Hyperparametersuche laufen einkernig (`n_jobs=1`); damit ist
-der Lauf bitgenau wiederholbar. Kosten: die Tuning-Zeit steigt von rund 12 auf
-rund 41 Minuten. Für einen einmaligen Referenzlauf ist das der richtige Tausch —
-eine Arbeit, deren Anhang „Reproduzierbarkeit" verspricht, muss reproduzierbar sein.
-
-### Die größere Ursache: die Rohdaten selbst
-
-Der Threading-Effekt war nur die halbe Wahrheit. Ein zweiter, **um Größenordnungen
-stärkerer** Störfaktor liegt vor dem Code: **Yahoo Finance liefert bei jedem Abruf
-leicht andere Kurse.** Zwei Downloads desselben Zeitraums im Abstand von
-20 Sekunden verglichen:
-
-| | Wert |
-|---|---|
-| abweichende Kurswerte | **36 553 von 45 285** |
-| maximale absolute Abweichung | 2,4·10⁻⁴ |
-| maximale **relative** Abweichung | **1,3·10⁻⁶** |
-
-Das ist rund das **Zehnmilliardenfache** des Threading-Effekts — und es trifft
-alle Strategien, nicht nur den Random Forest. Nachweisbar an den Markowitz-
-Gewichten: Sie weichen bereits im **ersten** Rebalancing-Monat um 1,4·10⁻³ ab,
-obwohl Markowitz weder kreuzvalidiert noch einen Zufallsgenerator benutzt.
-
-Gegenprobe mit **festen** Kursen, jeweils drei getrennte Prozesse:
-
-| Prüfung | Ergebnis |
-|---|---|
-| Markowitz-Optimierung, feste Daten | bitgleich |
-| RF-Tuning, feste Daten, `n_jobs=1` | bitgleich |
-| RF-Tuning, feste Daten, `n_jobs=-1` | Abweichung ab der 16. Stelle |
-
-**Umgesetzt** (`config.price_cache`, Standard `./data/prices.pkl`): Der erste
-Download wird abgelegt, alle weiteren Läufe lesen von dort. Neu laden = Datei
-löschen.
-
-### ✅ Nachweis
-
-Zwei vollständige, unabhängig gestartete Läufe mit `deterministic = true` und
-fester Kursdatei erzeugen **bitgleiche** Ergebnisdateien (alle sieben CSV,
-MD5-Vergleich). Reproduzierbarkeit ist damit nicht behauptet, sondern gezeigt.
-
-**Konsequenz für die Interpretation:** Der in Abschnitt 5 genannte Effekt der
-Purged Cross-Validation liegt bei rund 0,04 Sharpe und damit deutlich über der
-früheren Lauf-zu-Lauf-Streuung von etwa 0,010. Er ist real, sollte im Text aber
-als „rund 0,04" und nicht als exakte Zahl geführt werden.
-
-**Für die Archivierung:** Ohne `data/prices.pkl` ist der Backtest grundsätzlich
-nicht nachrechenbar — wer die Kurse später neu lädt, erhält andere Werte. Die
-Datei gehört deshalb mit Abrufdatum zum Projekt.
-
----
-
-## 13. Drei Vereinfachungen der Umsetzung  *[beziffert, bewusst belassen]*
-
-Die folgenden Punkte stecken im maßgeblichen Lauf. Sie zu ändern hieße, den
-Backtest neu zu rechnen und damit jede Zahl der Arbeit zu verschieben. Keiner
-von ihnen ändert eine Aussage der Arbeit; jede Zahl dieses Abschnitts rechnen
-`skripte/kapitel_4_methodik.py` und `skripte/kapitel_5_signifikanz.py` bei jedem
-Aufruf nach.
-
-### 13.1 Feste Gewichte innerhalb des Monats
-
-`backtest.py` (Abschnitt 6b) bildet jede Tagesrendite mit den **Zielgewichten**
-des Monats. Das entspricht einem Depot, das täglich kostenlos auf die
-Zielgewichte zurückgesetzt wird. Der Umschlag (Formel 26) wird dagegen gegen die
-mit den Kursen **gedrifteten** Gewichte gemessen — so, wie sich ein gekauftes und
-gehaltenes Depot tatsächlich entwickelt. Innerhalb des Monats sind beide Annahmen
-nicht dieselbe.
-
-Gegenrechnung mit echter Kursdrift innerhalb des Monats (gleiche Gewichte,
-gleicher Umschlag, gleiche Kosten):
-
-| Strategie | Sharpe (maßgeblich) | Sharpe mit Drift | CAGR mit Drift |
-|---|---:|---:|---:|
-| Random Forest | 0,936 | 0,930 | −0,18 Pp |
-| Markowitz MVO | 0,906 | 0,900 | −0,18 Pp |
-| Equal Weight | 0,900 | 0,895 | −0,18 Pp |
-| Risk Parity | 0,790 | 0,783 | −0,19 Pp |
-
-Alle vier verlieren 0,005 bis 0,007 Sharpe-Punkte. Rangfolge, alle sechs
-Testentscheidungen (allein Risk Parity gegen Equal Weight signifikant, nach Holm
-p = 0,020) und alle Deflated Sharpe Ratios (> 0,98) bleiben gleich.
-
-### 13.2 Lernstoff des Random Forest endet an 50 Terminen einen Monat früher
-
-Damit der Zielwert des laufenden Monats nicht im Lernstoff steht, schneidet
-`backtest.py` die Trainingszeilen bei „Monatsende minus ein Monat" ab. Die
-Monatsenden sind Kalender-Monatsenden. Bei Monaten mit höchstens 30 Tagen
-(Februar, April, Juni, September, November) landet diese Grenze vor dem Ende des
-Vormonats, etwa 30.04. − 1 Monat = 30.03. < 31.03. Dann fällt auch die Zeile des
-Vormonats heraus, obwohl ihr Zielwert schon bekannt wäre. Das betrifft 50 der 119
-Termine: Der Lernstoff endet dort beim vorvorletzten statt beim vorletzten Monat
-(35 statt 36 Monatszeilen je Titel). Kein Blick in die Zukunft, nur ein Monat
-weniger Lernstoff.
-
-### 13.3 Ledoit-Wolf-Test: vier Details einfacher als in der Quelle
-
-`significance.py` folgt dem Aufbau von Ledoit & Wolf (2008), vereinfacht aber:
+`significance.py` folgt dem Aufbau von Ledoit & Wolf (2008), vereinfacht aber vier
+Details (§ 5.2):
 
 | | Umsetzung | Ledoit & Wolf (2008) |
 |---|---|---|
@@ -499,22 +101,282 @@ weniger Lernstoff.
 Die Verfahren der rechten Spalte sind zitiert nach Ledoit & Wolf (2008),
 S. 852–855; die Originalarbeiten stehen nicht im Literaturverzeichnis unten.
 
-Allein die p-Wert-Formel ergäbe für Risk Parity gegen Equal Weight 0,0038 statt
-0,0036, nach Holm 0,0228 statt 0,0216. Gegenrechnung mit Blocksummen-
-Standardfehler **und** Gl. (9), bei Blocklängen 7, 14 und 21 Tagen: In allen drei
-Fällen ist allein Risk Parity gegen Equal Weight signifikant (nach Holm 0,013
-bis 0,026), alle übrigen Paare bleiben deutlich darüber (p ≥ 0,26). Nicht
-nachgerechnet ist der QS-Kern; er betrifft nur die zeitversetzten Kovarianzen,
-die den Standardfehler insgesamt um höchstens 6,5 % ändern (§ 5.2 der Arbeit).
+Mit der p-Wert-Formel der Quelle läge der kleinste p-Wert bei 0,0038 statt
+0,0036 (§ 5.2). Eine Gegenrechnung mit Blocksummen-Standardfehler **und**
+Gl. (9) bei Blocklängen von 7, 14 und 21 Handelstagen führt zu denselben
+Testentscheidungen: Allein Risk Parity gegen Gleichgewichtung ist nach Holm
+signifikant, alle übrigen Paare liegen deutlich darüber (p ≥ 0,26).
+Nicht nachgerechnet ist der QS-Kern; er betrifft nur die zeitversetzten
+Kovarianzen, die die Standardfehler um höchstens 6,5 % ändern (§ 5.2).
+Nachrechnen: `skripte/kapitel_5_signifikanz.py`.
 
-### Kleinere Unschärfen
+### 3.2 Holm: „<“ statt „≤“
 
-- **Beta im Merkmal `beta_spy`** (`indicators.py`): `np.cov` teilt durch n − 1,
-  `np.var` durch n. Beta fällt dadurch um 63/62 (1,6 %) größer aus als die exakte
-  Regressionssteigung. Für den Random Forest ist ein fester Faktor bei Beta ohne
-  Wirkung; Alpha verschiebt sich minimal.
-- **Holm** (`significance.py`) verwirft bei angepasstem p-Wert < α, die Quelle
-  bei ≤ α. Bei den p-Werten des Laufs ohne Unterschied.
+`holm_bonferroni` verwirft bei angepasstem p-Wert < α, Holm (1979) bei ≤ α.
+Bei den angepassten p-Werten der Arbeit (0,0216 und fünfmal 1,000) macht das
+keinen Unterschied.
+
+---
+
+## 4. Ein historischer Pfad und Backtest-Overfitting
+
+Alle Strategien werden über **einen** historischen Verlauf verglichen
+(2015–2024; acht der zehn Jahre schlossen für das Universum positiv, § 6.6). Ob
+die Rangfolge in einem anderen Marktumfeld dieselbe wäre, ist nicht geprüft.
+
+Die **Deflated Sharpe Ratio** in `significance.py` korrigiert den
+Sharpe-Quotienten für die Zahl der Versuche und für Schiefe und Wölbung. Sie zählt
+N = 4 Versuche, die vier Strategien. Die Entscheidungen, die zu genau diesen
+vieren führten, sind darin nicht enthalten (§ 6.6); streng genommen läge N höher
+und die Hürde damit ebenfalls.
+
+**Erweiterung:** Robustheit über viele Pfade mit dem stationären Bootstrap
+(Politis & Romano 1994), Teilzeiträume (etwa 2020 und 2022), minimale
+Backtest-Länge und Wahrscheinlichkeit der Überanpassung (Bailey et al. 2017).
+
+---
+
+## 5. Informationsleck in der Kreuzvalidierung
+
+Die Merkmale stammen aus **überlappenden** Tagesfenstern (Momentum über bis zu
+252 Tage, rollierendes Alpha und Beta), und der Zielwert eines Monats ist die
+Rendite des Folgemonats. Eine rein chronologische Aufteilung
+(`TimeSeriesSplit`) schließt Look-Ahead aus, nicht aber dieses Leck:
+Benachbarte Lern- und Prüfabschnitte teilen Information, die
+Kreuzvalidierung fällt zu optimistisch aus (§ 4.3).
+
+**Umgesetzt** (`portfolio/cross_validation.py`, `use_purged_cv = true`,
+`cv_embargo = 0.02`): **Purged and Embargoed Cross-Validation** nach
+López de Prado (2018). Sie entfernt Beobachtungen, deren Zielfenster das
+Prüffenster überschneidet, und eine Sperrzone von 2 % der Perioden danach.
+
+**Ausmaß des Lecks** (§ 4.3): Ein sonst identischer Vergleichslauf mit
+`use_purged_cv = false` (dieselbe Kursdatei, einkernig; Tagesrenditen in
+`skripte/daten/vergleichslauf_ohne_purging.csv`) liefert für den Random Forest einen
+Sharpe-Quotienten von 0,961 statt 0,936; rund 0,025 des scheinbar besseren
+Ergebnisses beruhten also auf Informationsleckage. Markowitz, Gleichgewichtung und
+Risk Parity werden nicht kreuzvalidiert; ihre Ergebnisse bleiben gleich.
+
+---
+
+## 6. Sharpe-Definition und Annualisierung
+
+`metrics.py` und `significance.py` rechnen einheitlich mit dem **arithmetischen**
+Mittel der Überschussrenditen nach Sharpe (1994) (Formeln 13 und 14). Die
+Hochrechnung auf ein Jahr mit √252 unterstellt **unkorrelierte** Tagesrenditen.
+Die Tagesrenditen der vier Strategien haben eine Autokorrelation erster Ordnung
+zwischen −0,10 und −0,14 (§ 2.4, § 5.1); die Jahreswerte sind deshalb als
+Näherung zu lesen.
+
+**Literatur:** Sharpe (1994); Lo (2002).
+
+---
+
+## 7. Konstanter risikofreier Zins
+
+`risk_free_rate = 0.04` gilt für den ganzen Zeitraum, obwohl die kurzfristigen
+US-Zinsen dazwischen von nahe 0 % (2015/16 und 2020/21) bis über 4 % (2023/24)
+reichten. § 6.6 beziffert, wie viel
+davon abhängt: Unterhalb von 3,4 % tauschen Markowitz und Gleichgewichtung im
+Sharpe-Quotienten die Plätze; unterhalb von rund 0,8 % wäre der Rückstand von
+Risk Parity nach Holm nicht mehr signifikant. Nachrechnen:
+`skripte/kapitel_6_ergebnisse.py`.
+
+**Erweiterung:** die tatsächliche Reihe der dreimonatigen US-Schatzwechsel.
+
+---
+
+## 8. Transaktionskosten
+
+Die pauschalen zehn Basispunkte auf den Umschlag (`transaction_cost = 0.0010`)
+enthalten keine Marktbeeinflussung (Almgren & Chriss 2000). Die Kosten gehen
+nicht in die Optimierung ein; das benachteiligt die aktiven Verfahren gegenüber
+der Gleichgewichtung (§ 4.4).
+
+**Sensitivität** (Abbildung 5, § 6.4, `skripte/abbildung_kostensensitivitaet.py`):
+Bei 0 bis 100 Basispunkten fällt Markowitz ab rund 20, der Random Forest ab rund
+31 Basispunkten unter die Gleichgewichtung. Weil die Kosten nicht in die
+Optimierung eingehen, hängen die Gewichte nicht vom Kostensatz ab; die Kurven
+sind eine Umrechnung der gespeicherten Renditen, keine wiederholten Backtests.
+
+---
+
+## 9. Gleiche Regeln für Markowitz und Random Forest
+
+### Der Random Forest maximiert nicht die Rendite
+
+`RFPortfolioOptimizer.optimize()` ruft denselben Löser auf wie die
+Markowitz-Strategie: dieselbe Zielfunktion (Sharpe-Maximierung, das Risiko steht
+als σ_p im Nenner), dieselbe Kovarianzmatrix nach Ledoit & Wolf (2004) (in
+`backtest.py` einmal je Termin geschätzt und an Markowitz, Random Forest und Risk
+Parity weitergereicht),
+dieselben Nebenbedingungen (long-only, Σw = 1, `max_weight`). Der Random Forest
+ersetzt ausschließlich die **Renditeschätzung**. Der Vergleich isoliert damit
+genau die Größe, an der die Markowitz-Optimierung laut Literatur scheitert
+(Abschnitt 2). Der Random Forest schwankt mit 19,0 % Jahresvolatilität
+schwächer als Markowitz (21,0 %).
+
+### Dieselbe Umschlagsschranke
+
+Beide aktiven Strategien dürfen höchstens 30 % des Depots je Monat umschichten
+(`rf_turnover_limit`, `mvo_turnover_limit`). Die Schranke im Optimierer bezieht
+sich auf dieselben, mit den Kursen gedrifteten Gewichte, gegen die auch der
+ausgewiesene Umschlag gemessen wird (`turnover_ref_drifted = true`, Formel 26).
+Der gemessene Umschlag überschreitet die Schranke deshalb nie; sein Höchstwert
+ist 30,0 %.
+
+Die Schranke gilt für beide gleich, wirkt aber einseitig: Beim Random Forest
+greift sie in 101 von 118 Monaten, bei Markowitz ein einziges Mal (§ 4.4). Im
+Mittel schichtet der Random Forest 29,0 % des Depots je Monat um, Markowitz
+13,1 %.
+
+---
+
+## 10. Rückfall auf das Minimum-Varianz-Portfolio
+
+Die Zielfunktion maximiert (μ_p − r_f) / σ_p. Das ist nur sinnvoll, solange der
+**Zähler positiv** ist. Erwartet kein zulässiges Portfolio mehr als den
+risikofreien Zins (unter long-only mit Σw = 1 ist μ_p ein gewichteter Mittelwert
+der μ_i), wird der Zähler negativ, und dann macht ein **größeres** σ_p den Bruch
+weniger negativ: Der Optimierer würde das Risiko maximieren statt es zu
+minimieren.
+
+Kontrolle mit den Daten aus `tests/test_optimizers.py` (8 Titel, r_f = 4 %,
+Obergrenze 20 %): Erwarten alle Titel −5 %, liefert die ungeschützte
+Sharpe-Maximierung ein Portfolio mit 66,6 % Volatilität, das
+Minimum-Varianz-Portfolio eines mit 34,3 %.
+
+**Theoretischer Hintergrund (Merton 1972).** Merton leitet den Effizienzrand
+geschlossen her und zeigt, dass das Tangentialportfolio nur dann ein
+*effizientes* Portfolio ist, wenn der risikofreie Zins unter der erwarteten
+Rendite Ē = A/C des Minimum-Varianz-Portfolios liegt (S. 1865, Theorem II:
+„… if and only if R < Ē“). Bei r_f = Ē gibt es keinen Berührpunkt, bei r_f > Ē
+liegt er auf dem ineffizienten unteren Ast des Rands (S. 1868).
+
+**Zwei Schwellen nicht verwechseln.** Mertons Grenze Ē = A/C gilt **ohne**
+Nichtnegativitätsbedingung; er lässt Leerverkäufe ausdrücklich zu (S. 1852,
+Fn. 3: „the only constraint on the x_i is that they sum to unity“). Unter
+long-only mit Obergrenze 20 % greift die Entartung erst, wenn kein *zulässiges*
+Portfolio mehr μ_p > r_f erreicht. Wegen der Obergrenze kann das schon eintreten,
+während einzelne Titel noch μ_i > r_f haben, denn das renditestärkste zulässige
+Portfolio verteilt sich auf mindestens fünf Titel. Der Code prüft deshalb direkt
+die gefundene Lösung: erwartete Überrendite w·μ − r_f ≤ 0. Merton belegt die
+**Struktur** des Problems, nicht den Auslöser der Abfrage in `optimizers.py`.
+
+**Umgesetzt** (`portfolio/optimizers.py`, `min_variance_fallback = true`): Der
+Fall wird erkannt und immer im Laufprotokoll vermerkt (`Max-Sharpe entartet: …`).
+Die Strategie weicht dann auf das **Minimum-Varianz-Portfolio** aus, unter
+denselben Nebenbedingungen einschließlich Umschlagsschranke. Verspricht die
+Renditeschätzung keine Vergütung für Risiko, bleibt Risikominimierung als einzige
+sinnvolle Zielgröße.
+
+**Befund 2015–2024:** Der Fall trat an keinem der 119 Termine ein, bei keiner
+der beiden Strategien (Laufprotokoll ohne Eintrag `Max-Sharpe entartet`). Die
+Option ist Vorsorge für Zeiträume mit ausgeprägten Baissephasen und ändert an
+den Ergebnissen der Arbeit nichts.
+
+---
+
+## 11. Vereinfachungen der Umsetzung
+
+Die folgenden Punkte stecken im Lauf der Arbeit. Keiner von ihnen ändert eine
+Aussage der Arbeit; § 4.3 und § 4.4 nennen die ersten beiden.
+
+### 11.1 Feste Gewichte innerhalb des Monats
+
+`backtest.py` (Abschnitt 6b) bildet jede Tagesrendite mit den **Zielgewichten**
+des Monats, als würde das Depot täglich kostenlos auf diese Gewichte
+zurückgesetzt (§ 4.4). Der Umschlag (Formel 26) wird dagegen gegen die mit den
+Kursen gedrifteten Gewichte gemessen, so wie sich ein gekauftes und gehaltenes
+Depot entwickelt.
+
+Gegenrechnung mit Kursdrift innerhalb des Monats (gleiche Gewichte, gleicher
+Umschlag, gleiche Kosten; `skripte/gegenrechnung_drift.py`): Der
+Sharpe-Quotient jeder Strategie sinkt um 0,005 bis 0,007, die CAGR um 0,18 bis
+0,19 Prozentpunkte. Rangfolge und alle sechs Testentscheidungen bleiben gleich,
+die Deflated Sharpe Ratios sinken um höchstens 0,001.
+
+### 11.2 Lernstoff des Random Forest endet an 50 Terminen einen Monat früher
+
+Damit der Zielwert des laufenden Monats nicht im Lernstoff steht, schneidet
+`backtest.py` die Trainingszeilen bei „Entscheidungstag minus ein
+Kalendermonat“ ab (§ 4.3). Bei Monaten mit höchstens 30 Tagen (Februar, April,
+Juni, September, November) liegt diese Grenze vor dem Ende des Vormonats, etwa
+30.04. − 1 Monat = 30.03. < 31.03. Dann fällt auch die Zeile des Vormonats heraus,
+obwohl ihr Zielwert schon bekannt wäre. Das betrifft 50 der 119 Termine: Der
+Lernstoff endet dort beim vorvorletzten statt beim vorletzten Monat (35 statt 36
+Monatszeilen je Titel). Kein Blick in die Zukunft, nur ein Monat weniger
+Lernstoff. Nachrechnen: `skripte/kapitel_4_methodik.py`.
+
+### 11.3 Alpha und Beta
+
+`indicators.compute_alpha_beta` (Tabelle A2) berechnet Beta als Kovarianz von
+Titel- und Marktrendite geteilt durch die Varianz der Marktrendite über die 63
+Handelstage **vor** dem jeweiligen Tag. `np.cov` teilt dabei durch n − 1,
+`np.var` durch n; Beta liegt deshalb um den festen Faktor 63/62 (1,6 %) über der
+Steigung der Kleinste-Quadrate-Regression.
+
+- **Beta** geht ungerankt in den Random Forest ein. Ein Entscheidungsbaum teilt
+  nach der Reihenfolge der Werte, und ein fester positiver Faktor ändert sie
+  nicht; für die Prognosen ist der Faktor ohne Belang.
+- **Alpha** (Achsenabschnitt, × 252) verschiebt sich dadurch an den
+  Monatsenden im Median um 0,27 Prozentpunkte pro Jahr. Die Alphas der Titel
+  streuen mit einer Standardabweichung von 37,6 Prozentpunkten.
+
+Wie empfindlich der Random Forest auf so kleine Änderungen der Merkmale
+reagiert, zeigt eine Gegenrechnung mit exakter Regressionssteigung und dem Tag
+selbst im Fenster: Sein Sharpe-Quotient steigt um rund 0,02; Rangfolge, alle
+sechs Testentscheidungen und alle Deflated Sharpe Ratios bleiben gleich. Die
+Verschiebung liegt weit unter den Standardfehlern der Sharpe-Differenzen
+(0,12 bis 0,18 bei den Vergleichen mit dem Random Forest, § 6.3).
+
+---
+
+## 12. Bit-genaue Reproduzierbarkeit
+
+Drei Quellen können zwei Läufe desselben Codes auseinanderbringen. Alle drei
+sind ausgeschaltet.
+
+**Kursdaten.** Yahoo Finance liefert bei jedem Abruf leicht andere Kurse: Zwei
+Abrufe desselben Zeitraums im Abstand von 20 Sekunden unterschieden sich in
+36 553 von 45 285 Kurswerten, relativ um höchstens 1,3·10⁻⁶. Das trifft alle
+Strategien, auch die, die weder kreuzvalidiert noch Zufallszahlen benutzt.
+**Umgesetzt** (`price_cache = "./data/prices.pkl"`): Die Kurse des Abrufs vom
+15.08.2026 liegen eingefroren im Repository; jeder Lauf liest von dort. Ohne
+diese Datei ist der Backtest nicht nachrechenbar, wer die Kurse neu lädt, erhält
+andere Werte.
+
+**Parallelverarbeitung.** `RandomForestRegressor(random_state=42)` fixiert den
+Zufallsgenerator, nicht aber die Reihenfolge, in der parallele Threads ihre
+Teilergebnisse aufsummieren. Gleitkommaaddition ist nicht assoziativ. Liegen in
+der Hyperparametersuche (30 Kandidaten) zwei Kandidaten nahezu gleichauf, genügt
+eine Abweichung in der zehnten Nachkommastelle für einen anderen Sieger, und dann
+unterscheiden sich Baumtiefen statt Rundungsstellen. Parallel gerechnet schwankt
+der Sharpe-Quotient des Random Forest deshalb von Lauf zu Lauf um rund 0,01.
+**Umgesetzt** (`deterministic = true`): Random Forest und Hyperparametersuche
+laufen einkernig (`n_jobs = 1`). Der Lauf wird dadurch um ein Mehrfaches
+langsamer, dafür bitgenau wiederholbar.
+
+**Programmumgebung.** Gleitkommaergebnisse hängen auch von den Versionen der
+Programmbibliotheken ab. Anhang C2 der Arbeit nennt die Versionen des Laufs.
+
+**Nachweis.** Zwei vollständige, unabhängig gestartete Läufe mit
+`deterministic = true` und eingefrorener Kursdatei erzeugen **bitgleiche**
+Ergebnisdateien (alle sieben CSV-Dateien, MD5-Vergleich).
+
+Der Nachweis gilt für dieselbe Umgebung: Der Lauf vom 15.08.2026 (Python 3.14.6)
+und der maßgebliche Lauf vom 25.08.2026 (Python 3.14.7), beide unter macOS 26.6.1,
+sind bitgleich. NumPy rechnet seine Matrixoperationen mit Apples Bibliothek
+Accelerate, die zum Betriebssystem gehört — die naheliegende Ursache dafür, dass
+ein Neulauf unter macOS 27 (15.10.2026) in den letzten Stellen abweicht: Die Gewichte von Markowitz (in einem
+Monat) und Random Forest (an 44 Terminen) unterscheiden sich um höchstens
+1,7·10⁻³. Von den Zahlen der Arbeit ändern sich dadurch sieben in ihrer letzten
+angegebenen Stelle um eins: drei p-Werte und ein t-Wert in der Tabelle in § 6.3
+sowie drei Sharpe-Werte in Tabelle B3. Alle Testentscheidungen, Rangfolgen,
+Deflated Sharpe Ratios und alle übrigen Zahlen bleiben gleich (geprüft mit
+`skripte/alle_kapitel.py` auf den Ergebnisdateien dieses Neulaufs). Bitgleich ist
+ein Neulauf nur mit denselben Programmversionen (`requirements.txt`) unter
+macOS 26.6.1.
 
 ---
 
@@ -523,10 +385,9 @@ die den Standardfehler insgesamt um höchstens 6,5 % ändern (§ 5.2 der Arbeit)
 **Verfügbarkeit** (Stand der Online-Prüfung Juni 2026):
 📄 = kostenfreier Volltext verlinkt · 🔒 = nur kostenpflichtig/Bibliothek (DOI verlinkt).
 
-> **Wichtiger Hinweis zur Zitierweise:** Die folgenden bibliografischen Angaben
-> (Band, Heft, Seitenbereich, DOI) wurden online verifiziert. **Seitengenaue
-> Belege im Fließtext** (z. B. für wörtliche Zitate) sind jedoch **am Original zu
-> prüfen** — DOI/Volltext-Links führen zur jeweiligen Quelle.
+> Die bibliografischen Angaben (Band, Heft, Seitenbereich, DOI) sind online
+> geprüft. Seitengenaue Belege im Fließtext sind am Original zu prüfen; DOI und
+> Volltext-Links führen zur jeweiligen Quelle.
 
 - Almgren, R. & Chriss, N. (2000): Optimal Execution of Portfolio Transactions. *Journal of Risk* 3(2), 5–39. 📄 [Volltext (Semantic Scholar)](https://www.semanticscholar.org/paper/Optimal-execution-of-portfolio-trans-actions-Almgren-Chriss/4ea1885d7f00dc2ba59be2d6cc62923de23599ce)
 - Bailey, D. H. & López de Prado, M. (2014): The Deflated Sharpe Ratio: Correcting for Selection Bias, Backtest Overfitting, and Non-Normality. *Journal of Portfolio Management* 40(5), 94–107. 📄 [PDF (davidhbailey.com)](https://www.davidhbailey.com/dhbpapers/deflated-sharpe.pdf) · [SSRN 2460551](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2460551)
@@ -545,7 +406,7 @@ die den Standardfehler insgesamt um höchstens 6,5 % ändern (§ 5.2 der Arbeit)
 - Ledoit, O. & Wolf, M. (2008): Robust Performance Hypothesis Testing with the Sharpe Ratio. *Journal of Empirical Finance* 15(5), 850–859. DOI [10.1016/j.jempfin.2008.03.002](https://doi.org/10.1016/j.jempfin.2008.03.002) · 📄 [CORE (PDF)](https://core.ac.uk/outputs/11251901/)
 - Lo, A. W. (2002): The Statistics of Sharpe Ratios. *Financial Analysts Journal* 58(4), 36–52. DOI [10.2469/faj.v58.n4.2453](https://doi.org/10.2469/faj.v58.n4.2453) · 📄 [Preprint (Semantic Scholar)](https://www.semanticscholar.org/paper/The-Statistics-of-Sharpe-Ratios-Lo/05561b77acfdd034a585c32048819cc9ba6d1434)
 - López de Prado, M. (2018): *Advances in Financial Machine Learning*. Hoboken, NJ: Wiley. ISBN 978-1-119-48208-6. 🔒 [Wiley](https://www.wiley.com/en-us/Advances+in+Financial+Machine+Learning-p-9781119482086) · Kap. 7 (CV) als Vorschau: [SSRN 3104847](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3104847)
-- Merton, R. C. (1972): An Analytic Derivation of the Efficient Portfolio Frontier. *Journal of Financial and Quantitative Analysis* 7(4), 1851–1872. 🔒 [JSTOR 2329621](https://www.jstor.org/stable/2329621) — Volltext liegt als `Quellen/An_Analytic_Derivation_of_the_Efficient_Portfolio_Frontier_BSB.pdf` vor
+- Merton, R. C. (1972): An Analytic Derivation of the Efficient Portfolio Frontier. *Journal of Financial and Quantitative Analysis* 7(4), 1851–1872. 🔒 [JSTOR 2329621](https://www.jstor.org/stable/2329621)
 - Merton, R. C. (1980): On Estimating the Expected Return on the Market: An Exploratory Investigation. *Journal of Financial Economics* 8(4), 323–361. DOI [10.1016/0304-405X(80)90007-0](https://doi.org/10.1016/0304-405X(80)90007-0) · 📄 [NBER w0444](https://www.nber.org/papers/w0444)
 - Michaud, R. O. (1989): The Markowitz Optimization Enigma: Is 'Optimized' Optimal? *Financial Analysts Journal* 45(1), 31–42. DOI [10.2469/faj.v45.n1.31](https://doi.org/10.2469/faj.v45.n1.31) · 📄 [SSRN 2387669](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2387669)
 - Politis, D. N. & Romano, J. P. (1994): The Stationary Bootstrap. *Journal of the American Statistical Association* 89(428), 1303–1313. 🔒 DOI [10.1080/01621459.1994.10476870](https://doi.org/10.1080/01621459.1994.10476870)

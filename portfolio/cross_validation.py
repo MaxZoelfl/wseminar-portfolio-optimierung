@@ -34,13 +34,13 @@ deshalb braucht es das Embargo. Bei rund 35 Monaten je Trainingsfenster ergibt
 embargo_pct = 0,02 aufgerundet genau einen gesperrten Monat.
 
 Diese Implementierung ist PANEL-fähig: pro Periode (Monatsende) existieren
-mehrere Zeilen (ein Asset je Zeile); gesplittet wird nach Perioden, sodass nie
+mehrere Zeilen (eine Aktie je Zeile); gesplittet wird nach Perioden, sodass nie
 ein Teil der Assets einer Periode im Training und ein anderer im Test landet.
 
 Referenz: López de Prado, M. (2018): Advances in Financial Machine Learning,
 Kap. 7 (Cross-Validation in Finance). Wiley.
 
-Layer: nutzt nur numpy/pandas, keine projektinternen Module.
+Benötigt nur die Bibliotheken numpy und pandas, keine andere Datei dieses Projekts.
 """
 import numpy as np
 import pandas as pd

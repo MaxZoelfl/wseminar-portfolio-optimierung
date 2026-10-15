@@ -107,7 +107,7 @@ oder:
 
 ## 2.2 Purged Cross-Validation (Lopez de Prado)
 
-> ✅ **umgesetzt und Standard.** `portfolio/cross_validation.py`, aktiv über `use_purged_cv = true` und `cv_embargo = 0.02`. Gemessener Effekt: Ohne Purging erscheint der Random Forest um rund 0,044 Sharpe besser, als er ist (LIMITATIONS § 5).
+> ✅ **umgesetzt und Standard.** `portfolio/cross_validation.py`, aktiv über `use_purged_cv = true` und `cv_embargo = 0.02`. Gemessener Effekt: Ohne Purging erscheint der Random Forest um rund 0,025 Sharpe besser, als er ist (§ 4.3 der Arbeit, LIMITATIONS § 5).
 
 Upgrade von TimeSeriesSplit:
 
@@ -157,7 +157,7 @@ Vorteil:
 
 ## 3.1 Risk Parity Benchmark hinzufügen
 
-> ✅ **umgesetzt.** `RiskParityPortfolio` in `portfolio/optimizers.py`, seit v4 als vierte Strategie im Vergleich. Ergebnis: Sharpe 0,79 — die einzige Strategie, die 1/N **signifikant** unterliegt.
+> ✅ **umgesetzt.** `RiskParityPortfolio` in `portfolio/optimizers.py`, als vierte Strategie im Vergleich. Ergebnis: Sharpe 0,790 — die einzige Strategie, die 1/N **signifikant** unterliegt.
 
 Fehlt aktuell
 
@@ -265,7 +265,7 @@ Vorteil:
 
 ## 6.1 Performance Optimierung
 
-> 🟡 **teilweise — und bewusst wieder zurückgenommen.** `rf_retune_every` spart Rechenzeit. Die Parallelisierung wurde dagegen **absichtlich abgeschaltet** (`deterministic = true`, `n_jobs=1`): Gleitkommaaddition ist nicht assoziativ, weshalb parallele Läufe in 4 von 119 Monaten andere Hyperparameter kürten. Reproduzierbarkeit schlägt Geschwindigkeit (LIMITATIONS § 12).
+> 🟡 **teilweise.** `rf_retune_every` spart Rechenzeit. Die Parallelisierung ist dagegen **bewusst abgeschaltet** (`deterministic = true`, `n_jobs=1`): Gleitkommaaddition ist nicht assoziativ, parallel gerechnet kann die Hyperparametersuche bei nahezu gleichwertigen Kandidaten einen anderen Sieger wählen. Reproduzierbarkeit geht vor Geschwindigkeit (LIMITATIONS § 12).
 
 - RF Training caching
 - Vektorisierte Features
@@ -294,7 +294,7 @@ Beispiel:
 
 ## 6.3 Config System
 
-> ✅ **umgesetzt, mit JSON statt YAML.** Die `Config`-dataclass in `portfolio/config.py` hält alle Parameter; überschreiben über `config.json` oder `PORTFOLIO_CONFIG`. Nichts ist mehr hardcodiert. JSON, weil es ohne Zusatzpaket auskommt.
+> ✅ **umgesetzt, mit JSON statt YAML.** Die `Config`-dataclass in `portfolio/config.py` hält alle Parameter; überschreiben über `config.json` oder `PORTFOLIO_CONFIG`. Kein Parameter steht fest im Rechencode. JSON, weil es ohne Zusatzpaket auskommt.
 
 Aktuell hardcoded
 Besser:
@@ -310,7 +310,7 @@ Besser:
 
 ### 7.1 Turnover vs Performance Plot
 
-> ✅ **umgesetzt.** `plot_turnover_performance` → Abbildung 10. Zeigt den Handelsumsatz gegen die Folgemonatsrendite.
+> ✅ **umgesetzt.** `plot_turnover_performance` → Ausgabebild 10. Zeigt den Handelsumsatz gegen die Folgemonatsrendite.
 
 
 - x: Turnover
@@ -322,7 +322,7 @@ zeigt echte Effizienz der Strategie
 
 ## 7.2 Animated Efficient Frontier
 
-> ✅ **umgesetzt.** `create_animated_frontier_gif` → Abbildung 11, ein Einzelbild je Rebalancing-Termin.
+> ✅ **umgesetzt.** `create_animated_frontier_gif` → Ausgabebild 11, ein Einzelbild je Rebalancing-Termin.
 
 
 - Zeitliche Entwicklung als GIF/Video
@@ -331,7 +331,7 @@ zeigt echte Effizienz der Strategie
 
 ## 7.3 SHAP Explainability
 
-> ✅ **umgesetzt.** `plot_shap_values` → Abbildung 12. Optional: fehlt das Paket `shap`, entfällt nur diese Abbildung.
+> ✅ **umgesetzt.** `plot_shap_values` → Ausgabebild 12. Optional: fehlt das Paket `shap`, entfällt nur dieses Bild.
 
 
 - Feature Contribution im RF
@@ -344,7 +344,7 @@ Vorteil:
 
 ## 7.4 Stress Testing
 
-> ✅ **umgesetzt — mit einer Abweichung.** `plot_stress_test` → Abbildung 9 prüft den **COVID-Crash 2020** und die **Zinswende 2021/22**. Die Finanzkrise 2008 ist nicht dabei und kann es nicht sein: Die Kursdaten beginnen 2013.
+> ✅ **umgesetzt — mit einer Abweichung.** `plot_stress_test` → Ausgabebild 09 prüft den **COVID-Crash 2020** (Januar bis Juni) und die **Zinserhöhungen** von November 2021 bis Dezember 2022. Die Finanzkrise 2008 ist nicht dabei und kann es nicht sein: Die Kursdaten beginnen 2013.
 
 
 - 2008 Finanzkrise

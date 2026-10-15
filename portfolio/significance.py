@@ -54,7 +54,8 @@ der ARITHMETISCHEN Sharpe (Standarddefinition nach Sharpe 1994). Für die Ausgab
 werden Sharpe-Werte mit sqrt(freq) annualisiert. Teststatistik und p-Wert des
 studentisierten Tests sind gegenüber dieser Skalierung invariant.
 
-Layer: nutzt nur numpy/pandas/scipy, keine projektinternen Module.
+Benötigt nur die Bibliotheken numpy, pandas und scipy, keine andere Datei
+dieses Projekts.
 """
 import math
 import numpy as np
@@ -294,7 +295,7 @@ def sharpe_difference_test(returns_a, returns_b, rf=0.0, freq=252,
 # ---------------------------------------------------------------------------
 def holm_bonferroni(pvalues, alpha=0.05):
     """
-    Holm (1979) Step-down-Korrektur. Gibt angepasste p-Werte (monoton) und
+    Holm (1979), schrittweise Korrektur ("step-down"). Gibt angepasste p-Werte (monoton) und
     Ablehnungsentscheidungen zurück. Trennschärfer als reines Bonferroni.
 
     Warum überhaupt korrigieren? Bei 6 unabhängigen Tests mit je 5 %
@@ -342,9 +343,9 @@ def expected_max_sharpe(n_trials, sr_std):
     ausdrücklich ("Under the null hypothesis that the actual Sharpe ratio is
     zero, we know that the expected maximum can be estimated as the SR0 in
     Eq.(2)").
-    ⚠ Den E[{SR}]-Term zu "ergänzen" wäre ein Fehler, kein Fix: SR0 stiege von
-    0,067 auf 0,950 annualisiert, und alle vier DSR fielen unter 0,5 — geprüft
-    würde dann die Hypothese, die wahre Kennzahl sei 0,95 statt 0.
+    ⚠ Den E[{SR}]-Term hinzuzunehmen hieße, eine andere Hypothese zu prüfen:
+    SR0 stiege von 0,067 auf 0,950 annualisiert, und geprüft würde, ob die
+    wahre Kennzahl über 0,95 liegt statt über 0.
 
     Anschaulich: Selbst wenn ALLE getesteten Strategien in Wahrheit wertlos
     wären (wahre Sharpe = 0), hätte die zufällig beste von N Strategien eine

@@ -23,7 +23,7 @@ __pycache__/
 run.log
 run_*.log
 
-# --- Probelaeufe und Sicherungskopien des Ergebnisordners (transient) ---
+# --- Probeläufe und Sicherungskopien des Ergebnisordners (transient) ---
 output_probelauf/
 output_backup/
 
@@ -34,7 +34,7 @@ config.json
 # reproduzierbar (siehe LIMITATIONS.md, Abschnitt 12).
 !data/prices.pkl
 
-# --- persoenliches Arbeitswerkzeug (misst den Umfang der Arbeit in Abgabe/) ---
+# --- persönliches Arbeitswerkzeug (misst den Umfang der Arbeit in Abgabe/) ---
 seiten_messen.py
 textsammlung_bauen.py
 textsammlung_vorbemerkung.md

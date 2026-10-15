@@ -36,7 +36,6 @@ def main():
     t0_main = time.perf_counter()   # Gesamt-Stoppuhr
     log.info("=" * 70)
     log.info("  PORTFOLIO-OPTIMIERUNG V4 | MARKOWITZ vs. RF vs. EW vs. RISK PARITY")
-    log.info("  Neu v4: Risk Parity | CS-Ranking | Live-Dashboard | SHAP | GIF")
     log.info(f"  Start: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     log.info("=" * 70)
 
@@ -95,7 +94,7 @@ def main():
     # ------------------------------------------------------------------
     metrics_df = compute_metrics(returns_df)
     print("\n" + "=" * 70)
-    print("  PERFORMANCE-KENNZAHLEN — VOLLSTÄNDIGE ÜBERSICHT (v4)")
+    print("  PERFORMANCE-KENNZAHLEN — VOLLSTÄNDIGE ÜBERSICHT")
     print("=" * 70)
     print(metrics_df.to_string())
     print("=" * 70 + "\n")
@@ -293,7 +292,7 @@ def main():
     log.info("=" * 70)
 
     print("=" * 60)
-    print("  KURZ-ZUSAMMENFASSUNG (v4 — 4 Strategien)")
+    print("  KURZ-ZUSAMMENFASSUNG (4 Strategien)")
     print("=" * 60)
     for strat in metrics_df.index:
         m = metrics_df.loc[strat]
