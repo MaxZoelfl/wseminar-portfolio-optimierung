@@ -12,11 +12,11 @@ Bei Finanz-Zeitreihen lauert dabei eine Falle, das sogenannte "Leakage"
 grenzen oder sich ihre Berechnungsfenster überlappen, sickert Wissen über
 den Test heimlich ins Training — das Modell wirkt dann besser, als es ist.
 
-Standard-k-Fold und auch TimeSeriesSplit leaken, wenn die Labels über mehrere
-Perioden überlappen — hier: das monatliche Target wird aus überlappenden
-Tagesfenstern gebildet (Momentum 252d, rollierendes Alpha/Beta), und das Label
-eines Monats t reicht bis t+1. Dadurch teilen benachbarte Train-/Test-Monate
-Information.
+Standard-k-Fold und auch TimeSeriesSplit leaken, wenn Merkmale und Labels
+benachbarter Perioden überlappen — hier: die MERKMALE stammen aus überlappenden
+Tagesfenstern (Momentum über bis zu 252 Tage, rollierendes Alpha/Beta), und das
+Label eines Monats t ist die Rendite von t+1. Dadurch teilen benachbarte
+Train-/Test-Monate Information.
 
 Abhilfe (López de Prado 2018, Kap. 7) — zwei "Sicherheitsabstände":
   - PURGING: entferne aus dem Training alle Beobachtungen, deren Label-Fenster
@@ -27,6 +27,11 @@ Abhilfe (López de Prado 2018, Kap. 7) — zwei "Sicherheitsabstände":
 Bild dazu:   Zeitachse →   [ Training … ][PURGE][ TEST ][EMBARGO][ … Training ]
 Die Monate in PURGE und EMBARGO werden schlicht weggelassen — lieber etwas
 weniger Trainingsdaten als ein geschöntes Testergebnis.
+
+Es ist ein k-Fold-Verfahren: Die Testblöcke liegen über den ganzen Zeitraum
+verteilt, trainiert wird also auch auf Monaten NACH dem Testblock — genau
+deshalb braucht es das Embargo. Bei rund 35 Monaten je Trainingsfenster ergibt
+embargo_pct = 0,02 aufgerundet genau einen gesperrten Monat.
 
 Diese Implementierung ist PANEL-fähig: pro Periode (Monatsende) existieren
 mehrere Zeilen (ein Asset je Zeile); gesplittet wird nach Perioden, sodass nie

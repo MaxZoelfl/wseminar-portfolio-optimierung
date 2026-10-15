@@ -112,8 +112,10 @@ def pruefe() -> Pruefung:
         p.zahl(f"effektive Titelzahl, {KURZ[name]}", text, neff[name].mean())
     for name in ["Markowitz MVO", "Random Forest"]:
         leer = (G[name] < 0.0005).sum(axis=1).mean()
-        p.zahl(f"leere Titel im Mittel, {KURZ[name]}", "7,5", leer, ungefaehr=True, toleranz=1.0,
-               notiz="Text: „rund die Hälfte des Universums leer“ (7,5 von 15)")
+        # Der Text sagt "über die Hälfte des Universums leer", also mehr als 7,5 von 15.
+        p.aussage(f"leere Titel im Mittel, {KURZ[name]}", "über die Hälfte", leer > 7.5,
+                  f"{de(leer, 2)} von 15", woertlich=True,
+                  notiz="" if leer > 7.5 else "knapp unter der Hälfte — Vorschlag: „rund die Hälfte“")
         an_grenze = (G[name] >= 0.1995).sum(axis=1).mean()
         p.zahl(f"Titel an der 20-%-Grenze, {KURZ[name]}", "3", an_grenze, ungefaehr=True, toleranz=0.5,
                notiz="Text: „etwa drei Titel“")

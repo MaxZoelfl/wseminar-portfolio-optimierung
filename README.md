@@ -68,7 +68,8 @@ Anleitung zum Lesen der Ausgabe: **[skripte/README.md](skripte/README.md)**.
 
 | Skript | Prüft | Dauer |
 |---|---|---|
-| **`skripte/alle_kapitel.py`** | alles auf einmal, mit Übersicht am Ende | ~1 min |
+| **`skripte/alle_kapitel.py`** | alles auf einmal, mit Übersicht am Ende | ~1,5 min |
+| `skripte/alle_kapitel.py --text DATEI` | zusätzlich: steht jede eingetragene Zahl noch in dieser Fassung der Arbeit? | ~1,5 min |
 | `skripte/kapitel_2_theorie.py` … `kapitel_7_fazit.py` | je ein Kapitel (Kapitel 1 enthält nur Literaturzahlen) | Sekunden |
 | `skripte/kapitel_3_random_forest.py --baumkorrelation` | zusätzlich die Baumkorrelation aus § 3.3 | ~55 min |
 | `skripte/anhang.py` | Anhang A–C | Sekunden |
@@ -169,7 +170,7 @@ sein, sonst bricht `main()` früh ab. Frischer Download: Datei löschen oder
 Zahlen der Arbeit vergleichbar (Yahoo liefert bei jedem Abruf minimal andere
 Kurse, siehe LIMITATIONS.md § 12).
 
-### 3. Alle Zahlen der Arbeit nachrechnen (rund eine Minute)
+### 3. Alle Zahlen der Arbeit nachrechnen (rund eineinhalb Minuten)
 
 ```bash
 python skripte/alle_kapitel.py
@@ -416,7 +417,7 @@ Literaturverzeichnis steht in **[LIMITATIONS.md](LIMITATIONS.md)**.
 | Ich möchte … | Befehl | Dauer |
 |---|---|---|
 | prüfen, ob alles funktioniert | `MPLBACKEND=Agg python -m pytest tests/ -q` | ~4 s |
-| alle Zahlen der Arbeit nachrechnen | `python skripte/alle_kapitel.py` | ~1 min |
+| alle Zahlen der Arbeit nachrechnen | `python skripte/alle_kapitel.py` | ~1,5 min |
 | gefahrlos ausprobieren | `PORTFOLIO_CONFIG=config.schnell.json python -m portfolio` | Minuten |
 | das volle Experiment laufen lassen | `python -m portfolio` | ~77 min |
 

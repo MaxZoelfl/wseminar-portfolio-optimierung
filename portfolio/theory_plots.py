@@ -8,7 +8,8 @@ dagegen keine Strategie, sondern EIGENSCHAFTEN DER KURSDATEN SELBST — also
 Dinge, die schon feststehen, bevor irgendeine Strategie gerechnet wird.
 
 Sie illustrieren die Theorie aus Kapitel 2 der Arbeit an genau den Kursen,
-mit denen später auch der Backtest läuft:
+mit denen später auch der Backtest läuft. Die Zahl vorn ist die Nummer der
+Ausgabedatei (14_…png usw.), dahinter steht die Abbildung der Arbeit:
 
   14  Zwei-Anlagen-Fall     → § 2.2, Abbildung 1 der Arbeit
       Alle Mischungen aus zwei Aktien, gezeichnet für fünf verschiedene
@@ -16,7 +17,7 @@ mit denen später auch der Backtest läuft:
       wölbt sich die Kurve nach links — und Wölbung nach links IST der
       Diversifikationsgewinn.
 
-  15  Diversifikationsgrenze → § 2.2, Anhangsabbildung
+  15  Diversifikationsgrenze → § 2.2, Abbildung A1 der Arbeit
       Wie stark sinkt das Risiko, wenn man immer mehr Aktien gleich
       gewichtet beimischt? Antwort: schnell am Anfang, dann kaum noch —
       es bleibt die mittlere Kovarianz übrig, die sich nicht wegstreuen
@@ -33,10 +34,10 @@ mit denen später auch der Backtest läuft:
       Arbeit: § 2.3 behandelt das klassische Problem, Leerverkaufsverbot
       und Obergrenze folgen erst in § 2.6.
 
-  18  Effizienzrand + CML   → Anhang, Ergänzung zu § 2.3
-      Dieselbe Abbildung, massstabsgetreu bis über das Tangentialportfolio
+  18  Effizienzrand + CML   → Abbildung A2 der Arbeit (Ergänzung zu § 2.3)
+      Dieselbe Abbildung, maßstabsgetreu bis über das Tangentialportfolio
       hinaus, mit der Kapitalmarktlinie zum risikofreien Zins. Getrennt von
-      17 gehalten, weil der weite Massstab den interessanten Teil der Kurve
+      17 gehalten, weil der weite Maßstab den interessanten Teil der Kurve
       zusammendrückt — genau das ist hier aber die Aussage.
 
 WARUM DIE BILDER HIER ENTSTEHEN UND NICHT ALS FERTIGE GRAFIKEN VORLIEGEN
@@ -46,7 +47,7 @@ Backtestlauf neu, aus derselben eingefrorenen Kursdatei wie alles andere, und
 lassen sich jederzeit korrigieren statt nur austauschen.
 
 WICHTIG — WELCHE DATEN HINEINGEHEN
-Alle drei Funktionen erwarten ``asset_returns`` bereits eingeschränkt auf den
+Alle Zeichenfunktionen erwarten ``asset_returns`` bereits eingeschränkt auf den
 AUSWERTUNGSZEITRAUM des Backtests (erster bis letzter Tag von ``returns_df``,
 also 02.02.2015 – 30.12.2024). Nicht den vollen Datenbestand ab 2013 nehmen —
 der enthält die zwei Vorlaufjahre, die nur zum Anlernen der Indikatoren dienen,
@@ -91,7 +92,8 @@ def _bildtitel(ziel, *args, **kwargs):
 # Jahreswerte umgerechnet ("annualisiert").
 TRADING_DAYS = 252
 
-# Fester Startwert des Zufallsgenerators für die Stichprobe in Abbildung 15.
+# Fester Startwert des Zufallsgenerators für die Stichprobe in Ausgabebild 15
+# (Abbildung A1 der Arbeit).
 # Ohne ihn sähe das Bild bei jedem Lauf anders aus — und die Arbeit behauptet
 # in Anhang C bitgenaue Reproduzierbarkeit.
 THEORY_SEED = 42
@@ -100,7 +102,7 @@ THEORY_SEED = 42
 def _annualised_moments(asset_returns: pd.DataFrame):
     """Hilfsfunktion: annualisierte Renditen, Volatilitäten, Kovarianzmatrix.
 
-    Wird von allen drei Abbildungen gebraucht, deshalb einmal zentral.
+    Wird von allen Theorie-Abbildungen gebraucht, deshalb einmal zentral.
     Rückgabe (jeweils auf Jahresbasis):
       mu    – erwartete Rendite je Titel     (Mittelwert  × 252)
       sigma – Volatilität je Titel           (Standardabw. × √252)
@@ -118,7 +120,7 @@ def plot_two_asset_diversification(asset_returns: pd.DataFrame,
                                    output_path: str,
                                    asset_a: str = "KO",
                                    asset_b: str = "CAT") -> None:
-    """Abbildung 14 → Abbildung 1 der Arbeit (§ 2.2): Zwei-Anlagen-Fall.
+    """Ausgabebild 14 → Abbildung 1 der Arbeit (§ 2.2): Zwei-Anlagen-Fall.
 
     Gezeichnet wird die Menge aller Mischungen aus zwei Aktien im
     Risiko-Rendite-Diagramm, und zwar fünfmal: für die tatsächlich gemessene
@@ -191,7 +193,7 @@ def plot_two_asset_diversification(asset_returns: pd.DataFrame,
 def plot_diversification_limit(asset_returns: pd.DataFrame,
                                output_path: str,
                                n_draws: int = 400) -> None:
-    """Abbildung 15 → Anhangsabbildung zu § 2.2: die Diversifikationsgrenze.
+    """Ausgabebild 15 → Abbildung A1 der Arbeit (§ 2.2): die Diversifikationsgrenze.
 
     Zwei Dinge in einem Bild:
 
@@ -277,7 +279,7 @@ def plot_diversification_limit(asset_returns: pd.DataFrame,
 
 def plot_estimation_uncertainty(asset_returns: pd.DataFrame,
                                 output_path: str) -> None:
-    """Abbildung 16 → Abbildung 3 der Arbeit (§ 2.5): Schätzunsicherheit von μ.
+    """Ausgabebild 16 → Abbildung 3 der Arbeit (§ 2.5): Schätzunsicherheit von μ.
 
     Für jede Aktie wird die geschätzte Jahresrendite als Punkt gezeichnet, dazu
     als waagerechter Balken das 95-%-Konfidenzintervall des Schätzers:
@@ -340,11 +342,12 @@ def plot_efficient_frontier_theory(asset_returns: pd.DataFrame,
                                    rf: float = RISK_FREE_RATE,
                                    max_weight: float = 0.20,
                                    n_points: int = 90) -> None:
-    """Abbildung 17 → Abbildung 2 der Arbeit (§ 2.3): der Effizienzrand.
+    """Ausgabebild 17 → Abbildung 2 der Arbeit (§ 2.3): der Effizienzrand.
+    Mit show_cml=True entsteht Ausgabebild 18 → Abbildung A2 der Arbeit.
 
     ACHTUNG — NICHT verwechseln mit ``plot_efficient_frontier`` in plots.py.
-    Jene Abbildung (04) gehört zum ERGEBNISTEIL: Sie zeichnet die Schätzungen
-    des letzten Backtest-Monats und trägt die vier Strategien ein. Diese hier
+    Jenes Ausgabebild (04) zeichnet die Schätzungen des letzten Backtest-Monats
+    und trägt die vier Strategien ein; in der Arbeit steht es nicht. Diese hier
     ist eine reine THEORIEABBILDUNG zum allgemeinen Markowitz-Problem: derselbe
     Auswertungszeitraum wie der übrige Kapitel 2, keine Strategien, keine
     Kennzahlenlegende.
@@ -374,13 +377,13 @@ def plot_efficient_frontier_theory(asset_returns: pd.DataFrame,
     KAPITALMARKTLINIE UND TANGENTIALPORTFOLIO (``show_cml``) werden
     MASSSTABSGETREU ins selbe Bild gezeichnet — bewusst nicht in ein Nebenbild,
     obwohl das Tangentialportfolio dieser Daten bei rund 53 % Volatilität und
-    83 % erwarteter Rendite liegt, drei- bis viermal so weit draussen wie der
+    83 % erwarteter Rendite liegt, drei- bis viermal so weit draußen wie der
     interessante Teil der Kurve.
 
-    Der weite Massstab drückt den Bogen zusammen. Genau das ist aber die Aussage:
-    Das theoretisch optimale Portfolio liegt weit ausserhalb dessen, was ein
-    Anleger halten würde, und weit ausserhalb dessen, was die Arbeit zulässt.
-    Eine Darstellung, ein Massstab — das Nebenbild verlangte vom Leser, zwei
+    Der weite Maßstab drückt den Bogen zusammen. Genau das ist aber die Aussage:
+    Das theoretisch optimale Portfolio liegt weit außerhalb dessen, was ein
+    Anleger halten würde, und weit außerhalb dessen, was die Arbeit zulässt.
+    Eine Darstellung, ein Maßstab — das Nebenbild verlangte vom Leser, zwei
     verschiedene Achsenskalen gleichzeitig im Kopf zu halten.
     """
     log.info(f"Theorieplot {os.path.basename(output_path)[:2]}: Effizienzrand"
@@ -400,9 +403,9 @@ def plot_efficient_frontier_theory(asset_returns: pd.DataFrame,
 
     fig, ax = plt.subplots(figsize=(11, 7))
 
-    # ---- Tangentialportfolio (nur fuer die CML-Fassung) -----------------
+    # ---- Tangentialportfolio (nur für die CML-Fassung) -----------------
     # Der Punkt auf dem Rand mit der steilsten Verbindungsgeraden zum
-    # risikofreien Zins — geschlossene Loesung, keine Optimierung noetig.
+    # risikofreien Zins — geschlossene Lösung, keine Optimierung nötig.
     if show_cml:
         w_tan = S_inv @ (mu_a - rf * one)
         w_tan = w_tan / (one @ S_inv @ (mu_a - rf * one))
@@ -412,12 +415,12 @@ def plot_efficient_frontier_theory(asset_returns: pd.DataFrame,
     # ---- Ausschnitt -----------------------------------------------------
     # Ohne Kapitalmarktlinie: an der Hyperbel ausgerichtet, vom MVP aus so weit
     # nach oben, dass der Bogen gut sichtbar ist. Die volatilsten Titel liegen
-    # bewusst ausserhalb — sie wuerden die Kurve sonst ins linke Fuenftel
-    # draengen.
-    # MIT Kapitalmarktlinie: massstabsgetreu bis ueber das Tangentialportfolio
+    # bewusst außerhalb — sie würden die Kurve sonst ins linke Fünftel
+    # drängen.
+    # MIT Kapitalmarktlinie: maßstabsgetreu bis über das Tangentialportfolio
     # hinaus. Das ist die ehrliche Darstellung — und die Aussage der Abbildung:
-    # Das theoretisch optimale Portfolio liegt bei rund 53 % Volatilitaet, also
-    # weit ausserhalb dessen, was die Arbeit ueberhaupt zulaesst.
+    # Das theoretisch optimale Portfolio liegt bei rund 53 % Volatilität, also
+    # weit außerhalb dessen, was die Arbeit ueberhaupt zulässt.
     if show_cml:
         y_max = mu_tan * 100 * 1.10
         y_min = 0.0
@@ -477,10 +480,10 @@ def plot_efficient_frontier_theory(asset_returns: pd.DataFrame,
 
     # ---- Kapitalmarktlinie und Tangentialportfolio im Hauptbild --------
     # Beide stehen im Hauptbild, nicht in einem Nebenbild — auch wenn das
-    # Tangentialportfolio den Massstab des Ausschnitts sprengt. Die Abbildung
-    # bleibt so massstabsgetreu: eine Darstellung, ein Massstab.
+    # Tangentialportfolio den Maßstab des Ausschnitts sprengt. Die Abbildung
+    # bleibt so maßstabsgetreu: eine Darstellung, ein Maßstab.
     if show_cml:
-        # Die Kapitalmarktlinie beruehrt den Rand genau im Tangentialportfolio.
+        # Die Kapitalmarktlinie berührt den Rand genau im Tangentialportfolio.
         x_cml = np.array([0.0, x_max])
         ax.plot(x_cml, rf * 100 + sharpe_tan * x_cml, color="#9467bd",
                 linestyle=":", linewidth=1.8, zorder=4,
@@ -494,8 +497,8 @@ def plot_efficient_frontier_theory(asset_returns: pd.DataFrame,
                    label=("Tangentialportfolio  "
                       f"{sig_tan*100:.1f} % / {mu_tan*100:.1f} %  "
                       f"| Sharpe {sharpe_tan:.2f}").replace(".", ","))
-        # Bewusst KEINE Beschriftung am Stern: Rechts von ihm laeuft die
-        # Kapitalmarktlinie weiter, links der Effizienzrand — jeder Text laege
+        # Bewusst KEINE Beschriftung am Stern: Rechts von ihm läuft die
+        # Kapitalmarktlinie weiter, links der Effizienzrand — jeder Text läge
         # auf einer der beiden Linien. Die Legende nennt alle drei Zahlen.
 
         log.info(f"  Tangentialportfolio: sigma = {sig_tan*100:.2f} %, "
@@ -526,7 +529,7 @@ def plot_efficient_frontier_theory(asset_returns: pd.DataFrame,
 
 def create_theory_plots(asset_returns: pd.DataFrame, returns_df: pd.DataFrame,
                         output_dir: str) -> None:
-    """Erzeugt alle drei Theorie-Abbildungen in den Ergebnisordner.
+    """Erzeugt alle fünf Theorie-Abbildungen (Ausgabebilder 14 bis 18).
 
     Diese eine Funktion ruft ``run.py`` auf. Sie übernimmt auch das Zuschneiden
     der Kursrenditen auf den Auswertungszeitraum des Backtests: ``asset_returns``
@@ -545,7 +548,7 @@ def create_theory_plots(asset_returns: pd.DataFrame, returns_df: pd.DataFrame,
     plot_estimation_uncertainty(
         zeitraum, os.path.join(output_dir, "16_theorie_schaetzunsicherheit.png"))
     # Zwei Fassungen derselben Abbildung. 17 ist die schlichte für den Fließtext
-    # (§ 2.3, Abbildung 2 der Arbeit); 18 zeigt massstabsgetreu zusätzlich die
+    # (§ 2.3, Abbildung 2 der Arbeit); 18 zeigt maßstabsgetreu zusätzlich die
     # Kapitalmarktlinie und das Tangentialportfolio und steht im Anhang (A2).
     plot_efficient_frontier_theory(
         zeitraum, os.path.join(output_dir, "17_theorie_effizienzrand.png"),

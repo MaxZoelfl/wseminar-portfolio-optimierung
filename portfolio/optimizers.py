@@ -47,7 +47,8 @@ from .cross_validation import purged_kfold_splits
 class MarkowitzLedoitWolf:
     """
     Klassische Mean-Variance Optimization mit Ledoit-Wolf Kovarianzschätzung.
-    Referenz: Ledoit & Wolf (2004). Journal of Multivariate Analysis.
+    Referenz: Ledoit & Wolf (2004). Journal of Multivariate Analysis
+    (Formel 18 der Arbeit; Zielmatrix ist ein Vielfaches der Einheitsmatrix).
 
     Warum "Ledoit-Wolf" statt der gewöhnlichen Stichproben-Kovarianz?
     Mit nur ~3 Jahren Daten für 15 Aktien ist die roh geschätzte
@@ -118,7 +119,7 @@ class MarkowitzLedoitWolf:
         """
         Maximiert Sharpe Ratio (Tangential-Portfolio).
         Long-Only, vollständig investiert. Positionsobergrenze: MAX_WEIGHT.
-        Optional: Turnover-Constraint nach Garleanu & Pedersen (2013).
+        Optional: Umschlagschranke (§ 4.4 der Arbeit) gegenüber w_prev.
 
         Begriffe:
           - "Tangentialportfolio": der Punkt auf der Effizienzlinie mit der
@@ -199,7 +200,8 @@ class MarkowitzLedoitWolf:
         bestmöglichen Portfolios: Für jede Zielrendite das Portfolio mit dem
         KLEINSTEN Risiko. Vorgehen: Zielrenditen zwischen Minimum und Maximum
         abschreiten und für jede das varianzminimale Portfolio suchen.
-        Dient in dieser Arbeit nur der VISUALISIERUNG (Abbildungen 4, 8, 11).
+        Dient nur der VISUALISIERUNG (Ausgabebilder 04, 08 und 11; keines
+        davon steht in der Arbeit).
 
         ``max_weight`` setzt – wie in der eigentlichen Optimierung
         (``max_sharpe``) – eine Positionsobergrenze je Titel. Ist sie gesetzt,
@@ -262,7 +264,12 @@ class RiskParityPortfolio:
     Equal Risk Contribution (Risk Parity) Portfolio.
 
     Jedes Asset trägt gleich viel zum gesamten Portfoliorisiko bei.
-    Formell: RC_i = w_i * (Sigma w)_i / sqrt(w' Sigma w) = 1/N für alle i
+    Formell (Formel 19 der Arbeit, Maillard u. a. 2009):
+      Risikobeitrag RC_i = w_i · (Σw)_i / sqrt(w'Σw).
+      Die Beiträge summieren sich zur Portfoliovolatilität σ_P = sqrt(w'Σw);
+      gesucht sind Gewichte mit RC_i = σ_P / N für alle i, also je ein N-tel
+      des Gesamtrisikos. Eine geschlossene Lösung gibt es nur bei gleichen
+      Korrelationen (Formel 20); hier wird deshalb numerisch gelöst.
 
     Anschaulich: Bei Equal Weight bekommt jede Aktie gleich viel GELD — aber
     eine schwankungsstarke Aktie wie NVIDIA dominiert dann trotzdem das
@@ -271,13 +278,18 @@ class RiskParityPortfolio:
     leistet. Der Risikobeitrag misst, welchen Anteil der Gesamtschwankung
     eine Position verursacht (inklusive ihrer Kovarianzen zu den anderen).
 
-    Vorteile gegenüber Equal Weight:
-      - Berücksichtigt Asset-Volatilität und Korrelationen
-      - Weniger Konzentration in risikoreichen Assets
-      - Empirisch bessere risikobereinigte Renditen (Qian, 2005)
+    Unterschiede zu Equal Weight:
+      - berücksichtigt Volatilitäten und Korrelationen der Titel
+      - weniger Konzentration in risikoreichen Titeln
+      Ob das die risikobereinigte Rendite verbessert, ist eine empirische
+      Frage: Qian (2005) argumentiert dafür; im Backtest dieses Projekts
+      schneidet Risk Parity dagegen signifikant SCHLECHTER ab als Equal
+      Weight (§ 6.3 der Arbeit).
 
-    Referenz: Qian, E. (2005). Risk Parity Portfolios: Efficient Portfolios
-    through True Diversification. PanAgora Asset Management.
+    Referenzen: Maillard, S., Roncalli, T. & Teiletche, J. (2009): On the
+    Properties of Equally-Weighted Risk Contributions Portfolios (Definition
+    und Eigenschaften). Qian, E. (2005): Risk Parity Portfolios: Efficient
+    Portfolios through True Diversification. PanAgora Asset Management.
     """
 
     def optimize(self, cov: np.ndarray, max_weight: float = MAX_WEIGHT) -> np.ndarray:
@@ -306,6 +318,8 @@ class RiskParityPortfolio:
         constraints = [{"type": "eq", "fun": lambda w: w.sum() - 1}]   # voll investiert
         # Untergrenze 0.5 % statt 0: Jede Aktie bleibt minimal vertreten; das
         # verhindert auch, dass der Löser in der Ecke w=0 stecken bleibt.
+        # Im maßgeblichen Lauf binden weder Unter- noch Obergrenze: Die
+        # Gewichte liegen zwischen 3,2 % und 11,5 %.
         bounds = [(0.005, max_weight)] * n
 
         result = minimize(
@@ -323,10 +337,12 @@ class RiskParityPortfolio:
 class RFPortfolioOptimizer:
     """
     Random-Forest-gestützte Portfoliooptimierung mit monatlichem Rebalancing.
-    Referenz: Fischer & Krauss (2018). European Journal of Operational Research.
+    Referenzen: Breiman (2001): Random Forests. Machine Learning 45(1);
+    Gu, Kelly & Xiu (2020): Empirical Asset Pricing via Machine Learning.
+    Review of Financial Studies 33(5).
 
     Was ist ein Random Forest? Ein KI-Modell aus dem maschinellen Lernen:
-    ein "Wald" aus vielen (hier 100–500) Entscheidungsbäumen. Jeder Baum
+    ein "Wald" aus vielen (hier 100 bis 499) Entscheidungsbäumen. Jeder Baum
     lernt einfache Wenn-dann-Regeln aus den Merkmalen (z. B. "WENN Momentum
     hoch UND Volatilität niedrig, DANN Rendite eher positiv"), und zwar auf
     einer jeweils zufällig gezogenen Teilmenge der Daten und Merkmale.
@@ -377,18 +393,19 @@ class RFPortfolioOptimizer:
     def _param_grid(self) -> dict:
         """Suchraum der Hyperparameter (der "Stellschrauben" des Waldes).
 
-        Für jede Stellschraube ein Zufallsbereich, aus dem die Suche zieht:
-          n_estimators     — Anzahl Bäume im Wald (100–500)
-          max_depth        — maximale Tiefe je Baum (3–15 Entscheidungsebenen);
+        Für jede Stellschraube ein Zufallsbereich, aus dem die Suche zieht
+        (die Bereiche stehen so auch in Anhang C1 der Arbeit):
+          n_estimators     — Anzahl Bäume im Wald (100 bis 499)
+          max_depth        — maximale Tiefe je Baum (3 bis 14 Entscheidungsebenen);
                              flachere Bäume = einfachere Regeln = weniger Gefahr,
                              Zufallsrauschen "auswendig zu lernen" (Overfitting)
-          min_samples_leaf — Mindestanzahl Datenpunkte pro Endknoten (3–20);
+          min_samples_leaf — Mindestanzahl Datenpunkte pro Endknoten (3 bis 19);
                              größer = glattere, vorsichtigere Prognosen
           max_features     — Anteil der Merkmale, die jeder Baum sehen darf
                              (30–90 %); erzwingt Vielfalt unter den Bäumen
           max_samples      — Anteil der Daten je Baum (60–95 %); ebenso
-        (randint(a,b) zieht ganze Zahlen in [a,b); uniform(a,c) zieht
-        Kommazahlen in [a, a+c].)
+        (randint(a,b) zieht ganze Zahlen von a bis b−1, die obere Grenze ist
+        also ausgeschlossen; uniform(a,c) zieht Kommazahlen in [a, a+c].)
         """
         return {
             "rf__n_estimators"     : randint(100, 500),
@@ -413,12 +430,14 @@ class RFPortfolioOptimizer:
         Die beste Kombination gewinnt und wird abschließend auf ALLEN
         Trainingsdaten neu trainiert (refit=True).
 
-        Standard: TimeSeriesSplit (Testdaten liegen zeitlich NACH dem Training) —
-        bei Zeitreihen Pflicht, sonst würde das Modell an Daten geprüft, die
-        zeitlich VOR seinem Lernstoff liegen (Blick in die Zukunft).
-        Optional (config use_purged_cv=True): Purged & Embargoed CV nach
-        López de Prado (2018), die überlappende Labels zwischen Train und Test
-        entfernt — wissenschaftlich sauberer bei überlappenden Monatslabels.
+        Standard (config use_purged_cv = True): Purged & Embargoed CV nach
+        López de Prado (2018, Kap. 7), siehe cross_validation.py. Sie entfernt
+        aus dem Training die Monate, deren Information mit dem Testblock
+        überlappt (§ 4.3 der Arbeit).
+        Mit use_purged_cv = False: TimeSeriesSplit (Testdaten liegen zeitlich
+        NACH dem Training). Das verhindert den Blick in die Zukunft, nicht aber
+        das Überlappungs-Leck; der Vergleichslauf damit ergab für den Random
+        Forest einen um rund 0,04 zu hohen Sharpe-Quotienten (0,980 statt 0,936).
         ``sample_times`` ist die Periode (Monatsende) je Zeile von X_train.
 
         (X_train = Tabelle der Merkmale, eine Zeile pro Aktie und Monat;

@@ -107,16 +107,15 @@ def pruefe() -> Pruefung:
         k = baumkorrelation(md, ret, termine)
         rho, rho_quer, verhaeltnis, eingehalten = k["rho"], k["rho_quer"], k["verhaeltnis"], k["eingehalten"]
         p.zahl("mittlere Korrelation der Baumprognosen ρ", "0,21", rho, ungefaehr=True)
-        quelle = "gemessen"
     else:
-        rho = 0.21
-        quelle = "mit dem Textwert ρ = 0,21 (Messung nur mit --baumkorrelation)"
+        rho = 0.21                                    # Textwert; die Rechnung unten hängt nicht davon ab
         p.offen("mittlere Korrelation der Baumprognosen ρ", "≈ 0,21", "nur mit --baumkorrelation (rund 55 Minuten)")
-    # Formel 24: Var = σ²(ρ + (1−ρ)/B). Der "zweite Summand" ist (1−ρ)/B.
-    p.zahl("zweiter Summand (1−ρ)/B", "0,0025", (1 - rho) / B, notiz=quelle)
-    # Erreichter Anteil des Rückgangs, in Volatilitäten wie in § 2.2:
-    erreicht = (1 - np.sqrt(rho + (1 - rho) / B)) / (1 - np.sqrt(rho))
-    p.zahl("erreichter Anteil bei 321 Bäumen", "99,5", erreicht * 100, "%", notiz=quelle)
+    # Formel 24: Var = σ²(ρ + (1−ρ)/B). Von einem Baum (σ²) bis zu unendlich
+    # vielen (ρσ²) sinkt die Varianz um (1−ρ)σ². Bei B Bäumen ist davon der
+    # Anteil [1 − (ρ + (1−ρ)/B)] / (1 − ρ) = 1 − 1/B erreicht — unabhängig von ρ.
+    erreicht = (1 - (rho + (1 - rho) / B)) / (1 - rho)
+    p.zahl("erreichte Varianzreduktion bei 321 Bäumen", "99,7", erreicht * 100, "%",
+           notiz="Anteil der bei unbegrenzt vielen Bäumen möglichen; = 1 − 1/B")
     C = (r_tag.cov() * HANDELSTAGE).values
     N = len(TICKERS)
     vq, cq, v15 = np.diag(C).mean(), C[~np.eye(N, dtype=bool)].mean(), np.ones(N) / N @ C @ (np.ones(N) / N)
@@ -155,7 +154,11 @@ def pruefe() -> Pruefung:
     p.zahl("kleinste zulässige Tiefe", "3", kleinste)
     p.zahl("Monate mit Tiefe drei", "98", int((hp["max_depth"] == 3).sum()))
     p.zahl("von Terminen", "119", len(hp))
-    p.zahl("RMSE bei R² = 0,33 %", "7,46", np.sqrt((r ** 2).mean() * (1 - 0.0033)) * 100, "%")
+    # Der Text sagt "etwa 7,47": Aus den gerundeten Textwerten folgt
+    # 7,48 · √(1 − 0,0033) = 7,4676, aus dem genauen RMSE 7,4646.
+    p.zahl("RMSE bei R² = 0,33 %", "7,47", np.sqrt((r ** 2).mean() * (1 - 0.0033)) * 100, "%",
+           ungefaehr=True, toleranz=0.01,
+           notiz="Text: „etwa“; aus den gerundeten Textwerten 7,48 · √(1 − 0,0033) = 7,4676")
     return p
 
 

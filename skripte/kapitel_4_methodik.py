@@ -13,8 +13,15 @@ Eine Zahl stammt aus einem zweiten Lauf: der Sharpe-Quotient 0,980 "ohne
 Purging" in § 4.3. Dessen Tagesrenditen liegen als Referenzdatei in
 skripte/daten/vergleichslauf_ohne_purging.csv (siehe skripte/README.md).
 
+Zwei Vereinfachungen des Backtests werden hier zusätzlich beziffert (Kommentare
+in portfolio/backtest.py, LIMITATIONS.md Abschnitt 13): An wie vielen Terminen
+der Lernstoff des Random Forest einen Monat früher endet (§ 4.3), und wie viel
+Sharpe-Quotient die festen Gewichte innerhalb des Monats ausmachen (§ 4.4).
+Für die Fassung mit Kursdrift laufen zur Gegenprobe auch alle sechs
+Signifikanztests noch einmal.
+
 AUFRUF (virtuelle Umgebung aktiviert, aus einem beliebigen Ordner):
-    python skripte/kapitel_4_methodik.py          # wenige Sekunden
+    python skripte/kapitel_4_methodik.py          # rund 15 Sekunden
 """
 
 import inspect
@@ -33,6 +40,36 @@ SEKTOR = {"AAPL": "Informationstechnologie", "MSFT": "Informationstechnologie",
           "CAT": "Industrie", "HON": "Industrie", "XOM": "Energie", "VZ": "Kommunikationsdienste",
           "PLD": "Immobilien", "LIN": "Grundstoffe"}
 GICS_SEKTOREN = 11
+
+
+def renditen_nachgebaut(drift: bool) -> pd.DataFrame:
+    """Tagesrenditen der vier Strategien, nachgebaut aus Kursen, Gewichten und Umschlag.
+
+    drift=False  feste Zielgewichte an jedem Tag des Monats — so rechnet der Backtest
+    drift=True   die Gewichte driften im Monat mit den Kursen (gekauft und gehalten),
+                 so wie es die Umschlagsmessung (Formel 26) unterstellt
+    Die Kosten (Umschlag × Kostensatz) gehen in beiden Fällen am ersten Tag ab."""
+    r = titelrenditen(nur_auswertungszeitraum=False)
+    G, U = gewichte(), umschlag()
+    kostensatz = protokoll()["experiment_meta"]["transaction_cost"]
+    termine = list(G["Risk Parity"].index)
+    ende = strategierenditen().index[-1]
+    spalten = {}
+    for s in STRATEGIEN:
+        teile = []
+        for k, t in enumerate(termine):
+            bis = termine[k + 1] if k + 1 < len(termine) else ende
+            halte = r[(r.index > t) & (r.index <= bis)]
+            w = G[s].loc[t].values
+            if drift:
+                wert = (w * (1 + halte).cumprod()).sum(axis=1)       # Depotwert, Start bei 1
+                tag = wert / wert.shift(1, fill_value=1.0) - 1
+            else:
+                tag = (halte * w).sum(axis=1)
+            tag.iloc[0] -= U.loc[t, UMSCHLAG_SPALTE[s]] * kostensatz
+            teile.append(tag)
+        spalten[s] = pd.concat(teile)
+    return pd.DataFrame(spalten)
 
 
 def pruefe() -> Pruefung:
@@ -87,9 +124,17 @@ def pruefe() -> Pruefung:
     # Monatszeilen je Titel: dieselbe Merkmalskette wie im Backtest (aus kapitel_3).
     from kapitel_3_random_forest import monatsdaten_aufbauen, trainingsfenster
     md, _ = monatsdaten_aufbauen()
-    X_voll = trainingsfenster(md, termine[-1])[0]          # letzter Termin: volles Fenster
-    p.zahl("Monatszeilen je Titel (volles Fenster)", "36", len(X_voll) / len(TICKERS), ungefaehr=True,
-           notiz="drei Jahre = 36 Monate, abzüglich des ausgelassenen letzten Monats")
+    lernstoff = {t: trainingsfenster(md, t)[0] for t in termine}
+    zeilen = pd.Series({t: len(x) / len(TICKERS) for t, x in lernstoff.items()})
+    voll = zeilen[zeilen.index >= erster_voller]
+    p.zahl("Monatszeilen je Titel (volles Fenster)", "36", voll.median(), ungefaehr=True,
+           notiz=f"an {int((voll == 36).sum())} Terminen 36, an {int((voll == 35).sum())} Terminen 35 "
+                 "(Kalenderdetail, siehe nächste Zeile)")
+    # Kalenderdetail (Kommentar in backtest.py): "Monatsende minus ein Monat"
+    # trifft bei Monaten mit höchstens 30 Tagen nicht das Ende des Vormonats;
+    # dessen Zeile fällt mit heraus, der Lernstoff endet einen Monat früher.
+    frueher = sum(x.index.max() < t - pd.offsets.MonthEnd(1) for t, x in lernstoff.items())
+    p.zahl("Termine, an denen der Lernstoff einen Monat früher endet", "50", frueher)
     p.zahl("Sperrzone (Embargo)", "2", meta["cv_embargo"] * 100, "%")
     vergleich = pd.read_csv(DATEN / "vergleichslauf_ohne_purging.csv", index_col=0,
                             parse_dates=True, comment="#")
@@ -115,6 +160,26 @@ def pruefe() -> Pruefung:
     bindet = lambda spalte: int((regulaer[spalte] >= meta["rf_turnover_limit"] - 5e-4).sum())
     p.zahl("Schranke bindet beim Random Forest", "101", bindet("turnover_rf"), "Monate")
     p.zahl("Schranke bindet bei Markowitz", "1", bindet("turnover_mvo"), "Monat")
+    # Vereinfachung (Kommentar 6b in backtest.py): feste Gewichte im Monat.
+    # Gegenrechnung mit Kursdrift; beide Fassungen aus denselben (auf vier
+    # Stellen gerundeten) Gewichten nachgebaut, damit sich Rundungen aufheben.
+    fest, drift = renditen_nachgebaut(drift=False), renditen_nachgebaut(drift=True)
+    rueckgang = pd.Series({s: sharpe(fest[s], rf) - sharpe(drift[s], rf) for s in STRATEGIEN})
+    p.zahl("Sharpe-Rückgang mit Kursdrift im Monat, kleinster", "0,005", rueckgang.min(),
+           notiz=", ".join(f"{KURZ[s]} {de(v, 4)}" for s, v in rueckgang.items()))
+    p.zahl("Sharpe-Rückgang mit Kursdrift im Monat, größter", "0,007", rueckgang.max())
+    rang = lambda df: list(pd.Series({s: sharpe(df[s], rf) for s in STRATEGIEN}).sort_values().index)
+    p.aussage("Rangfolge mit Kursdrift unverändert", "unverändert", rang(fest) == rang(drift),
+              " < ".join(KURZ[s] for s in rang(drift)))
+    from portfolio.significance import sharpe_difference_test, holm_bonferroni
+    lang = {v: k for k, v in KURZ.items()}
+    paare = [("RF", "MVO"), ("RF", "EW"), ("RF", "RP"), ("MVO", "EW"), ("MVO", "RP"), ("RP", "EW")]
+    pw = [sharpe_difference_test(drift[lang[x]], drift[lang[y]], rf=rf)["p_value"] for x, y in paare]
+    holm = holm_bonferroni(pw)
+    signifikant = [f"{x}–{y}" for (x, y), r in zip(paare, holm["reject"]) if r]
+    p.aussage("Testentscheidungen mit Kursdrift unverändert", "unverändert",
+              signifikant == ["RP–EW"], f"signifikant: {', '.join(signifikant) or 'keins'} "
+              f"(Holm {de(holm['p_adjusted'][-1], 4)})")
 
     # ──────────────────────────────────────────────────────────────────
     p.abschnitt("4.5 Performance-Kennzahlen")

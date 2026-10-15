@@ -18,8 +18,8 @@ Im Stammordner des Repositories, bei aktivierter virtueller Umgebung
 python skripte/alle_kapitel.py
 ```
 
-Das dauert rund eine Minute, liest nur und schreibt keine Datei. Am Ende steht
-eine Übersicht wie diese:
+Das dauert rund eineinhalb Minuten, liest nur und schreibt keine Datei. Am Ende steht
+eine Übersicht wie diese (die Zahlen hier sind nur ein Beispiel):
 
 ```
                  ✅ stimmt  ≈ ungefähr   ❌ weicht ab   ⏭ offen
@@ -60,12 +60,12 @@ vom genauen Wert aus nur einmal zu runden (0,602499… → 0,602).
 
 | Datei | Prüft | Dauer |
 |---|---|---|
-| **`alle_kapitel.py`** | startet alle Kapitel nacheinander und fasst zusammen | ~1 min |
+| **`alle_kapitel.py`** | startet alle Kapitel nacheinander und fasst zusammen | ~1,5 min |
 | `kapitel_2_theorie.py` | § 2.2–2.6: Zwei-Anlagen-Fall, Diversifikationsgrenze, Effizienzrand, t-Werte, Konfidenzintervalle, Ledoit-Wolf-Schrumpfung | ~15 s |
 | `kapitel_3_random_forest.py` | § 3.1–3.5: Prognosefehler, Lernstoff je Termin, Einzelbäume der Tiefe 1 und 14, gewählte Baumtiefen | ~10 s |
 | ↳ `… --baumkorrelation` | zusätzlich § 3.3: Korrelation der Bäume, Breimans Schranke | +55 min |
-| `kapitel_4_methodik.py` | § 4.1–4.5: Einstellungen, Termine, Schutzvorkehrungen, Umschlagschranke | ~5 s |
-| `kapitel_5_signifikanz.py` | § 5.1–5.4: Standardfehler, Autokorrelation, Testeinstellungen | ~2 s |
+| `kapitel_4_methodik.py` | § 4.1–4.5: Einstellungen, Termine, Schutzvorkehrungen, Umschlagschranke; beziffert zwei Vereinfachungen des Backtests und testet die Fassung mit Kursdrift (LIMITATIONS.md § 13) | ~15 s |
+| `kapitel_5_signifikanz.py` | § 5.1–5.4: Standardfehler, Autokorrelation, Testeinstellungen; Gegenprobe des Tests so, wie Ledoit/Wolf ihn beschreiben | ~20 s |
 | `kapitel_6_ergebnisse.py` | § 6.1–6.6: Kennzahlen, Portfoliostruktur, Signifikanztabelle, Kostensensitivität, NVIDIA-Effekt, Zinsschwellen | ~30 s |
 | `kapitel_7_fazit.py` | § 7.1: wiederholte p-Werte, Vergleich mit DeMiguel u. a. | ~1 s |
 | `anhang.py` | Anhang A–C: Bildunterschriften, Tabellen A2, A3, B2–B4, Parameter C1, Angaben in C2 | ~5 s |
@@ -127,8 +127,8 @@ Werte aus `output/experiment_log.json`.
 
 ## Wenn sich der Text ändert
 
-Die Zahl, wie sie im Text steht, ist im Skript als Zeichenkette eingetragen, zum
-Beispiel in `kapitel_2_theorie.py`:
+**Die Skripte lesen die Word-Datei nicht.** Die Zahl, wie sie im Text steht, ist
+im Skript als Zeichenkette eingetragen, zum Beispiel in `kapitel_2_theorie.py`:
 
 ```python
 p.zahl("Volatilität Coca-Cola", "17,8", sA * 100, "%")
@@ -137,6 +137,20 @@ p.zahl("Volatilität Coca-Cola", "17,8", sA * 100, "%")
 
 Ändert sich eine Zahl im Text, wird nur die Zeichenkette in der Mitte angepasst.
 Die Rechnung bleibt, wie sie ist.
+
+Damit kein Eintrag veraltet, ohne dass es auffällt, gibt es den Wortlaut-Abgleich:
+
+```bash
+python skripte/alle_kapitel.py --text pfad/zur/Arbeit.docx
+```
+
+Am Ende der Ausgabe steht dann jede eingetragene Zahl, die in dieser Fassung der
+Arbeit **nicht** vorkommt — meist ein Zeichen, dass die Stelle im Text geändert
+wurde. Für `.docx` braucht es [pandoc](https://pandoc.org); eine Markdown-Fassung
+des Textes geht ohne. Der Abgleich sucht jede Zahl im ganzen Text, nicht an ihrer
+Stelle: Kurze Zahlen wie „4" findet er fast immer, geänderte Dezimalzahlen und
+Daten fängt er zuverlässig ab. Mit `--text` endet das Skript mit Fehlercode 1,
+wenn etwas fehlt.
 
 ## Wenn der Backtest neu läuft
 

@@ -207,8 +207,10 @@ class Config:
     # Der Random Forest hat "Hyperparameter" (Stellschrauben wie Baumtiefe).
     # Die Suche probiert rf_n_iter zufällige Kombinationen aus …
     rf_n_iter: int           = 30          # RandomizedSearchCV-Iterationen
-    # … und bewertet jede per Kreuzvalidierung mit so vielen Zeit-Abschnitten:
-    rf_cv_splits: int        = 5           # TimeSeriesSplit-Folds
+    # … und bewertet jede per Kreuzvalidierung mit so vielen Zeit-Abschnitten
+    # (Prüfblöcken). Welches Verfahren die Abschnitte bildet, legt
+    # use_purged_cv weiter unten fest; Standard ist Purged & Embargoed CV.
+    rf_cv_splits: int        = 5           # Prüfblöcke der Kreuzvalidierung
     # Keine Aktie darf mehr als 20 % des Depots ausmachen (Klumpenrisiko-Schutz).
     max_weight: float        = 0.20        # Positionsobergrenze je Asset
     # Handelskosten: 0,10 % des umgeschichteten Betrags gehen bei jedem

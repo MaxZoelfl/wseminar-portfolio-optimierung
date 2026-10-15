@@ -31,10 +31,19 @@ der Text rundet, rundet die eigene Rechnung genauso (kaufmännisch, also
     ❌  weicht ab      der Text sollte geprüft werden
     ⏭  nicht gerechnet  Zahl stammt aus einer Quelle oder braucht eine
                          lange Rechnung, die nur auf Wunsch läuft
+
+WICHTIG: Der Wortlaut ist in den Skripten EINGETRAGEN — sie lesen die
+Word-Datei nicht selbst. Ändert sich der Text, muss der Eintrag nachgezogen
+werden. Damit das nicht übersehen wird, prüft
+    python skripte/alle_kapitel.py --text DATEI      (.docx oder .md)
+zusätzlich, ob jeder eingetragene Wortlaut in DATEI überhaupt vorkommt
+(Funktion wortlaut_fehlt unten).
 """
 
 import json
 import os
+import re
+import subprocess
 import sys
 import warnings
 from decimal import Decimal, ROUND_HALF_UP
@@ -176,6 +185,9 @@ class Pruefung:
     """
 
     ZEICHEN = {"ok": "✅", "ungefaehr": "≈ ", "falsch": "❌", "offen": "⏭ "}
+    # Jeder Wortlaut, der genau so im Text stehen muss, landet hier — über alle
+    # Kapitel hinweg. Daraus prüft wortlaut_fehlt(), ob er noch im Text steht.
+    WORTLAUT = []
 
     def __init__(self, titel: str):
         self.titel = titel
@@ -187,6 +199,10 @@ class Pruefung:
         print("═" * 78)
         print("  Legende: ✅ stimmt · ≈ stimmt ungefähr (\"rund\", \"etwa\") · "
               "❌ weicht ab · ⏭ nicht gerechnet")
+
+    def merke(self, was: str, text: str) -> None:
+        """Wortlaut, der so im Text steht, für die Prüfung mit --text vormerken."""
+        Pruefung.WORTLAUT.append((self.titel, self._aktuell, was, text))
 
     def abschnitt(self, name: str) -> None:
         self._aktuell = name.split()[0]
@@ -211,6 +227,7 @@ class Pruefung:
         ungefaehr  True, wenn der Text "rund/etwa/gut/knapp" sagt; dann gilt die
                    Toleranz (Standard: eine Einheit der letzten Stelle, mindestens 3 %)
         """
+        self.merke(was, text)
         soll, stellen = lies(text)
         gerundet = runde(ist, stellen)
         anzeige = de(ist, stellen) + (f" {einheit}" if einheit else "")
@@ -227,8 +244,14 @@ class Pruefung:
         self._zeile("falsch", was, text + (f" {einheit}" if einheit else ""),
                     f"{genau}{' ' + einheit if einheit else ''}", notiz)
 
-    def aussage(self, was: str, text: str, wahr: bool, gerechnet: str, notiz: str = "") -> None:
-        """Prüft eine Aussage in Worten ("sieben der fünfzehn", "unter drei Prozent")."""
+    def aussage(self, was: str, text: str, wahr: bool, gerechnet: str, notiz: str = "",
+                woertlich: bool = False) -> None:
+        """Prüft eine Aussage in Worten ("sieben der fünfzehn", "unter drei Prozent").
+
+        woertlich=True, wenn `text` genau so in der Arbeit steht (etwa ein Datum
+        oder "über die Hälfte"); dann prüft --text auch, ob er noch dort steht."""
+        if woertlich:
+            self.merke(was, text)
         self._zeile("ok" if wahr else "falsch", was, text, gerechnet, notiz)
 
     def offen(self, was: str, text: str, grund: str) -> None:
@@ -247,3 +270,50 @@ class Pruefung:
                 print(f"    • {a}")
         print()
         return z["falsch"]
+
+
+# ────────────────────────────────────────────────────────────────────────
+# Steht der eingetragene Wortlaut noch im Text?
+# ────────────────────────────────────────────────────────────────────────
+def _vereinheitlicht(text: str) -> str:
+    """Schreibvarianten angleichen, die nichts an der Zahl ändern: Minus- und
+    Gedankenstriche, geschützte Leerzeichen, Fußnotenmarken des Exports."""
+    text = re.sub(r"\[\^\d+\]", "", text)                 # Fußnotenmarken [^12]
+    text = text.replace("---", "—").replace("--", "–")   # Striche im Markdown-Export
+    for alt, neu in [("\u2212", "-"), ("–", "-"), ("\u00a0", " "), ("\u202f", " "), ("\\", "")]:
+        text = text.replace(alt, neu)
+    return text
+
+
+def text_laden(pfad: str) -> str:
+    """Text der Arbeit laden: .docx über pandoc als Markdown, sonst als Textdatei."""
+    pfad = Path(pfad).expanduser()
+    if pfad.suffix.lower() == ".docx":
+        try:
+            ergebnis = subprocess.run(["pandoc", str(pfad), "-t", "markdown", "--wrap=none"],
+                                      capture_output=True, text=True, check=True)
+        except FileNotFoundError:
+            sys.exit("Für .docx wird pandoc gebraucht (https://pandoc.org). "
+                     "Alternativ eine Markdown-Fassung des Textes angeben.")
+        return ergebnis.stdout
+    return pfad.read_text(encoding="utf-8")
+
+
+def wortlaut_fehlt(pfad: str) -> list:
+    """Alle vorgemerkten Wortlaute, die im Text nicht (mehr) vorkommen.
+
+    Eine Zahl gilt als gefunden, wenn sie irgendwo im Text vollständig
+    dasteht: "7,46" wird in "7,46 Prozent" gefunden, aber nicht in "17,46"
+    oder "7,465"; "50" nicht in "50,1". Der Abgleich weiß nicht, an
+    welcher Stelle die Zahl steht — eine kurze Zahl wie "4" findet er fast
+    immer. Er fängt also vor allem geänderte Dezimalzahlen und Daten ab."""
+    text = _vereinheitlicht(text_laden(pfad))
+    fehlt, gesehen = [], set()
+    for titel, abschnitt, was, wortlaut in Pruefung.WORTLAUT:
+        muster = (r"(?<![\d,])(?<!\d\.)" + re.escape(_vereinheitlicht(wortlaut).strip())
+                  + r"(?!\d)(?![.,]\d)")
+        if (titel, abschnitt, wortlaut) in gesehen or re.search(muster, text):
+            continue
+        gesehen.add((titel, abschnitt, wortlaut))
+        fehlt.append((titel, abschnitt, was, wortlaut))
+    return fehlt

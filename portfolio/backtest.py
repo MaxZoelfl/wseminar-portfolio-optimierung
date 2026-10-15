@@ -17,7 +17,13 @@ wenn man sie von 2015 bis 2024 real angewendet hätte.
 Der springende Punkt: Zu keinem Zeitpunkt fließt Wissen über die Zukunft in
 die Entscheidungen ein (kein "Look-Ahead-Bias"). Genau daran scheitern viele
 unsaubere Backtests — deshalb stecken unten mehrere explizite Schutzvorkehrungen
-im Code (siehe die Kommentare "v3-FIX" und den Abschnitt Transaktionskosten).
+im Code (siehe den Kommentar "Look-Ahead-Schutz" und den Abschnitt
+Transaktionskosten).
+
+Zwei bewusste Vereinfachungen sind unten an Ort und Stelle kommentiert und in
+LIMITATIONS.md, Abschnitt 13, beziffert: feste Gewichte innerhalb des Monats
+(Abschnitt 6b) und ein Kalenderdetail beim Abschneiden des Lernstoffs
+(Abschnitt 4). Beide ändern keine Aussage der Arbeit.
 
 Weitere Begriffe:
   - "Rebalancing": das monatliche Umschichten des Depots auf die neuen Zielgewichte.
@@ -47,7 +53,7 @@ def run_backtest(asset_prices: pd.DataFrame,
     Ablauf je Rebalancing-Monat:
       1. Trainingsdaten extrahieren (letzte TRAIN_YEARS Jahre)
       2. Markowitz MVO: Ledoit-Wolf Sigma + Sharpe-Maximierung
-      3. Risk Parity: Equal Risk Contribution (NEU v4)
+      3. Risk Parity: Equal Risk Contribution
       4. Random Forest: Features → Tuning → Vorhersage → Sharpe-Maximierung
       5. Equal Weight: 1/N
       6. Portfoliorenditen der Halteperiode berechnen (inkl. Transaktionskosten)
@@ -59,7 +65,7 @@ def run_backtest(asset_prices: pd.DataFrame,
     # ---- Vorbereitung: Tagesdaten zu Monats-Features verdichten ----------
     log.info("Aggregiere Features täglich → monatlich …")
     monthly_data = aggregate_to_monthly(indicator_dict, asset_returns, tickers)
-    monthly_data = add_cross_sectional_ranks(monthly_data)    # v4: CS-Ranks
+    monthly_data = add_cross_sectional_ranks(monthly_data)    # Rang-Merkmale je Monat
 
     # Liste aller Monatsenden, ab dem konfigurierten Backtest-Start (2015).
     backtest_months = monthly_data.index.unique()
@@ -69,18 +75,19 @@ def run_backtest(asset_prices: pd.DataFrame,
     # Die drei "aktiven" Optimierer einmal anlegen (Equal Weight braucht
     # keinen — seine Gewichte sind immer 1/N).
     mvo = MarkowitzLedoitWolf()
-    rp  = RiskParityPortfolio()   # NEU v4
+    rp  = RiskParityPortfolio()
     rfo = RFPortfolioOptimizer()
 
     # Sammel-Listen, die im Lauf der Schleife gefüllt werden:
     results_mvo, results_rf, results_ew, results_rp = [], [], [], []  # Tagesrenditen
     hist_w_mvo, hist_w_rf, hist_w_rp               = [], [], []       # Gewichte je Monat
     frontier_snapshots                              = []              # Effizienzlinien-Fotos
-    turnover_log                                    = []   # v4: Turnover je Step
+    turnover_log                                    = []   # Umschlag je Termin
 
-    # Vorgänger-Zielgewichte (ungedriftet) als Bezugspunkt der Turnover-
-    # Schranke. Start: Equal Weight, weil vor dem ersten Rebalancing noch
-    # kein Depot existiert.
+    # Ungedriftete Zielgewichte des Vormonats. Sie dienen nur dann als
+    # Bezugspunkt der Turnover-Schranke, wenn turnover_ref_drifted = False ist;
+    # im Standard gelten die gedrifteten Gewichte (prev_w_* weiter unten).
+    # Start: Equal Weight, weil vor dem ersten Rebalancing kein Depot existiert.
     w_prev_rf  = np.ones(n) / n
     w_prev_mvo = np.ones(n) / n
 
@@ -194,7 +201,7 @@ def run_backtest(asset_prices: pd.DataFrame,
             log.warning(f"  MVO-Fehler {month_end.date()}: {e}")
             w_mvo = np.ones(n) / n
 
-        # ---- 3) Risk Parity (NEU v4) ---------------------------------------
+        # ---- 3) Risk Parity -----------------------------------------------
         try:
             w_rp = rp.optimize(cov_ann)
         except Exception as e:
@@ -202,10 +209,20 @@ def run_backtest(asset_prices: pd.DataFrame,
             w_rp = np.ones(n) / n
 
         # ---- 4) Random Forest ----------------------------------------------
-        # v3-FIX: Letzter Trainingsmonat ausgeschlossen (Look-Ahead-Bias).
-        # Grund: Das Label ("target_next_month") des letzten Trainingsmonats
-        # ist die Rendite GENAU des Monats, den wir gleich vorhersagen wollen.
-        # Ihn im Training zu lassen hieße, die Lösung vorab zu verraten.
+        # Look-Ahead-Schutz (§ 4.3 der Arbeit): Letzter Trainingsmonat
+        # ausgeschlossen. Grund: Das Label ("target_next_month") des letzten
+        # Trainingsmonats ist die Rendite GENAU des Monats, den wir gleich
+        # vorhersagen wollen. Ihn im Training zu lassen hieße, die Lösung
+        # vorab zu verraten.
+        # ⚠ Kalenderdetail: Die Monatsenden sind KALENDER-Monatsenden
+        # (resample "ME"). month_end − 1 Monat landet bei Monaten mit höchstens
+        # 30 Tagen (Feb, Apr, Jun, Sep, Nov) VOR dem Ende des Vormonats, etwa
+        # 30.04. − 1 Monat = 30.03. < 31.03. Dann fällt auch die Zeile des
+        # Vormonats heraus, obwohl ihr Zielwert (die Rendite des laufenden
+        # Monats) schon bekannt wäre. Betroffen sind 50 der 119 Termine: Der
+        # Lernstoff endet dort einen Monat früher (35 statt 36 Zeilen je
+        # Titel). Kein Blick in die Zukunft, nur etwas weniger Lernstoff;
+        # bewusst nicht geändert, damit der maßgebliche Lauf gültig bleibt.
         last_train_month = month_end - pd.DateOffset(months=1)
         feat_rows, target_rows = [], []
         for ticker in tickers:
@@ -276,8 +293,9 @@ def run_backtest(asset_prices: pd.DataFrame,
                 mu_rf = mu_hist.copy()
 
         # ---- Efficient Frontier Snapshot (jeden 3. Monat) ----------------
-        # Nur für die Abbildungen 8/11: gelegentlich ein "Foto" der aktuellen
-        # Effizienzlinie aufheben. Hat keinerlei Einfluss auf die Ergebnisse.
+        # Nur für die Ausgabebilder 08 und 11 (nicht Teil der Arbeit):
+        # gelegentlich ein "Foto" der aktuellen Effizienzlinie aufheben.
+        # Hat keinerlei Einfluss auf die Ergebnisse.
         if i % 3 == 0:
             try:
                 snap = mvo.efficient_frontier(mu_hist, cov_ann, n_points=60,
@@ -294,7 +312,7 @@ def run_backtest(asset_prices: pd.DataFrame,
         w_ew = np.ones(n) / n
 
         # ---- 6a) Transaktionskosten ----------------------------------------
-        # Turnover = 0.5 * Σ|w_neu − w_alt|. Als "w_alt" werden die über die
+        # Turnover = 0.5 * Σ|w_neu − w_alt| (Formel 26 der Arbeit). Als "w_alt" werden die über die
         # letzte Halteperiode GEDRIFTETEN Vorgängergewichte verwendet (nicht
         # die ursprünglichen Zielgewichte) — sie wurden oben vor den
         # Optimierern berechnet (prev_w_*). Dadurch erhält auch Equal Weight
@@ -322,6 +340,14 @@ def run_backtest(asset_prices: pd.DataFrame,
         # Tagesrendite des Portfolios = gewichtete Summe der Aktienrenditen
         # (hold_period * w).sum(axis=1): jede Spalte mit ihrem Gewicht
         # multiplizieren, dann zeilenweise (= je Tag) aufsummieren.
+        # ⚠ VEREINFACHUNG: Die Gewichte w_* gelten an JEDEM Tag der
+        # Halteperiode unverändert. Das entspricht einem Depot, das täglich
+        # kostenlos auf die Zielgewichte zurückgesetzt wird. Ein tatsächlich
+        # gehaltenes Depot driftet dagegen mit den Kursen — so, wie es die
+        # Umschlagsmessung in 6a (prev_w_*) annimmt. Nachgerechnet: Mit Drift
+        # innerhalb des Monats lägen alle vier Sharpe-Quotienten um 0,005 bis
+        # 0,007 niedriger; Rangfolge, Testentscheidungen und Deflated Sharpe
+        # Ratios blieben unverändert (LIMITATIONS.md, Abschnitt 13).
         ret_mvo = (hold_period * w_mvo).sum(axis=1).copy()
         ret_rf  = (hold_period * w_rf ).sum(axis=1).copy()
         ret_rp  = (hold_period * w_rp ).sum(axis=1).copy()
@@ -345,7 +371,7 @@ def run_backtest(asset_prices: pd.DataFrame,
         hist_w_rf.append( pd.Series(w_rf,  index=tickers, name=month_end))
         hist_w_rp.append( pd.Series(w_rp,  index=tickers, name=month_end))
 
-        # Turnover-Log für Scatter-Plot (Abbildung 10)
+        # Umschlag je Termin → turnover.csv und Ausgabebild 10
         turnover_log.append({
             "date"         : month_end,
             "turnover_mvo" : turnover_mvo,

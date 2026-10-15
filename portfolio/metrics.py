@@ -1,5 +1,6 @@
 """
-Performance-Kennzahlen, Hilfsfunktionen (Timer) und Signifikanztests.
+Performance-Kennzahlen und eine Hilfsfunktion (Timer).
+Die Signifikanztests stehen in ``significance.py``.
 
 FÜR EINSTEIGER — WAS MACHT DIESE DATEI?
 Wenn der Backtest gelaufen ist, liegt für jede Strategie eine lange Reihe
@@ -51,7 +52,7 @@ _EPS = 1e-12
 
 
 def cagr(returns: pd.Series, freq: int = 252) -> float:
-    """Compound Annual Growth Rate aus täglichen Renditen.
+    """Compound Annual Growth Rate aus täglichen Renditen (Tabelle B1 der Arbeit).
 
     In Worten: das konstante JÄHRLICHE Wachstum, das über den gesamten
     Zeitraum zum selben Endergebnis geführt hätte. Rechnung:
@@ -79,7 +80,8 @@ def annualized_vol(returns: pd.Series, freq: int = 252) -> float:
 def sharpe_ratio(returns: pd.Series, rf: float = RISK_FREE_RATE,
                  freq: int = 252) -> float:
     """Sharpe Ratio nach Sharpe (1994): Mittelwert der Überschussrendite
-    geteilt durch deren Standardabweichung, annualisiert mit √freq.
+    geteilt durch deren Standardabweichung, annualisiert mit √freq
+    (Formel 13 und 14 der Arbeit).
 
     Vorgehen:
       1. Von jeder Tagesrendite den anteiligen risikofreien Zins abziehen
@@ -134,7 +136,8 @@ def calmar_ratio(returns: pd.Series, freq: int = 252) -> float:
 
 def sortino_ratio(returns: pd.Series, rf: float = RISK_FREE_RATE,
                   freq: int = 252) -> float:
-    """Sortino Ratio: wie Sharpe, bestraft aber nur VERLUST-Schwankungen.
+    """Sortino Ratio: wie Sharpe, bestraft aber nur VERLUST-Schwankungen
+    (Tabelle B1 der Arbeit).
 
     Idee: Schwankung nach oben (unerwartete Gewinne) stört Anleger nicht —
     also wird die Volatilität nur aus den negativen Tagesrenditen berechnet

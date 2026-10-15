@@ -29,6 +29,10 @@ from portfolio.config import CFG                      # noqa: E402
 from portfolio.indicators import FEATURE_COLS         # noqa: E402
 from portfolio.metrics import sortino_ratio           # noqa: E402
 
+# Der Commit, den Anhang C2 als maßgeblichen Stand nennt. Ändert sich C2 in der
+# Arbeit, wird nur diese Zeile angepasst.
+C2_COMMIT, C2_DATUM = "0b10daa", "27.09.2026"
+
 # Module, die zusammen den "Rechenkern" bilden: alles, was eine Zahl der Arbeit verändern kann.
 RECHENKERN = ["backtest", "cross_validation", "data", "indicators", "metrics", "optimizers", "significance"]
 
@@ -77,7 +81,7 @@ def pruefe() -> Pruefung:
     p.zahl("A2: größter Leerverkauf", "79", -w_tan.min() * 100, "%")
     letzter = G["Random Forest"].index[-1]
     p.aussage("A3: zuletzt trainierter Wald", "November 2024", (letzter.year, letzter.month) == (2024, 11),
-              f"Entscheidungstermin {letzter.date()}")
+              f"Entscheidungstermin {letzter.date()}", woertlich=True)
     p.zahl("A4: Fensterlänge", "252", HANDELSTAGE, "Handelstage")
     p.zahl("A4: Zahl der Fenster", "2.244", T - HANDELSTAGE + 1)
     roll = {n: s[n].rolling(HANDELSTAGE).apply(lambda x: sharpe(pd.Series(x), rf), raw=True).dropna()
@@ -180,8 +184,10 @@ def pruefe() -> Pruefung:
     p.zahl("Anlageuniversum", "15", meta["n_assets"])
     p.aussage("Referenzreihe", "SPY", CFG.spy_ticker == "SPY", CFG.spy_ticker)
     p.aussage("Datenbestand", "01.01.2013 – 31.12.2024",
-              (CFG.start_date, CFG.end_date) == ("2013-01-01", "2024-12-31"), f"{CFG.start_date} bis {CFG.end_date}")
-    p.aussage("Beginn des Backtests", "01.01.2015", meta["backtest_start"] == "2015-01-01", meta["backtest_start"])
+              (CFG.start_date, CFG.end_date) == ("2013-01-01", "2024-12-31"), f"{CFG.start_date} bis {CFG.end_date}",
+              woertlich=True)
+    p.aussage("Beginn des Backtests", "01.01.2015", meta["backtest_start"] == "2015-01-01", meta["backtest_start"],
+              woertlich=True)
     p.zahl("Rebalancing-Termine", "119", len(G["Risk Parity"]))
     p.zahl("Schätzfenster", "3", meta["train_years"], "Jahre")
     quelltext = inspect.getsource(run_backtest)
@@ -199,11 +205,14 @@ def pruefe() -> Pruefung:
     p.zahl("Kandidaten der Hyperparametersuche", "30", meta["rf_n_iter"])
     gitter = optimizers.RFPortfolioOptimizer()._param_grid()
     bereich = lambda name: gitter[f"rf__{name}"].support()
+    # max_samples (Stichprobenanteil je Baum) wird ebenfalls gesucht; C1 nennt
+    # ihn erst, wenn der Vorschlag vom 14.10.2026 übernommen ist (bis dahin
+    # meldet --text diese Zeile als "nicht im Text").
     for name, text in [("n_estimators", "100–499"), ("max_depth", "3–14"), ("min_samples_leaf", "3–19"),
-                       ("max_features", "0,3–0,9")]:
+                       ("max_features", "0,3–0,9"), ("max_samples", "0,6–0,95")]:
         lo, hi = bereich(name)
         ist = f"{lo:g}–{hi:g}".replace(".", ",")
-        p.aussage(f"Suchraum {name}", text, ist == text, ist)
+        p.aussage(f"Suchraum {name}", text, ist == text, ist, woertlich=True)
     p.aussage("Parallelverarbeitung aus (n_jobs = 1)", "aus", CFG.deterministic is True, f"deterministic={CFG.deterministic}")
     k = kurse()
     p.zahl("Kursdatei: Handelstage", "3019", len(k))
@@ -222,9 +231,16 @@ def pruefe() -> Pruefung:
     # ──────────────────────────────────────────────────────────────────
     p.abschnitt("C C2: Quellcode")
     try:
-        for commit, datum in [("fe4636a", "26.09.2026"), ("b8eeea9", "15.08.2026")]:
+        for commit, datum in [(C2_COMMIT, C2_DATUM), ("b8eeea9", "15.08.2026")]:
             ist = git("show", "-s", "--format=%ad", "--date=format:%d.%m.%Y", commit).strip()
-            p.aussage(f"Commit {commit} vom", datum, ist == datum, ist)
+            p.merke(f"Commit {commit}", commit)
+            p.aussage(f"Commit {commit} vom", datum, ist == datum, ist, woertlich=True)
+        # Steht in C2 der neueste Stand? Wenn nicht: kein Fehler, aber ein Hinweis.
+        neuester, neu_datum = git("log", "-1", "--format=%h %ad", "--date=format:%d.%m.%Y").split()
+        if not neuester.startswith(C2_COMMIT):
+            p.offen("neuester Commit im Repository", f"{neuester} ({neu_datum})",
+                    f"C2 nennt {C2_COMMIT} — vor der Abgabe C2 und das Literaturverzeichnis "
+                    "auf den neuesten Commit setzen und C2_COMMIT oben in diesem Skript nachziehen")
         veraendert = []
         for modul in RECHENKERN:
             alt = git("show", f"b8eeea9:portfolio/{modul}.py")
@@ -235,13 +251,13 @@ def pruefe() -> Pruefung:
                   "nur Kommentare und Dokumentation geändert" if not veraendert
                   else "Programmlogik geändert in: " + ", ".join(veraendert))
     except (subprocess.CalledProcessError, FileNotFoundError):
-        p.offen("Commits und Rechenkern", "fe4636a / b8eeea9", "git nicht verfügbar (kein Klon des Repositorys)")
-    p.aussage("Python", "3.14", sys.version.startswith("3.14"), sys.version.split()[0])
+        p.offen("Commits und Rechenkern", f"{C2_COMMIT} / b8eeea9", "git nicht verfügbar (kein Klon des Repositorys)")
+    p.aussage("Python", "3.14", sys.version.startswith("3.14"), sys.version.split()[0], woertlich=True)
     for paket, text in [("numpy", "2.4.4"), ("pandas", "3.0.2"), ("scipy", "1.17.1"),
                         ("scikit-learn", "1.8.0"), ("yfinance", "1.3.0")]:
-        p.aussage(paket, text, version(paket) == text, version(paket))
+        p.aussage(paket, text, version(paket) == text, version(paket), woertlich=True)
     datum = pd.Timestamp(meta["timestamp"]).strftime("%d.%m.%Y")
-    p.aussage("Lauf vom", "25.08.2026", datum == "25.08.2026", datum)
+    p.aussage("Lauf vom", "25.08.2026", datum == "25.08.2026", datum, woertlich=True)
     return p
 
 

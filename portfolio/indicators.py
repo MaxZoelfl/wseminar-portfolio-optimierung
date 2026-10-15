@@ -108,7 +108,8 @@ def compute_momentum(returns: pd.Series,
                      periods: list = [21, 63, 126, 252]) -> pd.DataFrame:
     """Preismomentum über verschiedene Horizonte (Jegadeesh & Titman, 1993).
 
-    "Momentum" = aufsummierte Rendite der letzten n Handelstage. Die Horizonte
+    "Momentum" = aufsummierte Rendite der letzten n Handelstage (Summe der
+    Tagesrenditen, nicht aufgezinst — so auch Tabelle A2 der Arbeit). Die Horizonte
     entsprechen ca. 1, 3, 6 und 12 Monaten (21 Handelstage ≈ 1 Monat).
     Klassischer empirischer Befund: Aktien, die zuletzt gut liefen, laufen
     im Schnitt noch eine Weile weiter gut.
@@ -135,9 +136,9 @@ def compute_alpha_beta(asset_returns: pd.Series,
     Rollierendes Alpha & Beta vs. S&P 500 (SPY).
     OLS-Regression im rollierenden Fenster: r_i = α + β·r_m + ε
 
-    In Worten: Für jeden Tag wird über die jeweils letzten 63 Handelstage
-    (≈ 3 Monate) eine Gerade durch die Punktwolke (Marktrendite, Aktienrendite)
-    gelegt. Deren Steigung ist das BETA (Marktabhängigkeit: Beta 1,5 heißt,
+    In Worten: Für jeden Tag i wird über die 63 Handelstage DAVOR (≈ 3 Monate,
+    Tag i selbst nicht) eine Gerade durch die Punktwolke (Marktrendite,
+    Aktienrendite) gelegt. Deren Steigung ist das BETA (Marktabhängigkeit: Beta 1,5 heißt,
     die Aktie bewegt sich im Schnitt 1,5-mal so stark wie der Markt), der
     Achsenabschnitt das ALPHA (Zusatzrendite unabhängig vom Markt; wird mit
     ×252 auf ein Jahr hochgerechnet).
@@ -167,6 +168,12 @@ def compute_alpha_beta(asset_returns: pd.Series,
         #   Beta  = Kovarianz(Aktie, Markt) / Varianz(Markt)
         #   Alpha = Mittelwert(Aktie) − Beta · Mittelwert(Markt)
         # (+1e-12 verhindert wieder eine Division durch null.)
+        # ⚠ Kleine Unschärfe: np.cov teilt durch n−1, np.var durch n. Beta
+        # fällt dadurch um den Faktor 63/62 (rund 1,6 %) größer aus als die
+        # exakte Regressionssteigung, Alpha entsprechend minimal anders. Für
+        # den Random Forest ist ein fester Faktor bei Beta ohne Wirkung (Bäume
+        # teilen nach der Rangfolge der Werte). Im maßgeblichen Lauf bewusst
+        # belassen, damit dessen Ergebnisse gültig bleiben.
         beta   = np.cov(ra, rm)[0, 1] / (np.var(rm) + 1e-12)
         alpha  = ra.mean() - beta * rm.mean()
         alphas.append(alpha * 252)      # Alpha auf Jahresbasis hochrechnen
@@ -265,7 +272,7 @@ def aggregate_to_monthly(indicator_dict: dict,
 
 def add_cross_sectional_ranks(monthly_data: pd.DataFrame) -> pd.DataFrame:
     """
-    Cross-sectional Ranking Features (v4).
+    Cross-sectional Ranking Features (Rang-Merkmale).
     Für jeden Monat t: jedes Asset erhält einen Perzentil-Rang (0–1)
     relativ zu ALLEN anderen Assets in diesem Monat.
 
@@ -275,10 +282,12 @@ def add_cross_sectional_ranks(monthly_data: pd.DataFrame) -> pd.DataFrame:
     über die Jahre stabiler vergleichbar als absolute Werte, denn "+8 %" kann
     je nach Marktphase viel oder wenig sein.
 
-    Wissenschaftliche Begründung (Jegadeesh & Titman, 1993):
-      Das relative Momentum (Cross-sectional Momentum) erklärt Aktienrenditen
-      besser als absolutes Momentum. Gewinner-Assets tendieren zur
-      Outperformance gegenüber Verlierern über 3–12 Monate.
+    Hintergrund (Jegadeesh & Titman, 1993): Aktien mit hoher Rendite in den
+      letzten 3–12 Monaten schneiden in den folgenden 3–12 Monaten im Mittel
+      besser ab als Aktien mit niedriger — ein Befund über den QUERSCHNITT,
+      also über die relative Stellung unter den Titeln. Daher die Rang-
+      Merkmale. Im maßgeblichen Lauf gehören sie allerdings zu den am
+      wenigsten genutzten Merkmalen (Abbildung A3 der Arbeit).
     """
     result = monthly_data.copy()
     for col in RANK_COLS:                      # RANK_COLS ist in config.py definiert

@@ -12,7 +12,7 @@ mindestens so großen Unterschied zu beobachten, WENN in Wahrheit gar keiner
 besteht. Üblich: p < 0,05 (unter 5 %) gilt als "statistisch signifikant".
 
 Implementiert sind drei in der quantitativen Finanzliteratur etablierte
-Verfahren, die den naiven i.i.d.-Bootstrap aus v4.1 ersetzen bzw. ergänzen:
+Verfahren (Kapitel 5 der Arbeit, Formeln 28 bis 34):
 
   - sharpe_difference_test
         Prüft, ob sich zwei Sharpe Ratios ECHT unterscheiden. Kernidee
@@ -26,11 +26,15 @@ Verfahren, die den naiven i.i.d.-Bootstrap aus v4.1 ersetzen bzw. ergänzen:
         zweier Sharpe Ratios (berücksichtigt Autokorrelation & Vol-Clustering).
         Ledoit, O. & Wolf, M. (2008): Robust performance hypothesis testing
         with the Sharpe ratio. Journal of Empirical Finance 15(5), 850-859.
-        Block-Bootstrap: Politis & Romano (1994), JASA 89(428), 1303-1313.
+        Zirkulärer Block-Bootstrap nach Politis & Romano (1992), wie bei
+        Ledoit/Wolf (2008), S. 854; das Umlaufen am Reihenende auch bei
+        Politis & Romano (1994), JASA 89(428), S. 1303 f.
+        In vier Details vereinfacht gegenüber der Quelle — siehe den
+        Abschnitt ABWEICHUNGEN im Docstring von sharpe_difference_test.
 
   - holm_bonferroni
         Korrektur für multiples Testen (mehrere paarweise Vergleiche).
-        Problem: Wer 5 Vergleiche macht, hat 5 Chancen auf einen
+        Problem: Wer 6 Vergleiche macht, hat 6 Chancen auf einen
         Zufallstreffer — die p-Werte müssen dafür verschärft werden.
         Holm, S. (1979): A Simple Sequentially Rejective Multiple Test Procedure.
         Motivation: Harvey, Liu & Zhu (2016), Review of Financial Studies 29(1).
@@ -38,9 +42,10 @@ Verfahren, die den naiven i.i.d.-Bootstrap aus v4.1 ersetzen bzw. ergänzen:
   - deflated_sharpe_ratio
         Schutz vor "Strategie-Shopping": Wer N Strategien testet und die
         beste präsentiert, hat allein durch Auswahl eine geschönte Sharpe.
-        Die DSR gibt die Wahrscheinlichkeit an, dass die wahre Sharpe > 0 ist,
-        nachdem für Selektion über N Versuche und Nicht-Normalität (Schiefe,
-        schwere Verteilungsränder) korrigiert wurde.
+        Die DSR gibt die Wahrscheinlichkeit an, dass die wahre Sharpe über
+        der Schwelle liegt, die allein die Auswahl der besten von N
+        Strategien erwarten ließe — unter Berücksichtigung von Schiefe und
+        schweren Verteilungsrändern (Formel 33 und 34 der Arbeit).
         Bailey, D. H. & López de Prado, M. (2014): The Deflated Sharpe Ratio.
         Journal of Portfolio Management 40(5), 94-107.
 
@@ -86,11 +91,12 @@ def _sharpe_per_period(x):
 
 
 def _nw_bandwidth(T):
-    """Automatische Bandbreite (Newey & West 1994).
+    """Automatische Bandbreite nach Newey & West (1994): ⌊4·(T/100)^(2/9)⌋.
 
     Legt fest, bis zu welchem zeitlichen Abstand ("Lag") Abhängigkeiten
     zwischen den Tagen im HAC-Schätzer (s. u.) berücksichtigt werden.
-    Faustformel aus der Literatur, wächst langsam mit der Datenmenge T.
+    Wächst langsam mit der Datenmenge T; bei T = 2495 sind es 8 Tage
+    (Anhang C1 der Arbeit).
     """
     return int(np.floor(4 * (T / 100.0) ** (2.0 / 9.0)))
 
@@ -118,8 +124,12 @@ def _hac_cov(U, L):
 
 def _diff_and_se(a, b, L=None):
     """
-    Sharpe-Differenz (per Periode) und HAC-Standardfehler via Delta-Methode.
+    Sharpe-Differenz (per Periode) und HAC-Standardfehler via Delta-Methode
+    (Formel 28 bis 30 der Arbeit).
     Momentvektor je t: u_t = (a, b, a^2, b^2); Sh = mu/sqrt(m - mu^2).
+    Die Varianz m − mu² hat hier den Nenner T (nicht T−1 wie in
+    _sharpe_per_period); bei T = 2495 ändert das den Jahres-Sharpe um weniger
+    als 0,0001.
 
     In Worten: Wir wollen zwei Dinge wissen —
       1. diff : Wie groß ist der Sharpe-Unterschied zwischen A und B?
@@ -175,7 +185,8 @@ def sharpe_difference_test(returns_a, returns_b, rf=0.0, freq=252,
         B besser).
       - "Bootstrap": tausende künstliche Datensätze durch Neu-Zusammenwürfeln
         der echten Daten erzeugen, um die Zufallsstreuung zu ermitteln.
-      - "Block": gewürfelt werden zusammenhängende Zeitblöcke (Länge ≈ ∛T),
+      - "Block": gewürfelt werden zusammenhängende Zeitblöcke (Länge ⌈∛T⌉,
+        bei T = 2495 also 14 Tage),
         damit die zeitliche Abhängigkeit der Renditen erhalten bleibt;
         "circular": am Datenende wird nahtlos zum Anfang übergelaufen, damit
         jeder Tag gleich oft gezogen werden kann.
@@ -185,6 +196,24 @@ def sharpe_difference_test(returns_a, returns_b, rf=0.0, freq=252,
 
     Rückgabe: ein dict u. a. mit den beiden (annualisierten) Sharpe Ratios,
     der Differenz, der Teststatistik und dem p-Wert.
+
+    ABWEICHUNGEN VON LEDOIT & WOLF (2008), S. 852–855 — bewusst einfacher
+    gehalten. Nachgerechnet (14.10.2026) mit Blocksummen-Standardfehler und
+    p-Wert nach Gl. (9) bei Blocklängen 7, 14 und 21: Die Testentscheidungen
+    bleiben dieselben, allein Risk Parity gegen Equal Weight ist signifikant
+    (Holm 0,013 bis 0,026). Den Kern (Punkt 3) prüft diese Gegenrechnung nicht.
+      1. p-Wert: hier Anteil k/M der Ziehungen mit |Statistik| ≥ beobachtet.
+         Die Quelle (Gl. 9) rechnet (k + 1)/(M + 1). Im maßgeblichen Lauf
+         wäre der kleinste p-Wert (Risk Parity gegen Equal Weight) damit
+         0,0038 statt 0,0036, nach Holm 0,0228 statt 0,0216.
+      2. Standardfehler in der Bootstrap-Welt: hier mit demselben HAC-
+         Schätzer neu berechnet wie für die Originaldaten. Die Quelle nimmt
+         den "natürlichen" Standardfehler aus Blocksummen (Götze/Künsch).
+      3. Kern des HAC-Schätzers: hier Bartlett (linear fallende Gewichte)
+         mit der Bandbreite nach Newey/West (1994). Die Quelle empfiehlt den
+         vorgeweißten Quadratic-Spectral-Kern nach Andrews/Monahan (1992).
+      4. Blocklänge: hier die Faustregel ⌈T^(1/3)⌉. Die Quelle schlägt eine
+         Kalibrierung vor (Algorithmus 3.1).
     """
     # Reihen synchronisieren und den risikofreien Zins (auf Tagesbasis
     # heruntergebrochen) abziehen → "Überschussrenditen".
@@ -268,9 +297,10 @@ def holm_bonferroni(pvalues, alpha=0.05):
     Holm (1979) Step-down-Korrektur. Gibt angepasste p-Werte (monoton) und
     Ablehnungsentscheidungen zurück. Trennschärfer als reines Bonferroni.
 
-    Warum überhaupt korrigieren? Bei 5 Tests mit je 5 % Irrtumsrisiko liegt
-    die Chance auf MINDESTENS einen Zufallstreffer schon bei ~23 %. Die
-    simple Bonferroni-Lösung multipliziert jeden p-Wert mit der Testanzahl m.
+    Warum überhaupt korrigieren? Bei 6 unabhängigen Tests mit je 5 %
+    Irrtumsrisiko läge die Chance auf MINDESTENS einen Zufallstreffer schon
+    bei 1 − 0,95⁶ ≈ 26,5 % (§ 5.3 der Arbeit). Die simple
+    Bonferroni-Lösung multipliziert jeden p-Wert mit der Testanzahl m.
     Holm ist die klügere Variante ("step-down"): p-Werte aufsteigend sortieren
     und den kleinsten mit m, den zweitkleinsten mit m−1 usw. multiplizieren —
     gleicher Schutz vor Zufallstreffern, aber weniger übervorsichtig.
@@ -278,6 +308,10 @@ def holm_bonferroni(pvalues, alpha=0.05):
     in der Sortierreihenfolge nie wieder absinken (Monotonie-Eigenschaft
     des Verfahrens); min(…, 1.0) deckelt bei 1 (eine Wahrscheinlichkeit
     über 100 % gibt es nicht).
+
+    Verworfen wird bei angepasstem p-Wert < alpha. Holm (Formel 32 der
+    Arbeit) verwirft schon bei "≤"; bei den p-Werten dieses Projekts ändert
+    das nichts.
     """
     p = np.asarray(pvalues, dtype=float)
     m = len(p)

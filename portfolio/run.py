@@ -179,7 +179,8 @@ def main():
 
     # ------------------------------------------------------------------
     # F: Visualisierungen — alle Abbildungen als PNG in den Output-Ordner
-    #    (die Funktionen sind in plots.py erklärt).
+    #    (die Funktionen sind in plots.py erklärt). In der Arbeit stehen davon
+    #    01 (Abbildung 4), 06 (Abbildung A4) und 07 (Abbildung A3).
     # ------------------------------------------------------------------
     log.info("Erstelle finale Abbildungen …")
 
@@ -221,26 +222,26 @@ def main():
         os.path.join(OUTPUT_DIR, "08_frontier_evolution.png"),
     )
 
-    # NEU v4: Stress-Test
+    # Ausgabebild 09: Stress-Test (nicht Teil der Arbeit)
     plot_stress_test(
         returns_df,
         os.path.join(OUTPUT_DIR, "09_stress_test.png"),
     )
 
-    # NEU v4: Turnover vs. Performance
+    # Ausgabebild 10: Turnover vs. Performance (nicht Teil der Arbeit)
     if not turnover_df.empty:
         plot_turnover_performance(
             turnover_df, returns_df,
             os.path.join(OUTPUT_DIR, "10_turnover_performance.png"),
         )
 
-    # NEU v4: Animiertes GIF
+    # Ausgabebild 11: Animiertes GIF (nicht Teil der Arbeit)
     create_animated_frontier_gif(
         frontier_snapshots,
         os.path.join(OUTPUT_DIR, "11_frontier_animation.gif"),
     )
 
-    # NEU v4: SHAP (optional — nur wenn das shap-Paket installiert ist).
+    # Ausgabebild 12: SHAP (optional — nur wenn das shap-Paket installiert ist).
     # Für die SHAP-Analyse werden die Monats-Features noch einmal frisch
     # aufgebaut und alle Aktien mit genug Historie zusammengesammelt:
     if SHAP_AVAILABLE and rfo.best_estimator_ is not None:

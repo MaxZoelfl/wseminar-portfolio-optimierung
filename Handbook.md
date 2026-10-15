@@ -503,6 +503,12 @@ t_rows = train_monthly[... & (train_monthly.index <= last_train_month)]
 
 Abgesichert durch `test_target_is_next_month_and_last_is_nan`.
 
+⚠ **Kalenderdetail:** Die Monatsenden sind Kalender-Monatsenden. Bei Monaten mit
+höchstens 30 Tagen liegt „Monatsende minus ein Monat" vor dem Ende des Vormonats
+(30.04. − 1 Monat = 30.03.), sodass auch dessen Zeile herausfällt. An 50 der 119
+Termine endet der Lernstoff deshalb einen Monat früher — kein Look-Ahead, nur
+etwas weniger Lernstoff ([LIMITATIONS.md](LIMITATIONS.md) § 13.2).
+
 **Sicherung 3 — Purging und Embargo in der Kreuzvalidierung.** Siehe
 [§ 8](#8-purged-und-embargoed-cross-validation).
 
@@ -611,6 +617,13 @@ Tag der Halteperiode abgezogen. Gewichte und Umschlag sind damit vom Kostensatz
 *unabhängig* — und genau deshalb kann `skripte/abbildung_kostensensitivitaet.py` die Kennzahlen
 für jeden anderen Satz exakt zurückrechnen, ohne den Backtest zu wiederholen.
 
+**Innerhalb des Monats gelten feste Zielgewichte.** Die Tagesrendite ist an jedem
+Tag der Halteperiode die gewichtete Summe mit denselben Gewichten — als würde
+täglich kostenlos zurückgeführt. Der Umschlag rechnet dagegen mit gedrifteten
+Gewichten. Mit Drift im Monat lägen alle Sharpe-Quotienten um 0,005 bis 0,007
+niedriger, an Rangfolge und Tests ändert das nichts
+([LIMITATIONS.md](LIMITATIONS.md) § 13.1).
+
 **Beobachteter Turnover im maßgeblichen Lauf:**
 
 Ohne den ersten Monat, der mit 100 % Kaufumsatz ein Sonderfall ist
@@ -718,6 +731,11 @@ zusammenhängende Blöcke der Länge ∛T und läuft am Datenende nahtlos zum An
 Differenz ÷ Standardfehler. Der Standardfehler kommt aus der Delta-Methode über
 den Momentvektor `(a, b, a², b²)` mit HAC-Kovarianz nach Newey-West — genau der
 Punkt, der den Test robust macht.
+
+**Vier Details einfacher als in der Quelle:** p-Wert k/M statt (k+1)/(M+1),
+Standardfehler im Bootstrap per HAC statt aus Blocksummen, Bartlett- statt
+QS-Kern, Blocklänge per Faustregel statt Kalibrierung. Keine Testentscheidung
+hängt daran ([LIMITATIONS.md](LIMITATIONS.md) § 13.3).
 
 **Alle sechs Paare, nicht fünf.** Welche Vergleiche man rechnet, wäre sonst ein
 Freiheitsgrad des Auswertenden — genau das, wovor Harvey, Liu & Zhu (2016)

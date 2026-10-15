@@ -3,9 +3,14 @@ Alle Visualisierungen sowie CSV-/JSON-Export.
 
 FÜR EINSTEIGER — WAS MACHT DIESE DATEI?
 Nach dem Backtest liegen die Ergebnisse als nackte Zahlenreihen vor. Diese
-Datei übersetzt sie in die Abbildungen der Seminararbeit (nummerierte
-PNG-Bilddateien im Output-Ordner) und exportiert die Rohdaten als CSV-
-Tabellen (für Excel) sowie ein JSON-Protokoll (für die Reproduzierbarkeit).
+Datei übersetzt sie in Abbildungen (nummerierte PNG-Dateien im Output-Ordner,
+im Folgenden "Ausgabebilder") und exportiert die Rohdaten als CSV-Tabellen
+(für Excel) sowie ein JSON-Protokoll (für die Reproduzierbarkeit).
+
+Nicht jedes Ausgabebild steht in der Seminararbeit. Von hier stammen
+  01 → Abbildung 4,  06 → Abbildung A4,  07 → Abbildung A3.
+Die Theoriebilder 14–18 (Abbildungen 1–3, A1, A2) erzeugt theory_plots.py,
+Abbildung 5 (Ausgabebild 13) das Skript skripte/abbildung_kostensensitivitaet.py.
 
 Wiederkehrendes Matplotlib-Grundmuster in fast jeder Funktion:
   1. fig, ax = plt.subplots(...)   → leere Leinwand ("Figure") mit einem
@@ -68,7 +73,8 @@ def _bildtitel(ziel, *args, **kwargs):
 
 
 def plot_cumulative_returns(returns_df: pd.DataFrame, output_path: str) -> None:
-    """Abbildung 1: Kumulierte Portfoliorenditen mit Drawdown-Panel.
+    """Ausgabebild 01 → Abbildung 4 der Arbeit: Kumulierte Portfoliorenditen
+    mit Drawdown-Panel.
 
     Das wichtigste Bild der Arbeit: Oben der Depotwert-Verlauf aller vier
     Strategien ("aus 1 € wurden über 10 Jahre …"), unten dazu synchron der
@@ -122,7 +128,7 @@ def plot_cumulative_returns(returns_df: pd.DataFrame, output_path: str) -> None:
 
 def plot_weight_heatmap(weights_df: pd.DataFrame, title: str,
                          output_path: str) -> None:
-    """Abbildungen 2, 3, 3b: Heatmap der Portfoliogewichtungen über Zeit.
+    """Ausgabebilder 02, 03, 03b: Heatmap der Portfoliogewichtungen über Zeit.
 
     Eine "Heatmap" ist eine Tabelle, deren Zellen nach Wert eingefärbt sind:
     Zeilen = Aktien, Spalten = Rebalancing-Monate, Farbe = Gewicht in %
@@ -163,7 +169,7 @@ def plot_efficient_frontier(mu_hist: np.ndarray, cov_ann: np.ndarray,
                              w_rf: np.ndarray, w_rp: np.ndarray,
                              w_ew: np.ndarray, mu_rf: np.ndarray,
                              rf: float, output_path: str) -> None:
-    """Abbildung 4: Efficient Frontier mit CML und allen Portfolio-Punkten.
+    """Ausgabebild 04: Efficient Frontier mit CML und allen Portfolio-Punkten.
 
     Das Lehrbuch-Bild der Markowitz-Theorie, gezeichnet mit den Schätzungen
     des LETZTEN Backtest-Monats. Koordinaten: x = Risiko (Volatilität),
@@ -261,7 +267,7 @@ def plot_efficient_frontier(mu_hist: np.ndarray, cov_ann: np.ndarray,
 
 
 def plot_performance_metrics(metrics_df: pd.DataFrame, output_path: str) -> None:
-    """Abbildung 5: Sechspanel-Balkendiagramm aller Kennzahlen.
+    """Ausgabebild 05: Sechspanel-Balkendiagramm aller Kennzahlen.
 
     Sechs kleine Diagramme nebeneinander (2 Zeilen × 3 Spalten), jedes zeigt
     EINE Kennzahl als horizontale Balken — ein Balken je Strategie, Zahlwert
@@ -312,7 +318,8 @@ def plot_performance_metrics(metrics_df: pd.DataFrame, output_path: str) -> None
 
 def plot_rolling_sharpe(returns_df: pd.DataFrame, output_path: str,
                          window: int = 252) -> None:
-    """Abbildung 6: Rollierender 1-Jahres-Sharpe Ratio.
+    """Ausgabebild 06 → Abbildung A4 der Arbeit: Rollierender 1-Jahres-Sharpe
+    Ratio (Formel 13 und 14, gerechnet in jedem 252-Tage-Fenster).
 
     Statt EINER Sharpe-Zahl für 10 Jahre: die Sharpe Ratio im gleitenden
     252-Tage-Fenster, als Zeitverlauf. Zeigt, dass die Rangfolge der
@@ -345,12 +352,15 @@ def plot_rolling_sharpe(returns_df: pd.DataFrame, output_path: str,
 
 def plot_feature_importance(rf_optimizer: RFPortfolioOptimizer,
                              output_path: str) -> None:
-    """Abbildung 7: Feature Importance des Random Forest (MDI).
+    """Ausgabebild 07 → Abbildung A3 der Arbeit: Feature Importance des
+    Random Forest (MDI), zuletzt trainierter Wald.
 
-    Beantwortet: Auf welche Merkmale hat der Random Forest beim Vorhersagen
+    Beantwortet: Auf welche Merkmale hat der Random Forest beim Lernen
     am meisten geachtet? "MDI" (Mean Decrease in Impurity) ist das eingebaute
-    Wichtigkeitsmaß des Waldes: Es misst, wie stark ein Merkmal über alle
-    Bäume hinweg die Prognosen verbessert hat. Ausgabe: horizontale Balken,
+    Wichtigkeitsmaß des Waldes: Es misst, wie stark die Teilungen an einem
+    Merkmal die Streuung in den Knoten — also den Fehler auf den
+    TRAININGSDATEN — über alle Bäume hinweg verringert haben (Anteile, Summe
+    1). Wie gut das Merkmal auf neuen Daten vorhersagt, misst es nicht. Ausgabe: horizontale Balken,
     wichtigstes Merkmal oben.
     """
     log.info("Plot 7: Feature Importance …")
@@ -395,7 +405,7 @@ def plot_feature_importance(rf_optimizer: RFPortfolioOptimizer,
 
 
 def plot_frontier_evolution(frontier_snapshots: list, output_path: str) -> None:
-    """Abbildung 8: Evolution der Efficient Frontier über den Backtestzeitraum.
+    """Ausgabebild 08: Evolution der Efficient Frontier über den Backtestzeitraum.
 
     Alle im Backtest gesammelten "Fotos" der Effizienzlinie (eines pro
     Quartal) übereinandergelegt, farblich von dunkel (2015) nach hell (2024)
@@ -466,7 +476,7 @@ def plot_frontier_evolution(frontier_snapshots: list, output_path: str) -> None:
 
 def plot_stress_test(returns_df: pd.DataFrame, output_path: str) -> None:
     """
-    Abbildung 9 (NEU v4): Stress-Test — Krisenperioden-Analyse.
+    Ausgabebild 09: Stress-Test — Krisenperioden-Analyse.
     Zeigt relative Wertentwicklung (normiert auf 1.0 am Periodenanfang)
     und maximalen Drawdown je Strategie in zwei Stressperioden:
       - COVID-Crash (Januar–Juni 2020)
@@ -542,7 +552,7 @@ def plot_turnover_performance(turnover_df: pd.DataFrame,
                                returns_df: pd.DataFrame,
                                output_path: str) -> None:
     """
-    Abbildung 10 (NEU v4): Turnover vs. Rendite — Kosten-Effizienz-Analyse.
+    Ausgabebild 10: Turnover vs. Rendite — Kosten-Effizienz-Analyse.
 
     Zeigt für jede Strategie den Zusammenhang zwischen dem monatlichen
     Handelsumsatz (Turnover) und der nachfolgenden Monatsrendite.
@@ -637,10 +647,10 @@ def plot_turnover_performance(turnover_df: pd.DataFrame,
 def create_animated_frontier_gif(frontier_snapshots: list,
                                   output_path: str) -> None:
     """
-    Abbildung 11 (NEU v4): Animierte GIF der Frontier-Evolution.
+    Ausgabebild 11: Animierte GIF der Frontier-Evolution.
     Jeder Frame = ein Rebalancing-Zeitpunkt. Pillow wird benötigt.
 
-    Dasselbe wie Abbildung 8, aber als Film: Die Effizienzlinie wandert
+    Dasselbe wie Ausgabebild 08, aber als Film: Die Effizienzlinie wandert
     Bild für Bild durch die Zeit; ältere Kurven bleiben blass im Hintergrund
     stehen. Technik: FuncAnimation ruft für jedes Einzelbild die Funktion
     _update(frame) auf, die die Liniendaten austauscht; PillowWriter fügt
@@ -747,7 +757,7 @@ def create_animated_frontier_gif(frontier_snapshots: list,
 def plot_shap_values(rf_optimizer: RFPortfolioOptimizer,
                      X_train: pd.DataFrame, output_path: str) -> None:
     """
-    Abbildung 12 (NEU v4, optional): SHAP-Erklärbarkeit des Random Forest.
+    Ausgabebild 12 (optional): SHAP-Erklärbarkeit des Random Forest.
 
     SHAP (SHapley Additive exPlanations) erklärt, wie viel jedes Feature
     zur Renditeprognose beiträgt — sowohl im Durchschnitt (Importance)
@@ -756,7 +766,7 @@ def plot_shap_values(rf_optimizer: RFPortfolioOptimizer,
     jedes Merkmals wird fair "ausbezahlt", so als wären die Merkmale
     Mitspieler in einem Team, dessen Gewinn (die Prognose) aufgeteilt wird.
 
-    Im Gegensatz zu MDI-Feature Importance (Abbildung 7):
+    Im Gegensatz zu MDI-Feature Importance (Ausgabebild 07):
       - SHAP zeigt die Richtung des Einflusses (positiv/negativ)
       - SHAP ist konsistenter und berücksichtigt Interaktionseffekte
       - Standard in ML-Erklärbarkeitsforschung (Lundberg & Lee, 2017)
@@ -864,7 +874,7 @@ def save_experiment_json(metrics_df: pd.DataFrame,
                           tickers: list,
                           output_path: str) -> None:
     """
-    Speichert Experimentparameter + Ergebnisse als JSON (v4.1).
+    Speichert Experimentparameter + Ergebnisse als JSON.
     Dient der Reproduzierbarkeit und wissenschaftlichen Dokumentation.
     Enthält die robuste Signifikanzanalyse (Ledoit-Wolf 2008, Holm,
     Deflated Sharpe Ratio) statt des früheren i.i.d.-Bootstraps.

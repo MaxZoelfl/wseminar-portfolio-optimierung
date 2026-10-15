@@ -1,4 +1,4 @@
-"""W-Seminar Portfolio-Optimierung — modularisiertes Paket (v4.1).
+"""W-Seminar Portfolio-Optimierung — modularisiertes Paket.
 
 FÜR EINSTEIGER: Eine Datei namens __init__.py macht einen Ordner für Python
 zu einem "Paket" — erst dadurch funktionieren Importe wie
