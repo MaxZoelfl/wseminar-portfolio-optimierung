@@ -1,13 +1,11 @@
 # Die Nachrechnungs-Skripte
 
 Jede Zahl der Seminararbeit lässt sich hier **ohne den großen Backtest**
-nachprüfen: aus den eingefrorenen Kursen und den Ergebnisdateien, die der
+nachvollziehen: aus den eingefrorenen Kursen und den Ergebnisdateien, die der
 Backtest einmal erzeugt hat. Je Kapitel gibt es ein Skript. Es geht die Zahlen
-**in derselben Reihenfolge wie der Text** durch, rechnet jede eigene Zahl aus
-und vergleicht sie mit dem Wortlaut. Zahlen aus der Literatur erscheinen an
-ihrer Stelle mit ihrer Fußnote.
-
-Wer nur wissen will, ob noch alles stimmt, braucht einen einzigen Befehl.
+**in derselben Reihenfolge wie die Arbeit** durch, rechnet jede eigene Zahl aus
+Kursen, Ergebnisdateien oder Programmcode aus und zeigt, wie sie entsteht.
+Zahlen aus der Literatur erscheinen an ihrer Stelle mit ihrer Fußnote.
 
 ---
 
@@ -20,78 +18,79 @@ Im Stammordner des Repositories, bei aktivierter virtueller Umgebung
 python skripte/alle_kapitel.py
 ```
 
-Das dauert gut eine Minute, liest nur und schreibt keine Datei. Am Ende steht
-eine Übersicht wie diese (die Zahlen hier sind nur ein Beispiel):
+Das dauert rund anderthalb Minuten, liest nur und schreibt keine Datei. Am Ende
+steht eine Übersicht, woher die Zahlen jedes Kapitels stammen:
 
 ```
-                 ✅ stimmt  ≈ ungefähr   ❌ weicht ab   ⏭ offen
-  Kapitel 1             1           0             0        11
-  Kapitel 2            56           0             0         6
+                berechnet  Literatur  Definition/Annahme
+  Kapitel 1             1         11                   0
+  Kapitel 2            56          6                   0
   …
+  zusammen            529         32                   7
 ```
 
 ---
 
 ## Wie man die Ausgabe liest
 
-Jede Zahl steht in einer eigenen Zeile — zuerst **genau so, wie sie im Text
-steht**, dahinter, was sie bedeutet:
+Jede Zahl steht in einer eigenen Zeile: links der Wert, den die **Rechnung**
+ergibt, gerundet auf so viele Stellen wie in der Arbeit, rechts seine Bedeutung.
+Eine Zeile mit `↳` darunter erklärt, wie die Zahl entsteht, woher sie kommt oder
+wie sie ungerundet lautet:
 
 ```
   § 2.2 Diversifikation und ihre Grenze
   ──────────────────────────────────────────────────────────────────────
-  ✅  17,8 %           Volatilität von Coca-Cola
-  ✅  29,7 %           Volatilität von Caterpillar
-  ✅  8,9 %            Rendite von Coca-Cola allein
-  ✅  fünfzehn         Zahl der untersuchten Titel
+  17,8 %             Volatilität von Coca-Cola
+  29,7 %             Volatilität von Caterpillar
+  8,9 %              Rendite von Coca-Cola allein
+  15                 Zahl der untersuchten Titel
+  0,88 Pp            Abstand zwischen 15 Titeln und Grenzwert
+                     ↳ 17,56 % − 16,68 %
   …
   § 2.5 Schätzfehler als Kernproblem
   ──────────────────────────────────────────────────────────────────────
-  ⏭   0,08             Jobson/Korkie: Sharpe-Quotient des geschätzten Optimums
-                       ↳ Zahl aus der Quelle (Fn 38)
+  10 Jahre           Beobachtungsdauer, gerundet
+                     ↳ ungerundet 9,90 Jahre
+  0,08               Jobson/Korkie: Sharpe-Quotient des geschätzten Optimums
+                     ↳ aus der Literatur (Fn 38)
 ```
 
-| Zeichen | Bedeutung | Was zu tun ist |
-|:---:|---|---|
-| ✅ | Die Rechnung ergibt, auf dieselbe Stellenzahl gerundet, **genau** die Zahl im Text. | nichts |
-| ≈ | Der Text sagt „rund", „etwa" oder „gut", und die Rechnung liegt nah genug daran. Dahinter steht der genaue Wert. | nichts |
-| ❌ | Die Rechnung ergibt etwas anderes als der Text. Dahinter steht der gerechnete Wert mit mehr Stellen. | Textstelle prüfen |
-| ⏭ | Die Zahl wird hier nicht gerechnet — meist eine Zahl aus der Literatur. Die Zeile darunter sagt, warum. | nichts |
+Jeder Eintrag gehört zu einer von drei Arten:
 
-Eine Zeile mit `↳` darunter erklärt die Zahl genauer, etwa welcher Titel gemeint
-ist oder wie der Text gerundet hat.
+| Art | Bedeutung |
+|---|---|
+| **berechnet** | aus Kursen, Ergebnisdateien oder Programmcode gerechnet. Steht eine Einstellung nur im Code (etwa die Mindestzahl von 252 Handelstagen), wird sie dort ausgelesen. |
+| **Literatur** | eine Zahl aus einer Quelle; sie wird nicht gerechnet, sondern mit ihrer Fußnote genannt. |
+| **Definition/Annahme** | etwa die Schwellen 70/30 des RSI, ein Rechenbeispiel oder die elf Sektoren des GICS-Standards, jeweils mit Erklärung. |
 
-**Gerundet wird kaufmännisch**, also so wie von Hand: 8,946 wird auf eine Stelle
-zu 8,9, 8,95 zu 9,0. Die Stellenzahl liest das Skript aus dem Text ab: Steht
-dort „17,56", wird auf zwei Stellen gerundet, steht dort „17,6", auf eine.
-Zahlwörter („fünfzehn", „zehn Basispunkte") versteht es ebenfalls.
-
-**Gerundet wird einmal, vom genauen Wert aus:** 0,602499… wird auf drei Stellen
-zu 0,602 — nicht erst auf vier Stellen zu 0,6025 und dann zu 0,603.
+**Gerundet wird kaufmännisch und einmal**, vom genauen Wert aus: 8,946 wird auf
+eine Stelle zu 8,9, 8,95 zu 9,0; 0,602499… auf drei Stellen zu 0,602 (nicht erst
+auf vier Stellen zu 0,6025 und dann zu 0,603). Bei Angaben wie „rund“ oder
+„etwa“ steht unter der Zahl zusätzlich ihr ungerundeter Wert.
 
 **Jede Zahl erscheint einmal je Abschnitt.** Nennt ein Abschnitt dieselbe Zahl
-zweimal (etwa in der Bildunterschrift und im Text), wird sie beim ersten Mal
-geprüft.
+zweimal (etwa in der Bildunterschrift und im Fließtext), steht sie beim ersten Mal.
 
 ---
 
 ## Die Dateien
 
-| Datei | Prüft | Dauer |
+| Datei | Inhalt | Dauer |
 |---|---|---|
-| **`alle_kapitel.py`** | startet alle Kapitel nacheinander und fasst zusammen | ~1 min |
-| `kapitel_1_einleitung.py` | § 1.1–1.2: nur Zahlen aus der Literatur (⏭) und die Umrechnung „3000 Monate, also 250 Jahre" | <1 s |
+| **`alle_kapitel.py`** | startet alle Kapitel nacheinander und fasst zusammen | ~1,5 min |
+| `kapitel_1_einleitung.py` | § 1.1–1.2: Zahlen aus der Literatur und die Umrechnung 3000 Monate = 250 Jahre | <1 s |
 | `kapitel_2_theorie.py` | § 2.2–2.6: Zwei-Anlagen-Fall, Diversifikationsgrenze, Effizienzrand, t-Werte, Konfidenzintervalle, Shrinkage in den 119 Schätzfenstern | ~5 s |
 | `kapitel_3_random_forest.py` | § 3.1–3.5: Prognosefehler, Lernstoff je Termin, Einzelbäume der Tiefe 1 und 14 an allen Terminen, Korrelation der Bäume, gewählte Baumtiefen | ~15 s |
-| ↳ `… --baumkorrelation` | rechnet die Korrelation der Bäume (§ 3.3) neu, statt sie aus der Referenzdatei zu lesen, und vergleicht | +55 min |
-| `kapitel_4_methodik.py` | § 4.1–4.5: Einstellungen, Termine, Schutzvorkehrungen, Lernstoff, Umschlagschranke | ~10 s |
+| ↳ `… --baumkorrelation` | rechnet die Korrelation der Bäume (§ 3.3) neu, statt sie aus der Referenzdatei zu lesen, und vergleicht beide | +55 min |
+| `kapitel_4_methodik.py` | § 4.1–4.5: Einstellungen, Termine, Schutzvorkehrungen, Lernstoff, Umschlagschranke, Vergleichslauf ohne Purging | ~10 s |
 | `kapitel_5_signifikanz.py` | § 5.1–5.4: Standardfehler, Autokorrelation, Testeinstellungen, Gegenrechnung des Tests so, wie Ledoit/Wolf ihn beschreiben | ~30 s |
 | `kapitel_6_ergebnisse.py` | § 6.1–6.6: Kennzahlen, Portfoliostruktur, Signifikanztabelle, Kostensensitivität, Zinsschwellen, NVIDIA-Effekt | ~40 s |
 | `kapitel_7_fazit.py` | § 7.1: wiederholte p-Werte, Vergleich mit DeMiguel u. a. | <1 s |
-| `anhang.py` | Anhang A–C: Bildunterschriften, Tabellen A1–A3 und B1–B4, Parameter C1, Angaben in C2 | ~5 s |
+| `anhang.py` | Anhang A–C: Bildunterschriften (für A3 wird der zuletzt trainierte Wald nachgebaut), Tabellen A1–A3 und B1–B4, Parameter C1, Angaben in C2 samt Vergleich mit einem zweiten, unabhängigen Lauf | ~35 s |
 | `abbildung_kostensensitivitaet.py` | **erzeugt** Abbildung 5 (`output/13_kosten_sensitivitaet.png`) und `output/kosten_sensitivitaet.csv` neu | ~5 s |
-| `gegenrechnung_drift.py` | beziffert die festen Gewichte innerhalb des Monats ([LIMITATIONS.md](../LIMITATIONS.md) § 11.1); nicht Teil von `alle_kapitel.py`, weil diese Zahlen nicht im Text stehen | ~15 s |
-| `_werkzeuge.py` | gemeinsame Bausteine (Daten laden, Runden, Soll-Ist-Vergleich, Wortlaut-Abgleich). Wird nicht selbst gestartet. | — |
+| `gegenrechnung_drift.py` | beziffert die festen Gewichte innerhalb des Monats ([LIMITATIONS.md](../LIMITATIONS.md) § 11.1); nicht Teil von `alle_kapitel.py`, weil diese Zahlen nicht in der Arbeit stehen | ~15 s |
+| `_werkzeuge.py` | gemeinsame Bausteine (Daten laden, Zahlen aus dem Code lesen, runden, ausgeben). Wird nicht selbst gestartet. | — |
 
 Jedes Kapitel-Skript lässt sich auch einzeln starten, etwa
 `python skripte/kapitel_6_ergebnisse.py`. Alle funktionieren aus jedem Ordner heraus.
@@ -119,10 +118,11 @@ mit Begründung im Code:
 - **Formel 35** (effektive Titelzahl) in `_werkzeuge.py`: Der Backtest braucht
   sie nicht, nur Kapitel 6.
 - **Formel 28/29** in `kapitel_5_signifikanz.py`: für die Gegenrechnung „wie in
-  der Quelle". Das Skript prüft an den Originaldaten, dass beide Fassungen
+  der Quelle“. Das Skript prüft an den Originaldaten, dass beide Fassungen
   dasselbe ergeben.
-- Außerdem baut `kapitel_3_random_forest.py` den Lernstoff des Waldes Zeile für
-  Zeile so nach, wie `backtest.py` ihn ausschneidet.
+- **Der Lernstoff des Waldes**: `kapitel_3_random_forest.py` baut ihn Zeile für
+  Zeile so nach, wie `backtest.py` ihn ausschneidet (genutzt auch von Kapitel 4
+  und vom Anhang).
 
 ---
 
@@ -143,8 +143,9 @@ Dazu kommen drei kleine Referenzdateien in `skripte/daten/`:
 
 - **`rf_hyperparameter.csv`**: Die Einstellungen, die die Hyperparametersuche an
   jedem der 119 Termine gewählt hat (Zahl der Bäume, Tiefe, Blattgröße). Sie
-  stammen aus dem Laufprotokoll des maßgeblichen Laufs. Das Protokoll selbst
-  liegt nicht im Repository, weil es rechnerspezifische Pfade enthält.
+  stammen aus dem Laufprotokoll des Laufs vom 15.08.2026, dessen Ergebnisdateien
+  mit denen des maßgeblichen Laufs bitgleich sind. Das Protokoll selbst liegt
+  nicht im Repository, weil es rechnerspezifische Pfade enthält.
 - **`baumkorrelation.csv`**: je Termin die Korrelation der Baumprognosen, die
   Fehlerkorrelation nach Breiman und das Verhältnis von Wald- zu Baumfehler
   (§ 3.3). Erzeugt mit `kapitel_3_random_forest.py --baumkorrelation --speichern`,
@@ -165,38 +166,40 @@ Werte aus `output/experiment_log.json`.
 
 ---
 
-## Wenn sich der Text ändert
-
-**Die Skripte lesen die Word-Datei nicht.** Die Zahl, wie sie im Text steht, ist
-im Skript als Zeichenkette eingetragen, zum Beispiel in `kapitel_2_theorie.py`:
-
-```python
-p.zahl("Volatilität von Coca-Cola", "17,8", sA * 100, "%")
-#       ↑ was die Zahl bedeutet     ↑ so steht es im Text   ↑ die Rechnung
-```
-
-Ändert sich eine Zahl im Text, wird nur die Zeichenkette in der Mitte angepasst.
-Die Rechnung bleibt, wie sie ist. Neue Sätze mit Zahlen bekommen eine neue
-Zeile an der passenden Stelle — die Reihenfolge im Skript folgt dem Text.
-
-Damit kein Eintrag veraltet, ohne dass es auffällt, gibt es den Wortlaut-Abgleich:
-
-```bash
-python skripte/alle_kapitel.py --text pfad/zur/Arbeit.docx
-```
-
-Am Ende der Ausgabe steht dann jede eingetragene Zahl, die **im zugehörigen
-Abschnitt** dieser Fassung der Arbeit nicht vorkommt — meist ein Zeichen, dass
-die Stelle im Text geändert wurde. Für `.docx` braucht es
-[pandoc](https://pandoc.org); eine Markdown-Fassung des Textes geht ohne. Mit
-`--text` endet das Skript mit Fehlercode 1, wenn etwas fehlt.
-
 ## Wenn der Backtest neu läuft
 
 Dann ändern sich die Ergebnisdateien in `output/`, und die Skripte rechnen
 automatisch mit den neuen Werten. Mit unveränderter `data/prices.pkl`, denselben
 Paketversionen und unter macOS 26.6.1 reproduziert der Backtest die Dateien in
-`output/` bitgenau, und alle Prüfungen bleiben, wie sie sind. In einer anderen
-Umgebung können einzelne Zahlen in der letzten Stelle abweichen (siehe
-[LIMITATIONS.md](../LIMITATIONS.md), Abschnitt 12). Die Referenzdatei `baumkorrelation.csv` muss nach einem Lauf mit
+`output/` bitgenau. In einer anderen Umgebung können einzelne Zahlen in der
+letzten Stelle abweichen (siehe [LIMITATIONS.md](../LIMITATIONS.md),
+Abschnitt 12). Die Referenzdatei `baumkorrelation.csv` muss nach einem Lauf mit
 anderen Einstellungen neu erzeugt werden.
+
+---
+
+## Für den Verfasser: Abgleich mit dem Wortlaut der Arbeit
+
+Die Skripte lesen die Word-Datei nicht. In jedem Skript steht zu jeder Zahl
+auch, wie sie in der Arbeit geschrieben ist, zum Beispiel in `kapitel_2_theorie.py`:
+
+```python
+p.zahl("Volatilität von Coca-Cola", "17,8", sA * 100, "%")
+#       ↑ was die Zahl bedeutet     ↑ so in der Arbeit  ↑ die Rechnung
+```
+
+Aus diesem Eintrag liest das Werkzeug die Stellenzahl, auf die gerundet wird.
+Zwei Schalter vergleichen außerdem Rechnung und Arbeit:
+
+```bash
+python skripte/alle_kapitel.py --abgleich
+python skripte/alle_kapitel.py --text pfad/zur/Arbeit.docx
+```
+
+`--abgleich` zeigt statt des gerechneten Werts den eingetragenen Wortlaut und
+markiert jede Zahl: ✅ stimmt · ≈ stimmt ungefähr (bei „rund“, „etwa“) ·
+❌ weicht ab · ⏭ nicht gerechnet. `--text` tut dasselbe und meldet am Ende jede
+eingetragene Zahl, die im zugehörigen Abschnitt der angegebenen Fassung nicht
+vorkommt. Für `.docx` braucht es [pandoc](https://pandoc.org); eine
+Markdown-Fassung geht ohne. Ändert sich eine Zahl in der Arbeit, wird nur der
+mittlere Eintrag angepasst; die Rechnung bleibt, wie sie ist.

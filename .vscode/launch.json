@@ -47,8 +47,8 @@
     },
     {
       // Rechnet ALLE eigenen Zahlen der Arbeit nach (Kapitel 1–7, Anhang) und
-      // vergleicht sie mit dem Wortlaut. Rund eine Minute, schreibt keine Datei.
-      "name": "Alle Zahlen der Arbeit prüfen",
+      // zeigt ihre Herleitung. Rund anderthalb Minuten, schreibt keine Datei.
+      "name": "Alle Zahlen der Arbeit nachrechnen",
       "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/skripte/alle_kapitel.py",

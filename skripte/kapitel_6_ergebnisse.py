@@ -1,5 +1,5 @@
 """
-Kapitel 6 — Ergebnisse und Diskussion: jede Zahl des Kapitels, in Textreihenfolge.
+Kapitel 6 — Ergebnisse und Diskussion: jede Zahl des Kapitels, in der Reihenfolge der Arbeit.
 
 FÜR EINSTEIGER — WAS MACHT DIESES SKRIPT?
 Kapitel 6 berichtet, wie die vier Strategien abgeschnitten haben, und ordnet es
@@ -34,8 +34,8 @@ from portfolio.significance import sharpe_difference_test, holm_bonferroni   # n
 from portfolio.theory_plots import konfidenzintervalle, diversifikation, gleichgewichtete_varianz   # noqa: E402
 import abbildung_kostensensitivitaet as kosten        # noqa: E402
 
-# Zeilen der Signifikanztabelle in § 6.3 → Schlüssel im Laufprotokoll, mit den Werten wie im Text:
-# Δ (ann. Sharpe), s(Δ), t, p, p nach Holm.
+# Zeilen der Signifikanztabelle in § 6.3 → Schlüssel im Laufprotokoll, dazu die Werte, wie sie in der
+# Tabelle stehen (sie legen die Stellenzahl der Ausgabe fest): Δ (ann. Sharpe), s(Δ), t, p, p nach Holm.
 TABELLE_63 = [
     ("RF vs. Markowitz",             "RF vs. MVO",         ("0,029", "0,178", "0,165", "0,866", "1,000")),
     ("RF vs. Equal Weight",          "RF vs. EW",          ("0,035", "0,121", "0,291", "0,773", "1,000")),
@@ -44,7 +44,7 @@ TABELLE_63 = [
     ("Markowitz vs. Risk Parity",    "MVO vs. RP",         ("0,116", "0,160", "0,724", "0,489", "1,000")),
     ("Equal Weight vs. Risk Parity", "Risk Parity vs. EW", ("0,110", "0,038", "2,874", "0,0036", "0,0216")),
 ]
-# Tabelle in § 6.1, Zeilen in der Reihenfolge des Textes: CAGR, Vola, Sharpe, max. DD, Calmar.
+# Tabelle in § 6.1, Spalten wie in der Arbeit: CAGR, Vola, Sharpe, max. DD, Calmar.
 TABELLE_61 = {"Random Forest": ("22,12", "19,03", "0,936", "−33,77", "0,655"),
               "Markowitz MVO": ("23,14", "21,00", "0,906", "−34,28", "0,675"),
               "Equal Weight":  ("20,03", "17,56", "0,900", "−33,25", "0,602"),
@@ -78,7 +78,7 @@ def zinsschwelle(s: pd.DataFrame) -> float:
 
 
 def pruefe() -> Pruefung:
-    """Alle Zahlen aus Kapitel 6, in der Reihenfolge des Textes."""
+    """Alle Zahlen aus Kapitel 6, in der Reihenfolge der Arbeit."""
     p = Pruefung("Kapitel 6 — Ergebnisse und Diskussion")
     s = strategierenditen()
     log = protokoll()
@@ -95,8 +95,9 @@ def pruefe() -> Pruefung:
     K = pd.DataFrame({n: dict(cagr=cagr(s[n]) * 100, vola=annualized_vol(s[n]) * 100,
                               sharpe=sharpe_exakt(n), dd=max_drawdown(s[n]) * 100,
                               calmar=calmar_ratio(s[n])) for n in STRATEGIEN}).T
-    p.aussage("alle vier Strategien mit positiver Rendite nach Kosten", "positive Rendite",
-              bool((K.cagr > 0).all()), "ja", woertlich=True)
+    p.aussage("Strategien mit positiver Rendite nach Kosten", "positive Rendite",
+              bool((K.cagr > 0).all()), f"{int((K.cagr > 0).sum())} von {len(K)}",
+              notiz="CAGR (Formel B1) aus output/daily_returns.csv", woertlich=True)
     for name, (c, v, sh, dd, cal) in TABELLE_61.items():
         p.zahl(f"Tabelle, {name}: CAGR", c, K.cagr[name], "%")
         p.zahl(f"Tabelle, {name}: Volatilität", v, K.vola[name], "%")
@@ -105,28 +106,34 @@ def pruefe() -> Pruefung:
         p.zahl(f"Tabelle, {name}: Calmar-Quotient", cal, K.calmar[name])
     for name, text in [("Markowitz MVO", "7,85"), ("Random Forest", "7,23"),
                        ("Equal Weight", "6,10"), ("Risk Parity", "4,70")]:
-        p.zahl(f"Endvermögen aus einem Euro, {name}", text, wert[name].iloc[-1], "Euro")
-    p.aussage("höchste Rendite", "Markowitz", K.cagr.idxmax() == "Markowitz MVO", KURZ[K.cagr.idxmax()])
+        p.zahl(f"Endvermögen aus einem Euro, {name}", text, wert[name].iloc[-1], "Euro",
+               notiz="Produkt aller (1 + Tagesrendite)")
+    p.aussage("höchste Rendite", "Markowitz", K.cagr.idxmax() == "Markowitz MVO", K.cagr.idxmax(),
+              notiz=" > ".join(f"{KURZ[n]} {de(K.cagr[n], 2)} %" for n in K.cagr.sort_values(ascending=False).index))
     reihe = list(K.sharpe.sort_values(ascending=False).index)
     p.aussage("Markowitz risikoadjustiert (Sharpe) an", "zweiter Stelle", reihe.index("Markowitz MVO") == 1,
               f"{reihe.index('Markowitz MVO') + 1}. Stelle",
               notiz=" > ".join(f"{KURZ[n]} {de(K.sharpe[n], 3)}" for n in reihe), woertlich=True)
     p.zahl("Volatilität von Markowitz, die höchste", "21,0", K.vola["Markowitz MVO"], "%",
-           notiz="die höchste" if K.vola.idxmax() == "Markowitz MVO" else "NICHT die höchste!")
+           notiz=" > ".join(f"{KURZ[n]} {de(K.vola[n], 2)} %" for n in K.vola.sort_values(ascending=False).index))
     p.aussage("höchster Sharpe-Quotient", "Random Forest", K.sharpe.idxmax() == "Random Forest",
-              KURZ[K.sharpe.idxmax()])
+              K.sharpe.idxmax())
     p.aussage("geringste Volatilität und flachster Drawdown", "Risk Parity",
               K.vola.idxmin() == "Risk Parity" and K.dd.idxmax() == "Risk Parity",
-              f"{KURZ[K.vola.idxmin()]}, {KURZ[K.dd.idxmax()]}")
+              K.vola.idxmin() if K.vola.idxmin() == K.dd.idxmax() else f"{K.vola.idxmin()}, {K.dd.idxmax()}",
+              notiz=f"Volatilität {de(K.vola.min(), 2)} %, maximaler Drawdown {de(K.dd.max(), 2)} %")
     # Bildunterschrift Abbildung 4
-    p.zahl("Abb. 4: Anfangskapital", "einem", wert.iloc[0].div(1 + s.iloc[0]).iloc[0], "Euro")
-    p.zahl("Abb. 4: Transaktionskosten", "zehn", meta["transaction_cost"] * 10_000, "Basispunkte")
+    p.zahl("Abb. 4: Anfangskapital", "einem", wert.iloc[0].div(1 + s.iloc[0]).iloc[0], "Euro",
+           notiz="Depotwert vor dem ersten Handelstag")
+    p.zahl("Abb. 4: Transaktionskosten", "zehn", meta["transaction_cost"] * 10_000, "Basispunkte",
+           notiz="transaction_cost im Laborprotokoll")
     p.aussage("Abb. 4: Datenzeitraum", "Februar 2015 bis Dezember 2024",
               (s.index[0].year, s.index[0].month, s.index[-1].year, s.index[-1].month) == (2015, 2, 2024, 12),
               f"{s.index[0]:%d.%m.%Y} bis {s.index[-1]:%d.%m.%Y}", woertlich=True)
     vorn = wert.idxmax(axis=1).value_counts(normalize=True) * 100   # wer liegt je Tag vorn?
     for name, text in [("Markowitz MVO", "86,8"), ("Random Forest", "11,8"), ("Equal Weight", "1,4")]:
-        p.zahl(f"Anteil der Handelstage in Führung, {name}", text, vorn.get(name, 0.0), "%")
+        p.zahl(f"Anteil der Handelstage in Führung, {name}", text, vorn.get(name, 0.0), "%",
+               notiz="Tage, an denen sein Depotwert der höchste der vier ist")
     tiefpunkt = {n: ((wert[n] / wert[n].cummax()) - 1).idxmin() for n in STRATEGIEN}
     for name, datum, iso in [("Random Forest", "23. März 2020", "2020-03-23"),
                              ("Equal Weight", "23. März 2020", "2020-03-23"),
@@ -134,33 +141,41 @@ def pruefe() -> Pruefung:
                              ("Markowitz MVO", "30. September 2022", "2022-09-30")]:
         ist = tiefpunkt[name]
         p.aussage(f"Tag des maximalen Drawdowns, {name}", datum, ist == pd.Timestamp(iso),
-                  f"{ist:%d.%m.%Y}", woertlich=True)
+                  f"{ist:%d.%m.%Y}", notiz="tiefster Abstand des Depotwerts zu seinem bisherigen Höchststand",
+                  woertlich=True)
     p.aussage("führt nach dem Calmar-Quotienten", "Markowitz", K.calmar.idxmax() == "Markowitz MVO",
-              KURZ[K.calmar.idxmax()])
+              K.calmar.idxmax(),
+              notiz=" > ".join(f"{KURZ[n]} {de(K.calmar[n], 3)}" for n in K.calmar.sort_values(ascending=False).index))
     p.zahl("so viel stärker schwankt Markowitz als der Random Forest", "zehn",
            (K.vola["Markowitz MVO"] / K.vola["Random Forest"] - 1) * 100, "%", ungefaehr=True,
-           notiz="Text: „gut zehn Prozent“")
+           notiz=f"{de(K.vola['Markowitz MVO'], 2)} % ÷ {de(K.vola['Random Forest'], 2)} % − 1")
     p.zahl("so viel tiefer ist sein tiefster Absturz", "anderthalb",
            (K.dd["Markowitz MVO"] / K.dd["Random Forest"] - 1) * 100, "%", ungefaehr=True,
-           notiz="relativ zum Drawdown des Random Forest")
+           notiz=f"{de(K.dd['Markowitz MVO'], 2)} % ÷ {de(K.dd['Random Forest'], 2)} % − 1")
 
     # ──────────────────────────────────────────────────────────────────
     p.abschnitt("6.2 Struktur der Portfolios")
     neff = {n: effektive_titelzahl(G[n]) for n in STRATEGIEN}   # Formel 35 je Termin
     eins = pd.DataFrame([[1.0] + [0.0] * 14], columns=TICKERS)  # alles in einem Titel
-    p.zahl("effektive Titelzahl bei 15 gleichen Gewichten", "15", neff["Equal Weight"].iloc[0])
-    p.zahl("effektive Titelzahl bei vollständiger Konzentration", "1", effektive_titelzahl(eins).iloc[0])
+    p.zahl("effektive Titelzahl bei 15 gleichen Gewichten", "15", neff["Equal Weight"].iloc[0],
+           notiz="Formel 35: 1 ÷ Σ w², hier 1 ÷ (15 · (1/15)²)")
+    p.zahl("effektive Titelzahl bei vollständiger Konzentration", "1", effektive_titelzahl(eins).iloc[0],
+           notiz="alles in einem Titel: 1 ÷ 1²")
     for name, text in [("Markowitz MVO", "5,88"), ("Random Forest", "6,16"),
                        ("Risk Parity", "14,05"), ("Equal Weight", "15,00")]:
-        p.zahl(f"effektive Titelzahl im Mittel, {name}", text, neff[name].mean())
+        p.zahl(f"effektive Titelzahl im Mittel, {name}", text, neff[name].mean(),
+               notiz="Mittel über die 119 Termine, aus output/weights_*.csv" if name != "Equal Weight" else "")
     leer = {n: (G[n] < 0.0005).sum(axis=1).mean() for n in ["Markowitz MVO", "Random Forest"]}
     p.aussage("so viel des Universums lassen beide optimierenden Verfahren leer", "rund die Hälfte",
-              all(6.5 <= v <= 8.5 for v in leer.values()), ", ".join(de(v, 2) for v in leer.values()),
-              notiz=" · ".join(f"{KURZ[n]} {de(v, 2)} von 15 Titeln" for n, v in leer.items()), woertlich=True)
+              all(6.5 <= v <= 8.5 for v in leer.values()),
+              " bzw. ".join(de(v, 1) for v in leer.values()) + " von 15 Titeln",
+              notiz=" · ".join(f"{KURZ[n]} {de(v, 2)}" for n, v in leer.items())
+              + " Titel mit Gewicht unter 0,05 %, Mittel je Termin", woertlich=True)
     grenze = {n: (G[n] >= 0.1995).sum(axis=1).mean() for n in ["Markowitz MVO", "Random Forest"]}
     p.aussage("Titel an der Obergrenze (Mittel je Termin)", "etwa drei",
-              all(abs(v - 3) <= 0.5 for v in grenze.values()), ", ".join(de(v, 2) for v in grenze.values()),
-              notiz=" · ".join(f"{KURZ[n]} {de(v, 2)}" for n, v in grenze.items()), woertlich=True)
+              all(abs(v - 3) <= 0.5 for v in grenze.values()), " bzw. ".join(de(v, 1) for v in grenze.values()),
+              notiz=" · ".join(f"{KURZ[n]} {de(v, 2)}" for n, v in grenze.items())
+              + " Titel mit Gewicht ≥ 19,95 %", woertlich=True)
     p.zahl("Obergrenze je Titel", "20", meta["max_weight"] * 100, "%")
     p.zahl("Monate, in denen Markowitz NVIDIA an der Obergrenze hält", "81",
            int((G["Markowitz MVO"]["NVDA"] >= 0.1999).sum()))
@@ -169,12 +184,14 @@ def pruefe() -> Pruefung:
     getrennt = [(i, j) for i, j in combinations(TICKERS, 2) if abs(mu_ci[i] - mu_ci[j]) > halb[i] + halb[j]]
     in_allen = [t for t in TICKERS if all(t in paar for paar in getrennt)]
     p.aussage("einziger Titel, dessen Erwartungswert sich trennen lässt (§ 2.5)", "NVIDIA",
-              in_allen == ["NVDA"], ", ".join(in_allen))
+              in_allen == ["NVDA"], ", ".join(in_allen) or "keiner",
+              notiz=f"steckt in allen {len(getrennt)} Paaren mit getrennten 95-%-Intervallen (Formel 17)")
     for name, text in [("Random Forest", "29,0"), ("Markowitz MVO", "13,1")]:
-        p.zahl(f"mittlerer monatlicher Umschlag, {name}", text, regulaer[UMSCHLAG_SPALTE[name]].mean() * 100, "%")
+        p.zahl(f"mittlerer monatlicher Umschlag, {name}", text, regulaer[UMSCHLAG_SPALTE[name]].mean() * 100, "%",
+               notiz="Formel 26, Mittel über die 118 Termine nach dem Depotaufbau")
     klein = {n: regulaer[UMSCHLAG_SPALTE[n]].mean() * 100 for n in ["Equal Weight", "Risk Parity"]}
     p.aussage("Umschlag der beiden übrigen", "gut zwei Prozent", all(2.0 <= v < 2.5 for v in klein.values()),
-              " / ".join(de(v, 2) for v in klein.values()),
+              " bzw. ".join(de(v, 1) for v in klein.values()) + " %",
               notiz=" · ".join(f"{KURZ[n]} {de(v, 2)} %" for n, v in klein.items()), woertlich=True)
     p.zahl("effektive Titelzahl Markowitz, kleinste", "5,02", neff["Markowitz MVO"].min())
     p.zahl("effektive Titelzahl Markowitz, größte", "8,48", neff["Markowitz MVO"].max())
@@ -194,21 +211,24 @@ def pruefe() -> Pruefung:
     p.zahl("p Markowitz gegen Gleichgewichtung", "0,97", test["MVO vs. EW"]["p_value"])
     signifikant = [k for k, v in test.items() if v["significant_holm"]]
     p.zahl("Vergleiche, die nach Holm die Fünf-Prozent-Schwelle überstehen", "ein", len(signifikant),
-           notiz="Text: „ein einziger“: " + ", ".join(signifikant))
+           notiz=", ".join(signifikant).replace(" vs. EW", " gegen Gleichgewichtung"))
     p.zahl("p nach Holm, Risk Parity gegen Gleichgewichtung", "0,022", test["Risk Parity vs. EW"]["p_holm"],
-           notiz="§ 6.3-Tabelle und § 7.1 nennen ihn mit vier Stellen: 0,0216")
-    p.zahl("Korrelation Gleichgewichtung und Risk Parity", "0,993", s["Equal Weight"].corr(s["Risk Parity"]))
+           notiz=f"auf vier Stellen {de(test['Risk Parity vs. EW']['p_holm'], 4)}")
+    p.zahl("Korrelation Gleichgewichtung und Risk Parity", "0,993", s["Equal Weight"].corr(s["Risk Parity"]),
+           notiz="Korrelation der Tagesrenditen")
     vola_diff = {(a, b): (s[a] - s[b]).std() * np.sqrt(HANDELSTAGE) * 100 for a, b in combinations(STRATEGIEN, 2)}
     p.zahl("Volatilität der Differenzreihe Gleichgewichtung − Risk Parity", "2,3",
-           vola_diff[("Equal Weight", "Risk Parity")], "%")
+           vola_diff[("Equal Weight", "Risk Parity")], "%",
+           notiz="Standardabweichung der täglichen Renditedifferenz · √252")
     p.zahl("Volatilität der Differenzreihe Markowitz − Risk Parity", "10,4",
            vola_diff[("Markowitz MVO", "Risk Parity")], "%")
     dsr = log["significance"]["deflated_sharpe"]
     p.zahl("Versuche in der Deflated Sharpe Ratio", "vier", log["significance"]["n_strategies"])
-    p.zahl("Zufallsschwelle (Sharpe, jährlich)", "0,067", next(iter(dsr.values()))["sr0_annual"])
-    werte = [v["deflated_sr"] for v in dsr.values()]
-    p.zahl("Deflated Sharpe Ratio, kleinster Wert", "0,988", min(werte))
-    p.zahl("Deflated Sharpe Ratio, größter Wert", "0,997", max(werte))
+    p.zahl("Zufallsschwelle (Sharpe, jährlich)", "0,067", next(iter(dsr.values()))["sr0_annual"],
+           notiz="Formel 33, aus dem Laborprotokoll")
+    werte = {k: v["deflated_sr"] for k, v in dsr.items()}
+    p.zahl("Deflated Sharpe Ratio, kleinster Wert", "0,988", min(werte.values()), notiz=min(werte, key=werte.get))
+    p.zahl("Deflated Sharpe Ratio, größter Wert", "0,997", max(werte.values()), notiz=max(werte, key=werte.get))
 
     # ──────────────────────────────────────────────────────────────────
     p.abschnitt("6.4 Sensibilität gegenüber Transaktionskosten")
@@ -218,24 +238,24 @@ def pruefe() -> Pruefung:
     p.zahl("untersuchte Spanne: bis", "hundert", piv.index.max(), "Basispunkte")
     rf_unter = kosten.schnittpunkt(piv, "Random Forest")
     p.zahl("Random Forest fällt unter die Gleichgewichtung bei", "31", rf_unter, "bp", ungefaehr=True,
-           notiz="Text: „rund“; linear zwischen 5-bp-Stufen interpoliert")
+           notiz="Schnittpunkt der Kurven in Abbildung 5, linear zwischen den 5-bp-Stufen interpoliert")
     p.zahl("Markowitz fällt darunter bei", "20", kosten.schnittpunkt(piv, "Markowitz MVO"), "bp", ungefaehr=True,
-           notiz="Text: „rund“")
+           notiz="ebenso")
     # 1/N führt, sobald alle anderen unter 1/N gefallen sind: späteste Schnittstelle.
     ab = max(kosten.schnittpunkt(piv, n) or 0 for n in ["Random Forest", "Markowitz MVO", "Risk Parity"])
     p.zahl("ab hier hat die Gleichgewichtung den höchsten Sharpe-Quotienten", "31", ab, "bp", ungefaehr=True,
-           notiz="Text: „etwa“")
+           notiz="spätester der drei Schnittpunkte")
     verlust = piv.loc[0] - piv.loc[100]
-    p.zahl("Sharpe-Verlust über die Spanne, Random Forest", "0,187", verlust["Random Forest"])
-    p.zahl("Sharpe-Verlust über die Spanne, Markowitz", "0,079", verlust["Markowitz MVO"])
+    p.zahl("Sharpe-Verlust über die Spanne, Random Forest", "0,187", verlust["Random Forest"],
+           notiz="Sharpe-Quotient bei 0 bp minus bei 100 bp")
+    p.zahl("Sharpe-Verlust über die Spanne, Markowitz", "0,079", verlust["Markowitz MVO"], notiz="ebenso")
     p.aussage("Markowitz hat weniger als halb so hohen Umschlag wie der Random Forest", "weniger als halb",
               regulaer["turnover_mvo"].mean() < regulaer["turnover_rf"].mean() / 2,
               f"{de(regulaer['turnover_mvo'].mean() * 100, 1)} % gegen {de(regulaer['turnover_rf'].mean() * 100, 1)} %",
-              notiz=f"{de(regulaer['turnover_mvo'].mean() * 100, 1)} % gegen "
-                    f"{de(regulaer['turnover_rf'].mean() * 100, 1)} %", woertlich=True)
+              notiz="mittlerer monatlicher Umschlag nach dem Depotaufbau", woertlich=True)
     for name in ["Equal Weight", "Risk Parity"]:
         p.zahl(f"Sharpe-Verlust über die Spanne, {name}", "0,020", verlust[name], ungefaehr=True,
-               toleranz=0.002, notiz="Text: „jeweils nur rund 0,020“")
+               toleranz=0.002, notiz="Sharpe-Quotient bei 0 bp minus bei 100 bp")
 
     # ──────────────────────────────────────────────────────────────────
     p.abschnitt("6.5 Warum es keinen Gewinner gibt")
@@ -243,32 +263,39 @@ def pruefe() -> Pruefung:
     C = (r_tag.cov() * HANDELSTAGE).values
     var_quer, cov_quer = diversifikation(C)            # Formel 6, wie in § 2.2
     abstand = (np.sqrt(gleichgewichtete_varianz(var_quer, cov_quer, len(TICKERS))) - np.sqrt(cov_quer)) * 100
-    p.zahl("Abstand der Gleichgewichtung zur Diversifikationsgrenze", "0,88", abstand, "Pp")
+    p.zahl("Abstand der Gleichgewichtung zur Diversifikationsgrenze", "0,88", abstand, "Pp",
+           notiz="wie in § 2.2: Volatilität bei 15 Titeln minus √C̄ (Formel 6)")
     p.zahl("Länge des Zeitraums", "zehn", (s.index[-1] - s.index[0]).days / 365.25, "Jahre",
-           ungefaehr=True, toleranz=0.5)
+           ungefaehr=True, toleranz=0.5, notiz=f"{s.index[0]:%d.%m.%Y} bis {s.index[-1]:%d.%m.%Y}")
     # Beobachtungsdauer, um eine Renditedifferenz Δ zweier typischer Titel abzusichern
     # (Formel 17 für die Differenz): 1,96 · σ̄·√(2(1 − ρ̄)) / √h = Δ  →  h = (1,96·σ̄/Δ)² · 2(1 − ρ̄),
     # σ̄ = mittlere Volatilität, ρ̄ = mittlere Paarkorrelation der fünfzehn Titel.
     sig = r_tag.std() * np.sqrt(HANDELSTAGE)
     rho_q = r_tag.corr().values[np.triu_indices(len(TICKERS), k=1)].mean()
     h_noetig = (1.96 * sig.mean() / 0.05) ** 2 * 2 * (1 - rho_q)
-    p.zahl("nötige Beobachtungsdauer", "120", h_noetig, "Jahre", ungefaehr=True, notiz="Text: „rund“")
-    p.offen("Annahme: zwei typische Titel, Renditedifferenz", "fünf Prozentpunkten",
+    p.zahl("nötige Beobachtungsdauer", "120", h_noetig, "Jahre", ungefaehr=True,
+           notiz=f"h = (1,96 · σ̄ ÷ Δ)² · 2(1 − ρ̄) mit σ̄ = {de(sig.mean() * 100, 1)} %, Δ = 5 Pp, ρ̄ = {de(rho_q, 2)}")
+    p.offen("Annahme: zwei typische Titel, Renditedifferenz", "5 Pp",
             "Annahme des Gedankenexperiments; „typisch“ = mittlere Volatilität und mittlere Korrelation")
+    p.merke("Annahme: zwei typische Titel, Renditedifferenz", "fünf Prozentpunkten")
     # Gleichgewichtung auf Markowitz' Volatilität gehebelt (Hebel zum risikofreien Zins):
     hebel = K.vola["Markowitz MVO"] / K.vola["Equal Weight"]
     gehebelt = hebel * s["Equal Weight"] + (1 - hebel) * rf / HANDELSTAGE
     p.zahl("Volatilität von Markowitz", "21,0", K.vola["Markowitz MVO"], "%")
     p.zahl("Rendite der Gleichgewichtung, ungehebelt", "20,03", K.cagr["Equal Weight"], "%")
-    p.zahl("… auf Markowitz' Volatilität gehebelt", "22,98", cagr(gehebelt) * 100, "%")
+    p.zahl("… auf Markowitz' Volatilität gehebelt", "22,98", cagr(gehebelt) * 100, "%",
+           notiz=f"Hebel {de(hebel, 3)} = {de(K.vola['Markowitz MVO'], 2)} % ÷ {de(K.vola['Equal Weight'], 2)} %, "
+                 "Rest zum risikofreien Zins; gehebelte Tagesrenditen aufgezinst")
     vorsprung = K.cagr["Markowitz MVO"] - K.cagr["Equal Weight"]
     rest = K.cagr["Markowitz MVO"] - cagr(gehebelt) * 100
-    p.zahl("ursprünglicher Renditevorsprung von Markowitz", "3,11", vorsprung, "Pp")
-    p.zahl("Vorsprung nach Angleichen des Risikos", "0,15", rest, "Pp")
+    p.zahl("ursprünglicher Renditevorsprung von Markowitz", "3,11", vorsprung, "Pp",
+           notiz="CAGR Markowitz minus CAGR Gleichgewichtung")
+    p.zahl("Vorsprung nach Angleichen des Risikos", "0,15", rest, "Pp",
+           notiz="CAGR Markowitz minus CAGR der gehebelten Gleichgewichtung")
     p.zahl("Anteil des Vorsprungs, der verschwindet", "95", (1 - rest / vorsprung) * 100, "%",
-           ungefaehr=True, notiz="Text: „Rund 95 Prozent“")
+           ungefaehr=True, notiz=f"1 − {de(rest, 2)} ÷ {de(vorsprung, 2)}")
     p.zahl("entspricht einer Sharpe-Differenz von", "0,0059", test["MVO vs. EW"]["diff_annual"],
-           notiz="Testwert aus § 6.3, nicht die Differenz der gerundeten Tabellenwerte")
+           notiz="Differenz der ungerundeten Sharpe-Quotienten, aus dem Laborprotokoll")
     p.zahl("Handelstage mit Markowitz in Führung (aus § 6.1)", "86,8", vorn["Markowitz MVO"], "%")
     roll = rollierender_sharpe(s).dropna()            # dieselbe Rechnung wie Abbildung A4
     p.zahl("Zwölfmonatsfenster mit Markowitz risikoadjustiert vorn", "50,1",
@@ -278,7 +305,8 @@ def pruefe() -> Pruefung:
     p.zahl("sein Standardfehler", "0,121", t_rf["se_annual"])
     # Wie viele Jahre bräuchte es, damit t = 1,96? t wächst mit √T.
     jahre = len(s) * (1.96 / abs(t_rf["statistic"])) ** 2 / HANDELSTAGE
-    p.zahl("Daten, um ihn abzusichern", "450", jahre, "Jahre", ungefaehr=True, notiz="Text: „rund“")
+    p.zahl("Daten, um ihn abzusichern", "450", jahre, "Jahre", ungefaehr=True,
+           notiz=f"t wächst mit √T: 2495 Tage · (1,96 ÷ {de(abs(t_rf['statistic']), 3)})² ÷ 252")
     w1n = np.ones(len(TICKERS)) / len(TICKERS)
     rb = w1n * (C @ w1n) / (w1n @ C @ w1n) * 100      # Risikobeiträge im 1/N-Depot (Formel 19), in %
     p.zahl("Risikobeitrag im gleichgewichteten Depot, kleinster", "3,6", rb.min(), "%",
@@ -291,9 +319,9 @@ def pruefe() -> Pruefung:
     p.zahl("… von", "fünfzehn", len(TICKERS))
     p.zahl("Renditekorrelation Risk Parity und Gleichgewichtung", "0,993", s["Equal Weight"].corr(s["Risk Parity"]))
     p.zahl("Risk Parity spart an Schwankung", "einen", K.vola["Equal Weight"] - K.vola["Risk Parity"], "Pp",
-           ungefaehr=True, toleranz=0.2)
+           ungefaehr=True, toleranz=0.2, notiz="Volatilität Gleichgewichtung minus Risk Parity")
     p.zahl("… und kostet an Rendite", "drei", K.cagr["Equal Weight"] - K.cagr["Risk Parity"], "Pp",
-           ungefaehr=True, toleranz=0.2)
+           ungefaehr=True, toleranz=0.2, notiz="CAGR Gleichgewichtung minus Risk Parity")
 
     # ──────────────────────────────────────────────────────────────────
     p.abschnitt("6.6 Grenzen der Untersuchung")
@@ -306,9 +334,11 @@ def pruefe() -> Pruefung:
     mM, mE = s["Markowitz MVO"].mean(), s["Equal Weight"].mean()
     sM, sE = s["Markowitz MVO"].std(), s["Equal Weight"].std()
     p.zahl("Zins, unter dem Markowitz und Gleichgewichtung die Plätze tauschen", "3,4",
-           (mE * sM - mM * sE) / (sM - sE) * HANDELSTAGE * 100, "%")
+           (mE * sM - mM * sE) / (sM - sE) * HANDELSTAGE * 100, "%",
+           notiz="Zins, bei dem beide Sharpe-Quotienten gleich sind")
     p.zahl("Zins, unter dem Risk Parity nach Holm nicht mehr signifikant zurückliegt", "0,8", zinsschwelle(s),
-           "%", ungefaehr=True, toleranz=0.1, notiz="Text: „rund“")
+           "%", ungefaehr=True, toleranz=0.1,
+           notiz="Test von Ledoit/Wolf mit Holm für eine Reihe von Zinssätzen wiederholt")
     p.zahl("Versuche in der Deflated Sharpe Ratio", "vier", log["significance"]["n_strategies"])
     p.zahl("Standardwerte im Universum", "fünfzehn", len(TICKERS))
     # Beitrag jedes Titels zum Renditeabstand: Gewichtsdifferenz × Titelrendite, je Tag,
@@ -335,7 +365,8 @@ def pruefe() -> Pruefung:
         kontrolle = (s[name] - s["Equal Weight"]).mean() * HANDELSTAGE * 100
         rechnung = b_.sum() - (kosten_je_tag[name] - kosten_je_tag["Equal Weight"]).mean() * HANDELSTAGE * 100
         assert abs(kontrolle - rechnung) < 0.01, "Zerlegung stimmt nicht mit den Renditen überein"
-        p.zahl(f"Beitrag von NVIDIA zum Vorsprung vor 1/N, {name}", t_nv, b_["NVDA"], "Pp")
+        p.zahl(f"Beitrag von NVIDIA zum Vorsprung vor 1/N, {name}", t_nv, b_["NVDA"], "Pp",
+               notiz="Gewichtsdifferenz zu 1/N mal Tagesrendite von NVIDIA, gemittelt, mal 252")
     p.zahl("übrige Titel", "vierzehn", len(TICKERS) - 1)
     for name, t_rest in [("Markowitz MVO", "3,4"), ("Random Forest", "2,9")]:
         p.zahl(f"Rückstand auf den übrigen vierzehn Titeln, {name}", t_rest,
@@ -343,11 +374,12 @@ def pruefe() -> Pruefung:
     b_rp = beitrag("Equal Weight", "Risk Parity")
     anteil_nv = b_rp["NVDA"] / b_rp.sum() * 100
     p.aussage("Anteil von NVIDIA am Rückstand von Risk Parity", "drei Fünfteln", abs(anteil_nv - 60) <= 2,
-              f"{de(anteil_nv, 1)} %", notiz=f"{de(anteil_nv, 1)} % (drei Fünftel = 60 %)", woertlich=True)
-    p.aussage("Risk Parity gewichtet NVIDIA am geringsten", "am geringsten",
-              G["Risk Parity"].mean().idxmin() == "NVDA", G["Risk Parity"].mean().idxmin(), woertlich=True)
-    p.aussage("NVIDIA ist der schwankungsstärkste Titel", "schwankungsstärksten", sig.idxmax() == "NVDA",
-              sig.idxmax(), woertlich=True)
+              f"{de(anteil_nv, 1)} %", notiz="drei Fünftel = 60 %", woertlich=True)
+    p.aussage("Titel, den Risk Parity am geringsten gewichtet", "am geringsten",
+              G["Risk Parity"].mean().idxmin() == "NVDA", G["Risk Parity"].mean().idxmin(),
+              notiz=f"mittleres Gewicht {de(G['Risk Parity'].mean().min() * 100, 1)} %", woertlich=True)
+    p.aussage("schwankungsstärkster Titel", "schwankungsstärksten", sig.idxmax() == "NVDA",
+              sig.idxmax(), notiz=f"Volatilität {de(sig.max() * 100, 1)} %", woertlich=True)
     return p
 
 

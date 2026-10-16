@@ -4,9 +4,9 @@ Gemeinsame Werkzeuge für alle Nachrechnungs-Skripte in diesem Ordner.
 FÜR EINSTEIGER — WAS STECKT HIER DRIN?
 Jedes Kapitel-Skript (kapitel_1_einleitung.py, kapitel_2_theorie.py, …)
 braucht dieselben Grundbausteine: die eingefrorenen Kurse laden, die
-Ergebnisdateien des großen Backtests einlesen und am Ende jede berechnete
-Zahl mit der Zahl vergleichen, die im Text der Arbeit steht. Damit das nicht
-in jedem Skript neu geschrieben werden muss, liegt es einmal hier.
+Ergebnisdateien des großen Backtests einlesen und jede Zahl mit ihrer
+Herleitung ausgeben. Damit das nicht in jedem Skript neu geschrieben werden
+muss, liegt es einmal hier.
 
 Der Unterstrich am Anfang des Dateinamens bedeutet: Diese Datei startet man
 nicht selbst, sie wird von den anderen Skripten benutzt.
@@ -26,30 +26,38 @@ portfolio/metrics.py, Tests aus portfolio/significance.py, die Formeln aus
 Kapitel 2 aus portfolio/theory_plots.py. So kann eine nachgerechnete Zahl nie
 mit einer anderen Formel entstehen als die Zahl in der Arbeit.
 
-WIE DER VERGLEICH MIT DEM TEXT FUNKTIONIERT
-Jede Prüfung bekommt die Zahl so, wie sie im Text steht — als Zeichenkette,
-etwa "17,56" oder "fünfzehn". Aus ihr liest das Werkzeug ab, auf wie viele
-Nachkommastellen der Text rundet, rundet die eigene Rechnung genauso
-(kaufmännisch, also 0,5 wird aufgerundet) und vergleicht. Ergebnis je Zahl:
+WAS AUSGEGEBEN WIRD
+Jede Zahl eines Kapitels steht in einer eigenen Zeile, in der Reihenfolge, in
+der sie in der Arbeit vorkommt:
 
-    ✅  stimmt            gerechnet und gerundet genau wie im Text
-    ≈   stimmt ungefähr   nur bei Angaben wie "rund", "etwa", "gut": die
-                          Rechnung liegt nah genug am Wortlaut
-    ❌  weicht ab         der Text sollte geprüft werden
-    ⏭  nicht gerechnet   Zahl aus einer Quelle (Literatur) oder eine Rechnung,
-                          die nur auf Wunsch läuft
+    17,8 %             Volatilität von Coca-Cola
+                       ↳ Herleitung, Quelle oder genauerer Wert
 
-Die Prüfungen stehen in den Skripten in derselben Reihenfolge wie die Zahlen im
-Text. Die Ausgabe liest sich deshalb wie der Text von oben nach unten.
+Links steht der Wert, den die RECHNUNG ergibt — aus Kursen, Ergebnisdateien
+oder Programmcode, gerundet auf so viele Stellen wie in der Arbeit. Zahlen
+aus der Literatur werden nicht gerechnet, sondern mit ihrer Fußnote genannt;
+Definitionen und Annahmen (etwa ein Rechenbeispiel) mit einer Erklärung.
+Am Ende jedes Kapitels steht, wie viele Zahlen woher stammen.
 
-WICHTIG: Der Wortlaut ist in den Skripten EINGETRAGEN — sie lesen die
-Word-Datei nicht selbst. Ändert sich der Text, muss der Eintrag nachgezogen
-werden. Damit das nicht übersehen wird, prüft
+FÜR DEN VERFASSER: ABGLEICH MIT DEM WORTLAUT
+In jedem Skript steht zu jeder Zahl auch, wie sie in der Arbeit geschrieben
+ist (etwa "17,8" oder "fünfzehn"). Daraus liest das Werkzeug die Stellenzahl
+ab, auf die gerundet wird. Mit dem Schalter --abgleich vergleicht es außerdem
+Rechnung und Wortlaut und markiert jede Zahl:
+
+    ✅  stimmt            gerechnet und gerundet genau wie in der Arbeit
+    ≈   stimmt ungefähr   nur bei Angaben wie "rund", "etwa", "gut"
+    ❌  weicht ab         die Stelle in der Arbeit sollte geprüft werden
+    ⏭  nicht gerechnet   Zahl aus der Literatur, Definition oder Annahme
+
+    python skripte/alle_kapitel.py --abgleich
     python skripte/alle_kapitel.py --text DATEI      (.docx oder .md)
-zusätzlich, ob jeder eingetragene Wortlaut im passenden Abschnitt dieser
-Fassung der Arbeit steht (Funktion wortlaut_fehlt unten).
+
+--text prüft zusätzlich, ob jeder eingetragene Wortlaut im passenden
+Abschnitt dieser Fassung der Arbeit steht (Funktion wortlaut_fehlt unten).
 """
 
+import inspect
 import json
 import os
 import re
@@ -157,6 +165,35 @@ def sharpe_exakt(strategie: str, je_tag: bool = False) -> float:
     return eintrag["sr_per_period"] if je_tag else eintrag["sharpe_annual"]
 
 
+def zahl_im_code(quelltext: str, muster: str) -> float:
+    """Eine Zahl aus dem Programmcode lesen, etwa die 252 in "len(train_daily) < 252".
+
+    muster ist ein regulärer Ausdruck mit einer Klammergruppe um die Zahl. So
+    stammt eine Einstellung, die nur im Code steht (und nicht im Laborprotokoll),
+    trotzdem aus dem Code selbst und nicht aus einer Abschrift."""
+    treffer = re.search(muster, quelltext)
+    if treffer is None:
+        raise ValueError(f"Im Programmcode nicht gefunden: {muster}")
+    return float(treffer.group(1))
+
+
+def std_wert(funktion, parameter: str):
+    """Voreinstellung eines Parameters im Programmcode, etwa window=252 in
+    rollierender_sharpe — so kommt die Zahl aus dem Code selbst."""
+    return inspect.signature(funktion).parameters[parameter].default
+
+
+def kursdatei_commits() -> list:
+    """Alle Commits, die data/prices.pkl verändert haben, als (Kennung, Datum),
+    der jüngste zuerst. Leer, wenn git nicht verfügbar ist (kein Klon des Repositorys)."""
+    try:
+        aus = subprocess.run(["git", "log", "--format=%h %ad", "--date=format:%d.%m.%Y", "--",
+                              "data/prices.pkl"], cwd=ROOT, capture_output=True, text=True, check=True).stdout
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return []
+    return [tuple(z.split()) for z in aus.strip().splitlines() if z.strip()]
+
+
 def effektive_titelzahl(g: pd.DataFrame) -> pd.Series:
     """Formel 35 je Termin: 1 / Σ w_i² (Kehrwert des Herfindahl-Index).
     1 bei einem einzigen Titel, 15 bei gleichen Gewichten auf 15 Titel.
@@ -165,7 +202,7 @@ def effektive_titelzahl(g: pd.DataFrame) -> pd.Series:
 
 
 # ────────────────────────────────────────────────────────────────────────
-# Zahlen so lesen, runden und schreiben, wie der Text es tut
+# Zahlen so lesen, runden und schreiben, wie die Arbeit es tut
 # ────────────────────────────────────────────────────────────────────────
 # Zahlwörter, wie sie im Fließtext vorkommen ("fünfzehn Titel", "zehn Basispunkte").
 ZAHLWORT = {"null": 0, "ein": 1, "eine": 1, "einen": 1, "einem": 1, "einer": 1, "eins": 1, "zwei": 2, "drei": 3,
@@ -198,12 +235,17 @@ def lies(text: str) -> tuple:
 
 
 # ────────────────────────────────────────────────────────────────────────
-# Die Prüfliste eines Kapitels
+# Die Zahlenliste eines Kapitels
 # ────────────────────────────────────────────────────────────────────────
-class Pruefung:
-    """Sammelt alle Prüfungen eines Kapitels und druckt sie als Liste.
+# Abgleich mit dem Wortlaut der Arbeit nur auf Wunsch (für den Verfasser):
+# python skripte/alle_kapitel.py --abgleich  oder  … --text DATEI
+ABGLEICH = "--abgleich" in sys.argv or "--text" in sys.argv
 
-    Benutzung in den Kapitel-Skripten, immer in der Reihenfolge des Textes:
+
+class Pruefung:
+    """Sammelt alle Zahlen eines Kapitels und druckt sie als Liste.
+
+    Benutzung in den Kapitel-Skripten, immer in der Reihenfolge der Arbeit:
         p = Pruefung("Kapitel 2 — Theoretische Grundlagen")
         p.abschnitt("2.2 Diversifikation und ihre Grenze")
         p.zahl("Volatilität von Coca-Cola", "17,8", 0.17796 * 100, "%")
@@ -211,27 +253,42 @@ class Pruefung:
         ...
         p.abschluss()
 
-    Jede Zeile der Ausgabe zeigt zuerst die Zahl GENAU SO, wie sie im Text
-    steht, dann, was sie bedeutet. Nur wenn die Rechnung etwas anderes ergibt,
-    folgt dahinter der gerechnete Wert.
+    Vier Arten von Einträgen:
+      zahl     eine Zahl, die gerechnet wird; ausgegeben wird das Ergebnis der
+               Rechnung, gerundet auf die Stellenzahl der Arbeit
+      aussage  ein Befund in Worten oder als Datum (etwa "Markowitz",
+               "31.12.2015"), ermittelt aus Daten oder Programmcode
+      quelle   eine Zahl aus der Literatur; sie wird nicht gerechnet, sondern
+               mit ihrer Fußnote genannt
+      offen    eine Definition, Konstante oder Annahme, mit Erklärung
+
+    Ohne --abgleich zeigt jede Zeile den gerechneten Wert und seine Bedeutung.
+    Mit --abgleich (für den Verfasser) zeigt sie stattdessen den Wortlaut der
+    Arbeit und ein Zeichen, ob die Rechnung ihn bestätigt.
     """
 
     ZEICHEN = {"ok": "✅", "ungefaehr": "≈ ", "falsch": "❌", "offen": "⏭ "}
-    # Jeder Wortlaut, der genau so im Text stehen muss, landet hier — über alle
-    # Kapitel hinweg. Daraus prüft wortlaut_fehlt(), ob er noch im Text steht.
+    # Jeder Wortlaut, der genau so in der Arbeit stehen muss, landet hier — über alle
+    # Kapitel hinweg. Daraus prüft wortlaut_fehlt(), ob er noch in der Arbeit steht.
     WORTLAUT = []
 
     def __init__(self, titel: str):
-        """Kopf der Liste drucken und die Zähler für ✅/≈/❌/⏭ auf null setzen."""
+        """Kopf der Liste drucken und die Zähler auf null setzen."""
         self.titel = titel
-        self.zaehler = {k: 0 for k in self.ZEICHEN}
+        self.zaehler = {k: 0 for k in self.ZEICHEN}                       # für --abgleich
+        self.herkunft = {"berechnet": 0, "literatur": 0, "festlegung": 0}  # für die Standardausgabe
         self.abweichungen = []
         self._aktuell = ""
         print("\n" + "═" * 78)
         print(f"  {titel}")
         print("═" * 78)
-        print("  ✅ nachgerechnet, ergibt genau die Zahl im Text   ≈ passt zu „rund“/„etwa“")
-        print("  ❌ Rechnung ergibt etwas anderes                   ⏭ nicht gerechnet (Grund dahinter)")
+        if ABGLEICH:
+            print("  ✅ nachgerechnet, ergibt genau die Zahl der Arbeit   ≈ passt zu „rund“/„etwa“")
+            print("  ❌ Rechnung ergibt etwas anderes                     ⏭ nicht gerechnet (Grund dahinter)")
+        else:
+            print("  Jede Zahl in der Reihenfolge der Arbeit: links der Wert, den die Rechnung")
+            print("  ergibt (gerundet wie in der Arbeit), rechts seine Bedeutung, darunter (↳)")
+            print("  Herleitung, Quelle oder genauerer Wert.")
 
     def abschnitt(self, name: str) -> None:
         """Neue Zwischenüberschrift, etwa "2.2 Diversifikation und ihre Grenze".
@@ -243,88 +300,117 @@ class Pruefung:
         print("  " + "─" * 74)
 
     def merke(self, was: str, text: str) -> None:
-        """Wortlaut, der so im Text steht, für die Prüfung mit --text vormerken."""
+        """Wortlaut, der so in der Arbeit steht, für den Abgleich mit --text vormerken."""
         Pruefung.WORTLAUT.append((self.titel, self._aktuell, was, text))
 
-    def _zeile(self, status: str, was: str, text: str, gerechnet: str = "", notiz: str = "") -> None:
-        """Eine Ausgabezeile: Zeichen, Zahl wie im Text, Bedeutung — und nur bei
-        Abweichungen dahinter der gerechnete Wert."""
+    def _zeile(self, status: str, herkunft: str, was: str, wert: str, wortlaut: str,
+               gerechnet: str = "", notiz: str = "") -> None:
+        """Eine Ausgabezeile.
+
+        Standard:    gerechneter Wert · Bedeutung · darunter die Notiz.
+        --abgleich:  Zeichen · Wortlaut der Arbeit · Bedeutung · bei Abweichung
+                     der gerechnete Wert."""
         self.zaehler[status] += 1
-        zeile = f"  {self.ZEICHEN[status]}  {text:<16} {was}"
-        if status in ("ungefaehr", "falsch") and gerechnet:
-            zeile += f"   → gerechnet {gerechnet}"
-        print(zeile)
+        self.herkunft[herkunft] += 1
+        if ABGLEICH:
+            zeile = f"  {self.ZEICHEN[status]}  {wortlaut:<16} {was}"
+            if status in ("ungefaehr", "falsch") and gerechnet:
+                zeile += f"   → gerechnet {gerechnet}"
+            print(zeile)
+        else:
+            print(f"  {wert:<18} {was}" if len(wert) < 18 else f"  {wert}  {was}")
         if notiz:
-            print(f"      {'':<16} ↳ {notiz}")
+            print(f"  {'':<18} ↳ {notiz}" if not ABGLEICH else f"      {'':<16} ↳ {notiz}")
         if status == "falsch":
-            self.abweichungen.append(f"§ {self._aktuell}  {was}: Text {text}, gerechnet {gerechnet}"
+            self.abweichungen.append(f"§ {self._aktuell}  {was}: Arbeit {wortlaut}, gerechnet {gerechnet}"
                                      + (f" — {notiz}" if notiz else ""))
 
     def zahl(self, was: str, text: str, ist: float, einheit: str = "",
              ungefaehr: bool = False, toleranz: float = None, notiz: str = "") -> None:
-        """Vergleicht eine gerechnete Zahl mit dem Wortlaut.
+        """Eine gerechnete Zahl.
 
         was        was die Zahl bedeutet, in einfachen Worten
-        text       die Zahl, wie sie im Text steht ("17,56", "−4,9", "2.244", "fünfzehn")
+        text       die Zahl, wie sie in der Arbeit steht ("17,56", "−4,9", "2.244",
+                   "fünfzehn"); aus ihr kommt die Stellenzahl, auf die gerundet wird
         ist        die gerechnete Zahl, schon in derselben Einheit (Prozent als 17,56, nicht 0,1756)
-        ungefaehr  True, wenn der Text "rund/etwa/gut/knapp" sagt; dann gilt die
-                   Toleranz (Standard: das Größere aus einer Einheit der letzten
+        ungefaehr  True bei Angaben wie "rund", "etwa", "gut", "knapp": Dann steht
+                   unter der Zahl zusätzlich ihr ungerundeter Wert (und --abgleich
+                   lässt eine Toleranz zu: das Größere aus einer Einheit der letzten
                    Stelle und 3 % des Werts)
         """
         self.merke(was, text)
         soll, stellen = lies(text)
-        if text.strip().lower() in ZAHLWORT:            # "vier Prozent" statt "vier %"
-            einheit = {"%": "Prozent", "Pp": "Prozentpunkt" if soll == 1 else "Prozentpunkte"}.get(einheit, einheit)
-        anzeige = text + (f" {einheit}" if einheit else "")
-        genau = de(ist, max(stellen + 2, 2)) + (f" {einheit}" if einheit else "")
+        genau = de(ist, max(stellen + 2, 2))
         if float(runde(ist, stellen)) == soll:
-            self._zeile("ok", was, anzeige, notiz=notiz)
-            return
-        if ungefaehr:
-            tol = toleranz if toleranz is not None else max(10 ** -stellen, abs(soll) * 0.03)
-            if abs(ist - soll) <= tol:
-                self._zeile("ungefaehr", was, anzeige, genau, notiz)
-                return
-        self._zeile("falsch", was, anzeige, genau, notiz)
+            status = "ok"
+        elif ungefaehr and abs(ist - soll) <= (toleranz if toleranz is not None
+                                               else max(10 ** -stellen, abs(soll) * 0.03)):
+            status = "ungefaehr"
+        else:
+            status = "falsch"
+        wert = de(ist, stellen) + (f" {einheit}" if einheit else "")
+        wortlaut = text
+        if text.strip().lower() in ZAHLWORT:            # "vier Prozent" statt "vier %"
+            wortlaut += " " + {"%": "Prozent", "Pp": "Prozentpunkt" if soll == 1 else "Prozentpunkte"}.get(einheit, einheit)
+        elif einheit:
+            wortlaut += f" {einheit}"
+        gerundet_anders = float(runde(ist, stellen)) != float(runde(ist, stellen + 2))
+        if ungefaehr and gerundet_anders and not ABGLEICH and "ungerundet" not in notiz:
+            zusatz = f"ungerundet {genau}" + (f" {einheit}" if einheit else "")
+            notiz = f"{notiz}; {zusatz}" if notiz else zusatz
+        self._zeile(status, "berechnet", was, wert, wortlaut.strip(), genau + (f" {einheit}" if einheit else ""), notiz)
 
     def aussage(self, was: str, text: str, wahr: bool, gerechnet: str, notiz: str = "",
                 woertlich: bool = False) -> None:
-        """Prüft eine Aussage in Worten ("sieben der fünfzehn", "Markowitz").
+        """Ein Befund in Worten oder als Datum, ermittelt aus Daten oder Programmcode.
 
-        woertlich=True, wenn `text` genau so in der Arbeit steht (etwa ein Datum
-        oder "rund die Hälfte"); dann prüft --text auch, ob er noch dort steht.
-        Der gerechnete Befund erscheint nur, wenn die Aussage nicht stimmt — außer
-        er steht in der Notiz."""
+        text       wie die Arbeit ihn formuliert ("Markowitz", "31.12.2015")
+        wahr       ob die Rechnung ihn bestätigt
+        gerechnet  was die Rechnung ergibt — das ist der Wert, der ausgegeben wird
+        woertlich  True, wenn `text` genau so in der Arbeit steht; dann prüft --text,
+                   ob er dort noch steht"""
         if woertlich:
             self.merke(was, text)
-        self._zeile("ok" if wahr else "falsch", was, text, gerechnet, notiz)
+        self._zeile("ok" if wahr else "falsch", "berechnet", was, gerechnet, text, gerechnet, notiz)
 
     def quelle(self, was: str, text: str, beleg: str) -> None:
         """Zahl aus der Literatur: Sie wird nicht gerechnet, sondern belegt.
-        Mit --text wird trotzdem geprüft, ob sie noch so im Text steht."""
+        Mit --text wird trotzdem geprüft, ob sie noch so in der Arbeit steht."""
         self.merke(was, text)
-        self._zeile("offen", was, text, notiz=f"Zahl aus der Quelle ({beleg})")
+        wert = text                                       # Ausgabe wie die übrigen Zahlen: Ziffern,
+        try:                                              # Tausender mit Leerzeichen ("30 000")
+            zahl_, stellen = lies(text)
+            wert = f"{zahl_:,.0f}".replace(",", " ") if zahl_ >= 10_000 else de(zahl_, stellen)
+        except ValueError:                                # Wörter wie "die Hälfte" bleiben stehen
+            pass
+        self._zeile("offen", "literatur", was, wert, text, notiz=f"aus der Literatur ({beleg})")
 
     def offen(self, was: str, text: str, grund: str) -> None:
-        """Zahl, die hier bewusst nicht gerechnet wird — mit Begründung."""
-        self._zeile("offen", was, text, notiz=grund)
+        """Definition, Konstante oder Annahme, die nicht aus den Daten stammt — mit Erklärung."""
+        self._zeile("offen", "festlegung", was, text, text, notiz=grund)
 
     def abschluss(self) -> int:
         """Druckt die Zusammenfassung und gibt die Zahl der Abweichungen zurück."""
-        z = self.zaehler
         print("\n  " + "─" * 74)
-        print(f"  Ergebnis {self.titel}: {z['ok']} ✅   {z['ungefaehr']} ≈   "
-              f"{z['falsch']} ❌   {z['offen']} ⏭")
-        if self.abweichungen:
-            print("\n  Abweichungen, die im Text geprüft werden sollten:")
-            for a in self.abweichungen:
-                print(f"    • {a}")
+        if ABGLEICH:
+            z = self.zaehler
+            print(f"  Ergebnis {self.titel}: {z['ok']} ✅   {z['ungefaehr']} ≈   "
+                  f"{z['falsch']} ❌   {z['offen']} ⏭")
+            if self.abweichungen:
+                print("\n  Abweichungen, die in der Arbeit geprüft werden sollten:")
+                for a in self.abweichungen:
+                    print(f"    • {a}")
+        else:
+            h = self.herkunft
+            print(f"  {self.titel.split(' — ')[0]}: {sum(h.values())} Zahlen — {h['berechnet']} aus Daten und "
+                  f"Programmcode berechnet, {h['literatur']} aus der Literatur, "
+                  f"{h['festlegung']} Definitionen und Annahmen")
         print()
-        return z["falsch"]
+        return self.zaehler["falsch"]
 
 
 # ────────────────────────────────────────────────────────────────────────
-# Steht der eingetragene Wortlaut noch im Text?
+# Für den Verfasser: Steht der eingetragene Wortlaut noch in der Arbeit?
 # ────────────────────────────────────────────────────────────────────────
 def _vereinheitlicht(text: str) -> str:
     """Schreibvarianten angleichen, die nichts an der Zahl ändern: Minus- und

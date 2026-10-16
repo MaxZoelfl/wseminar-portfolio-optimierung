@@ -1,6 +1,7 @@
 # Von der Hyperparametersuche gewählte Einstellungen des Random Forest je Rebalancing-Termin.
-# Quelle: Laufprotokoll (run.log) des maßgeblichen Laufs, Zeilen 'RF-Params'. max_features und
-# max_samples schreibt der Backtest nicht ins Protokoll. Der Wiederholungslauf vom 25.08.2026 ist bitgleich.
+# Quelle: Laufprotokoll (run.log) des Laufs vom 15.08.2026, Zeilen 'RF-Params'; seine Ergebnisdateien sind
+# mit denen des maßgeblichen Laufs vom 25.08.2026 bitgleich. max_features und max_samples schreibt der
+# Backtest nicht ins Protokoll.
 termin,n_estimators,max_depth,min_samples_leaf
 2015-01-31,187,7,13
 2015-02-28,187,7,13

@@ -1,11 +1,11 @@
 """
-Kapitel 2 — Theoretische Grundlagen: jede Zahl des Kapitels, in Textreihenfolge.
+Kapitel 2 — Theoretische Grundlagen: jede Zahl des Kapitels, in der Reihenfolge der Arbeit.
 
 FÜR EINSTEIGER — WAS MACHT DIESES SKRIPT?
 Kapitel 2 erklärt die Theorie (Diversifikation, Effizienzrand, Sharpe-Quotient,
 Schätzfehler) und belegt sie jeweils an den fünfzehn Aktien der Arbeit. Dieses
-Skript rechnet all diese Beispielzahlen noch einmal aus und vergleicht sie mit
-dem Text. Es braucht dafür nur die eingefrorenen Kurse und die Tagesrenditen
+Skript rechnet all diese Beispielzahlen aus den Kursen nach und zeigt, wie sie
+entstehen. Es braucht dafür nur die eingefrorenen Kurse und die Tagesrenditen
 der Strategien, keinen neuen Backtest.
 
 Die Formeln kommen aus portfolio/theory_plots.py — denselben Funktionen, mit
@@ -23,6 +23,7 @@ AUFRUF (virtuelle Umgebung aktiviert, aus einem beliebigen Ordner):
 """
 
 import inspect
+import re
 import sys
 from itertools import combinations
 from pathlib import Path
@@ -38,12 +39,12 @@ from portfolio.optimizers import MarkowitzLedoitWolf, RiskParityPortfolio   # no
 from portfolio.theory_plots import (jahreskennzahlen, varianzminimale_mischung,   # noqa: E402
                                     zwei_anlagen_varianz, diversifikation,
                                     gleichgewichtete_varianz, konfidenzintervalle,
-                                    effizienzrand_geschlossen)
+                                    effizienzrand_geschlossen, plot_two_asset_diversification)
 
 
 def zeitraum(p: Pruefung, r: pd.DataFrame) -> None:
-    """Die Bildunterschriften nennen „Tagesdaten 2015–2024“: erstes und letztes
-    Jahr der Renditen, aus denen die Abbildung gezeichnet ist."""
+    """Datenzeitraum einer Abbildung: erster und letzter Tag der Renditen, aus
+    denen sie gezeichnet ist (in der Bildunterschrift: Tagesdaten 2015–2024)."""
     p.aussage("Datenzeitraum der Abbildung", "2015–2024",
               (r.index[0].year, r.index[-1].year) == (2015, 2024),
               f"{r.index[0]:%d.%m.%Y} bis {r.index[-1]:%d.%m.%Y}", woertlich=True)
@@ -89,7 +90,7 @@ def shrinkage_in_den_fenstern():
 
 
 def pruefe() -> Pruefung:
-    """Alle Zahlen aus Kapitel 2, in der Reihenfolge des Textes."""
+    """Alle Zahlen aus Kapitel 2, in der Reihenfolge der Arbeit."""
     p = Pruefung("Kapitel 2 — Theoretische Grundlagen")
     proto = protokoll()["experiment_meta"]
     rf = proto["risk_free_rate"]
@@ -103,9 +104,14 @@ def pruefe() -> Pruefung:
     p.abschnitt("2.2 Diversifikation und ihre Grenze")
     # Abbildung 1: Zwei-Anlagen-Fall, A = Coca-Cola, B = Caterpillar (Formel 4 und 5).
     sA, sB, rho = sigma["KO"], sigma["CAT"], Korr.loc["KO", "CAT"]
-    gezeichnet = {-1.0, -0.5, 0.0, round(rho, 6), 1.0}      # die Kurven in Abbildung 1
-    p.aussage("Abb. 1: Zahl der gezeichneten Korrelationen", "fünf", len(gezeichnet) == 5,
-              f"{len(gezeichnet)}", notiz="−1, −0,5, 0, die gemessene und +1", woertlich=True)
+    # Die Kurven in Abbildung 1 stehen im Zeichencode als Liste "kurven"; jede Zeile
+    # beginnt mit ihrer Korrelation (rho_emp = die gemessene).
+    zeichencode = inspect.getsource(plot_two_asset_diversification)
+    liste = zeichencode[zeichencode.index("kurven = ["):zeichencode.index("]", zeichencode.index("kurven = ["))]
+    gezeichnet = re.findall(r"^\s*\(\s*(-?\d+\.\d+|rho_emp)\s*,", liste, re.MULTILINE)
+    p.zahl("Abb. 1: Zahl der gezeichneten Korrelationen", "fünf", len(gezeichnet),
+           notiz=" · ".join("die gemessene" if k == "rho_emp" else de(float(k), 2) for k in gezeichnet)
+           + " (Liste kurven in portfolio/theory_plots.py)")
     p.zahl("Abb. 1: gemessene Korrelation Coca-Cola/Caterpillar", "0,35", rho)
     zeitraum(p, r)
     p.zahl("Volatilität von Coca-Cola", "17,8", sA * 100, "%")
@@ -126,7 +132,7 @@ def pruefe() -> Pruefung:
     p.zahl("Anteil des Kovarianzterms an dieser Varianz", "84,3", (N - 1) / N * cov_quer / var_15 * 100, "%")
     abstand = (np.sqrt(var_15) - np.sqrt(cov_quer)) * 100
     p.aussage("Abstand zwischen 15 Titeln und Grenzwert", "weniger als 0,9 Pp", abstand < 0.9,
-              f"{de(abstand, 2)} Pp", notiz=f"genau {de(abstand, 2)} Prozentpunkte")
+              f"{de(abstand, 2)} Pp", notiz=f"{de(np.sqrt(var_15) * 100, 2)} % − {de(np.sqrt(cov_quer) * 100, 2)} %")
     p.merke("Abstand zum Grenzwert", "0,9")
     # Erreichter Teil des Rückgangs: von einem Titel (√σ̄²) bis zu 15, gemessen am Weg bis zum Grenzwert
     anteil = (np.sqrt(var_quer) - np.sqrt(var_15)) / (np.sqrt(var_quer) - np.sqrt(cov_quer))
@@ -141,7 +147,7 @@ def pruefe() -> Pruefung:
     p.zahl("Rendite des Minimum-Varianz-Portfolios", "9,8", rand["mu_mvp"] * 100, "%")
     p.zahl("Volatilität des Tangentialportfolios", "52,8", rand["sig_tan"] * 100, "%")
     p.zahl("größter Leerverkauf im Tangentialportfolio", "79", -rand["w_tan"].min() * 100, "%")
-    negativ = sorted(rand["w_mvp"][rand["w_mvp"] < 0] * 100)    # der Text nennt genau zwei
+    negativ = sorted(rand["w_mvp"][rand["w_mvp"] < 0] * 100)    # die Arbeit nennt genau zwei
     if len(negativ) != 2:
         p.aussage("Zahl der negativen Gewichte im Minimum-Varianz-Portfolio", "zwei", False, str(len(negativ)))
     for text, wert in zip(["-4,9", "-4,6"], negativ):
@@ -180,14 +186,14 @@ def pruefe() -> Pruefung:
     verhaeltnis = (se_varianz(T) / se_varianz(monate)).median()
     p.aussage("Standardfehler der Varianz sinkt von Monats- auf Tagesdaten auf", "rund ein Fünftel",
               1 / 5.5 < verhaeltnis < 1 / 4.5, f"1/{de(1 / verhaeltnis, 1)}",
-              notiz=f"1/{de(1 / verhaeltnis, 1)} im Median der fünfzehn Titel", woertlich=True)
+              notiz="Median der fünfzehn Titel, Formel 16 mit 119 Monats- und 2495 Tagesrenditen",
+              woertlich=True)
     p.zahl("Abb. 3: Faktor des 95-%-Intervalls", "1,96", norm.ppf(0.975))
     mit_null = [t for t in TICKERS if mu_ci[t] - halb[t] <= 0 <= mu_ci[t] + halb[t]]
     p.zahl("Abb. 3: Titel, deren Intervall die Null enthält", "sieben", len(mit_null),
            notiz=", ".join(mit_null))
     zeitraum(p, r)
-    p.zahl("Beobachtungsdauer, gerundet", "zehn", h, "Jahre", ungefaehr=True, toleranz=0.5,
-           notiz="Text: „knapp zehn Jahren“")
+    p.zahl("Beobachtungsdauer, gerundet", "zehn", h, "Jahre", ungefaehr=True, toleranz=0.5)
     p.zahl("Intervall ± beim ruhigsten Titel", "11", halb.min() * 100, "Pp", notiz=halb.idxmin())
     p.zahl("Intervall ± beim unruhigsten Titel", "30", halb.max() * 100, "Pp", notiz=halb.idxmax())
     paare = list(combinations(TICKERS, 2))
@@ -195,7 +201,8 @@ def pruefe() -> Pruefung:
     p.zahl("Titelpaare", "105", len(paare))
     p.zahl("davon mit überlappenden Intervallen", "94", len(paare) - len(getrennt))
     p.zahl("Ausnahmen, sämtlich mit NVIDIA", "elf", len(getrennt),
-           notiz="alle mit NVIDIA" if all("NVDA" in x for x in getrennt) else "nicht alle mit NVIDIA!")
+           notiz="jedes dieser Paare enthält NVIDIA" if all("NVDA" in x for x in getrennt)
+           else "Paare: " + ", ".join(f"{i}/{j}" for i, j in getrennt))
     p.quelle("Jobson/Korkie: Sharpe-Quotient des geschätzten Optimums", "0,08", "Fn 38")
     p.quelle("Jobson/Korkie: Sharpe-Quotient der Gleichgewichtung", "0,27", "Fn 38")
     p.quelle("Best/Grauer: Anteil der Titel, die aus dem Portfolio fallen", "die Hälfte", "Fn 40")
@@ -207,12 +214,12 @@ def pruefe() -> Pruefung:
     p.zahl("n in p/n = 15/756: Handelstage je volles Schätzfenster", "756", n_voll)
     p.zahl("Verhältnis p/n", "0,02", N / n_voll, ungefaehr=True)
     p.aussage("Schrumpfungsintensität im Mittel", "unter drei Prozent", delta.mean() < 3,
-              f"{de(delta.mean(), 2)} %", notiz=f"Mittel {de(delta.mean(), 2)} %, "
-                                                 f"Median {de(delta.median(), 2)} %", woertlich=True)
+              f"{de(delta.mean(), 2)} %", notiz=f"Mittel über die 119 Schätzfenster; Median "
+                                                 f"{de(delta.median(), 2)} %", woertlich=True)
     groesste = max(verschiebung.values())
     p.zahl("größte Gewichtsverschiebung durch die Shrinkage", "einen", groesste, "Pp", ungefaehr=True,
-           toleranz=0.5, notiz="Text: „rund einen Prozentpunkt“; " +
-           ", ".join(f"{KURZ[n]} {de(v, 2)} Pp" for n, v in verschiebung.items()))
+           toleranz=0.5, notiz="größte Verschiebung über alle Termine, ungerundet: " +
+           ", ".join(f"{n} {de(v, 2)} Pp" for n, v in verschiebung.items()))
     p.zahl("Obergrenze je Titel", "20", proto["max_weight"] * 100, "%")
     p.quelle("Qian: Kapitalanteil der Aktien im 60/40-Portfolio", "60", "Fn 48")
     p.quelle("Qian: Risikoanteil der Aktien", "93", "Fn 48")

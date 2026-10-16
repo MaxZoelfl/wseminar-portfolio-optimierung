@@ -2,30 +2,28 @@
 Alle Nachrechnungen auf einmal — mit einer Übersicht am Ende.
 
 FÜR EINSTEIGER — WAS MACHT DIESES SKRIPT?
-Es startet nacheinander die Prüfungen für Kapitel 1 bis 7 und den Anhang und
-fasst am Schluss in einer Tabelle zusammen, wie viele Zahlen je Kapitel
-stimmen und wo der Text vom Ergebnis abweicht. Jedes Kapitel listet seine
-Zahlen in derselben Reihenfolge wie der Text. Das ist der schnellste Weg,
-nach einer Textänderung zu sehen, ob noch alle Zahlen passen.
+Es startet nacheinander die Skripte für Kapitel 1 bis 7 und den Anhang. Jedes
+listet die Zahlen seines Kapitels in der Reihenfolge der Arbeit auf, mit dem
+Wert, den die Rechnung aus Kursen, Ergebnisdateien und Programmcode ergibt,
+und mit seiner Herleitung. Am Schluss steht je Kapitel, wie viele Zahlen
+berechnet sind, wie viele aus der Literatur stammen und wie viele
+Definitionen oder Annahmen sind.
 
-Zusammen dauert das gut eine Minute. Die lange Rechnung für Kapitel 3
+Zusammen dauert das rund anderthalb Minuten. Die lange Rechnung für Kapitel 3
 (Korrelation der Bäume, rund 55 Minuten) liest das Skript aus einer
 Referenzdatei; neu rechnen lässt sie sich einzeln:
     python skripte/kapitel_3_random_forest.py --baumkorrelation
 
-Kapitel 1 enthält nur Zahlen aus der Literatur; sie erscheinen als ⏭ mit ihrer
-Fußnote, damit die Ausgabe aller Kapitel ein vollständiges Verzeichnis ist.
-
-STEHT DER EINGETRAGENE WORTLAUT NOCH IM TEXT?
-Die Skripte vergleichen mit dem Wortlaut, der in ihnen eingetragen ist — die
-Word-Datei lesen sie nicht. Mit --text prüft dieses Skript am Ende zusätzlich,
-ob jede eingetragene Zahl in der angegebenen Fassung der Arbeit vorkommt. So
-fällt auf, wenn eine Textstelle geändert wurde, das Skript aber noch die alte
-Zahl prüft. Für eine .docx-Datei wird pandoc gebraucht; eine Markdown-Fassung
-geht ohne.
+FÜR DEN VERFASSER: ABGLEICH MIT DEM WORTLAUT
+    --abgleich      vergleicht jede gerechnete Zahl mit dem Wortlaut, der im
+                    Skript eingetragen ist, und markiert sie (✅ ≈ ❌ ⏭)
+    --text DATEI    dasselbe und zusätzlich: Steht jeder eingetragene Wortlaut
+                    im passenden Abschnitt dieser Fassung der Arbeit? (.docx
+                    braucht pandoc, .md geht ohne)
 
 AUFRUF (virtuelle Umgebung aktiviert, aus einem beliebigen Ordner):
     python skripte/alle_kapitel.py
+    python skripte/alle_kapitel.py --abgleich
     python skripte/alle_kapitel.py --text pfad/zur/Arbeit.docx
 """
 
@@ -39,7 +37,7 @@ from pathlib import Path
 # beziehen, aus dem das Skript gestartet wurde.
 STARTORDNER = Path.cwd()
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _werkzeuge import wortlaut_fehlt                 # noqa: E402
+from _werkzeuge import ABGLEICH, wortlaut_fehlt       # noqa: E402
 
 SKRIPTE = [("Kapitel 1", "kapitel_1_einleitung"),
            ("Kapitel 2", "kapitel_2_theorie"),
@@ -52,11 +50,14 @@ SKRIPTE = [("Kapitel 1", "kapitel_1_einleitung"),
 
 
 def main() -> int:
-    """Alle Kapitel prüfen, Übersicht drucken, auf Wunsch den Wortlaut abgleichen.
-    Rückgabe 1, wenn eine Zahl abweicht oder (mit --text) ein Wortlaut fehlt."""
+    """Alle Kapitel ausgeben, Übersicht drucken, auf Wunsch mit der Arbeit abgleichen.
+    Rückgabe 1, wenn eine Rechnung vom eingetragenen Wortlaut abweicht oder (mit
+    --text) ein Wortlaut in der Arbeit fehlt."""
     parser = argparse.ArgumentParser(description="Alle Zahlen der Arbeit nachrechnen.")
+    parser.add_argument("--abgleich", action="store_true",
+                        help="jede Zahl mit dem eingetragenen Wortlaut der Arbeit vergleichen")
     parser.add_argument("--text", metavar="DATEI",
-                        help="Fassung der Arbeit (.docx oder .md): prüfen, ob jeder "
+                        help="Fassung der Arbeit (.docx oder .md): zusätzlich prüfen, ob jeder "
                              "eingetragene Wortlaut darin vorkommt")
     # parse_known_args: Schalter der Kapitel-Skripte (etwa --baumkorrelation) stören nicht.
     argumente, _ = parser.parse_known_args()
@@ -71,17 +72,25 @@ def main() -> int:
     print("═" * 78)
     print("  GESAMTÜBERSICHT")
     print("═" * 78)
-    print(f"  {'':<12}{'✅ stimmt':>11}{'≈ ungefähr':>12}{'❌ weicht ab':>14}{'⏭ offen':>10}")
-    summe = [0, 0, 0, 0]
+    if ABGLEICH:
+        spalten = [("ok", "✅ stimmt"), ("ungefaehr", "≈ ungefähr"), ("falsch", "❌ weicht ab"), ("offen", "⏭ offen")]
+        zaehler = lambda p: p.zaehler
+    else:
+        spalten = [("berechnet", "berechnet"), ("literatur", "Literatur"), ("festlegung", "Definition/Annahme")]
+        zaehler = lambda p: p.herkunft
+    breite = [max(len(t) + 2, 11) for _, t in spalten]
+    print(f"  {'':<12}" + "".join(f"{t:>{b}}" for (_, t), b in zip(spalten, breite)))
+    summe = {k: 0 for k, _ in spalten}
     for kapitel, p in ergebnisse:
-        z = p.zaehler
-        werte = [z["ok"], z["ungefaehr"], z["falsch"], z["offen"]]
-        summe = [a + b for a, b in zip(summe, werte)]
-        print(f"  {kapitel:<12}{werte[0]:>11}{werte[1]:>12}{werte[2]:>14}{werte[3]:>10}")
-    print("  " + "─" * 59)
-    print(f"  {'zusammen':<12}{summe[0]:>11}{summe[1]:>12}{summe[2]:>14}{summe[3]:>10}")
+        z = zaehler(p)
+        for k, _ in spalten:
+            summe[k] += z[k]
+        print(f"  {kapitel:<12}" + "".join(f"{z[k]:>{b}}" for (k, _), b in zip(spalten, breite)))
+    print("  " + "─" * (10 + sum(breite)))
+    print(f"  {'zusammen':<12}" + "".join(f"{summe[k]:>{b}}" for (k, _), b in zip(spalten, breite)))
+    abweichungen = sum(p.zaehler["falsch"] for _, p in ergebnisse)
     alle = [a for _, p in ergebnisse for a in p.abweichungen]
-    if alle:
+    if ABGLEICH and alle:
         print("\n  Alle Abweichungen auf einen Blick:")
         for a in alle:
             print(f"    • {a}")
@@ -93,15 +102,15 @@ def main() -> int:
         print(f"  WORTLAUT-ABGLEICH mit {textdatei.name}")
         print("═" * 78)
         if veraltet:
-            print("  Diese eingetragenen Zahlen stehen so nicht im Text. Entweder wurde")
+            print("  Diese eingetragenen Zahlen stehen so nicht in der Arbeit. Entweder wurde")
             print("  die Stelle geändert (dann den Eintrag im Skript nachziehen), oder")
-            print("  der Text schreibt sie anders (etwa als Wort):\n")
+            print("  die Arbeit schreibt sie anders (etwa als Wort):\n")
             for titel, abschnitt, was, wortlaut in veraltet:
                 print(f"    • {titel.split(' — ')[0]}, § {abschnitt}: {was} — „{wortlaut}“")
         else:
-            print("  Jeder eingetragene Wortlaut steht im Text.")
+            print("  Jeder eingetragene Wortlaut steht in der Arbeit.")
     print()
-    return 1 if summe[2] or veraltet else 0
+    return 1 if abweichungen or veraltet else 0
 
 
 if __name__ == "__main__":

@@ -15,7 +15,7 @@ LIMITATIONS.md — und dieses Skript rechnet es nach:
      (portfolio/significance.py, genau wie im Backtest).
 
 Es gehört nicht zur Nachrechnung der Arbeit (alle_kapitel.py), weil die Zahlen
-nicht im Text stehen, sondern nur in LIMITATIONS.md.
+nicht in der Arbeit stehen, sondern nur in LIMITATIONS.md.
 
 AUFRUF (virtuelle Umgebung aktiviert, aus einem beliebigen Ordner):
     python skripte/gegenrechnung_drift.py         # rund 15 Sekunden

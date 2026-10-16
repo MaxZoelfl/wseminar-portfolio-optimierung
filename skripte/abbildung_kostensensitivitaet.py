@@ -124,9 +124,10 @@ def main() -> None:
     abw = (probe - referenz["Sharpe Ratio"]).abs().max()
     # 'performance_metrics.csv' ist auf vier Nachkommastellen gerundet — mehr
     # Übereinstimmung als 5e-5 ist deshalb gar nicht prüfbar.
-    print(f"Kontrolle bei 10 bp — größte Abweichung zum Lauf: {abw:.2e}")
-    print("  ✓ im Rahmen der Rundung exakt reproduziert\n"
-          if abw < 1e-4 else "  ⚠ Rekonstruktion weicht ab!\n")
+    print(f"Kontrolle bei 10 bp (dem Kostensatz des Laufs) — größte Abweichung der Sharpe-Quotienten "
+          f"zu output/performance_metrics.csv: {abw:.2e}")
+    print("  Das liegt innerhalb der Rundung dieser Datei auf vier Stellen: Die Umrechnung gibt den Lauf wieder.\n"
+          if abw < 1e-4 else "  Das liegt außerhalb der Rundung dieser Datei: Die Umrechnung gibt den Lauf nicht wieder.\n")
 
     pivot = sharpe_tabelle(tab)
     print("Sharpe Ratio je Kostensatz")

@@ -27,7 +27,7 @@ Ideen samt Status in [Ideen-Backlog.md](Ideen-Backlog.md).
 wseminar-portfolio-optimierung/
 ├── portfolio/      das Paket — hier steckt die gesamte Implementierung
 ├── tests/          37 Unit-Tests, ohne Netzwerk, ~4 s (+ conftest.py)
-├── skripte/        Nachrechnung: prüft jede eigene Zahl der Arbeit ohne neuen Backtest
+├── skripte/        Nachrechnung: jede Zahl der Arbeit mit Herleitung, ohne neuen Backtest
 ├── data/           prices.pkl — eingefrorene Kurse, Abruf 15.08.2026
 ├── output/         DER Ergebnisordner — 20 Abbildungen, 8 CSV, 1 JSON-Protokoll
 ├── venv/           Python-Umgebung (nicht versioniert, ~547 MB)
@@ -59,21 +59,20 @@ jedes importiert nur nach unten, deshalb gibt es keine Zyklen
 
 ### Die Nachrechnung in `skripte/`
 
-Für jedes Kapitel gibt es ein Skript, das seine Zahlen in der Reihenfolge des
-Textes durchgeht, jede eigene Zahl aus den Ergebnisdateien neu berechnet und mit
-dem Wortlaut der Arbeit vergleicht (✅ stimmt · ≈ ungefähr · ❌ weicht ab ·
-⏭ Zahl aus der Literatur). Keines führt den großen Backtest aus, und keines hat
-eigene Formeln: Sie benutzen dieselben Funktionen wie der Backtest und die
-Abbildungen. Ausführlich, mit Anleitung zum Lesen der Ausgabe:
+Für jedes Kapitel gibt es ein Skript, das seine Zahlen in der Reihenfolge der
+Arbeit durchgeht, jede eigene Zahl aus Kursen, Ergebnisdateien oder Programmcode
+neu berechnet und ihre Herleitung angibt. Zahlen aus der Literatur stehen mit
+ihrer Fußnote dabei. Keines führt den großen Backtest aus, und keines hat eigene
+Formeln: Sie benutzen dieselben Funktionen wie der Backtest und die Abbildungen.
+Ausführlich, mit Anleitung zum Lesen der Ausgabe:
 **[skripte/README.md](skripte/README.md)**.
 
-| Skript | Prüft | Dauer |
+| Skript | Inhalt | Dauer |
 |---|---|---|
-| **`skripte/alle_kapitel.py`** | alles auf einmal, mit Übersicht am Ende | ~1 min |
-| `skripte/alle_kapitel.py --text DATEI` | zusätzlich: steht jede eingetragene Zahl noch im passenden Abschnitt dieser Fassung der Arbeit? | ~1 min |
+| **`skripte/alle_kapitel.py`** | alles auf einmal, mit Übersicht am Ende | ~1,5 min |
 | `skripte/kapitel_1_einleitung.py` … `kapitel_7_fazit.py` | je ein Kapitel (Kapitel 1 enthält nur Literaturzahlen) | Sekunden |
 | `skripte/kapitel_3_random_forest.py --baumkorrelation` | rechnet die Baumkorrelation aus § 3.3 neu, statt sie aus der Referenzdatei zu lesen | ~55 min |
-| `skripte/anhang.py` | Anhang A–C | Sekunden |
+| `skripte/anhang.py` | Anhang A–C, einschließlich Nachbau des zuletzt trainierten Waldes (Abbildung A3) | ~35 s |
 | `skripte/abbildung_kostensensitivitaet.py` | **erzeugt** Abbildung 5 (`output/13_…`) und ihre CSV neu | Sekunden |
 | `skripte/gegenrechnung_drift.py` | beziffert die festen Gewichte im Monat (LIMITATIONS.md § 11.1) | Sekunden |
 
@@ -168,17 +167,18 @@ sein, sonst bricht `main()` früh ab. Frischer Download: Datei löschen oder
 Zahlen der Arbeit vergleichbar (Yahoo liefert bei jedem Abruf minimal andere
 Kurse, siehe LIMITATIONS.md § 12).
 
-### 3. Alle Zahlen der Arbeit nachrechnen (gut eine Minute)
+### 3. Alle Zahlen der Arbeit nachrechnen (rund anderthalb Minuten)
 
 ```bash
 python skripte/alle_kapitel.py
 ```
 
-Geht die Arbeit Kapitel für Kapitel in Textreihenfolge durch, rechnet jede eigene
-Zahl aus den Ergebnisdateien neu, vergleicht sie mit dem Text und listet am Ende
-alle Abweichungen auf. Einzelne Kapitel lassen sich
-auch getrennt prüfen (`python skripte/kapitel_6_ergebnisse.py`); wie die Ausgabe zu
-lesen ist, erklärt [skripte/README.md](skripte/README.md).
+Geht die Arbeit Kapitel für Kapitel in ihrer Reihenfolge durch, rechnet jede
+eigene Zahl aus den Ergebnisdateien neu und zeigt ihre Herleitung; am Ende steht,
+wie viele Zahlen je Kapitel berechnet sind und wie viele aus der Literatur
+stammen. Einzelne Kapitel lassen sich auch getrennt aufrufen
+(`python skripte/kapitel_6_ergebnisse.py`); wie die Ausgabe zu lesen ist,
+erklärt [skripte/README.md](skripte/README.md).
 
 Die fünf Theorie-Abbildungen (`output/14`–`18`) zeigen keine Strategieergebnisse,
 sondern Eigenschaften der Kursdaten (Modul `portfolio/theory_plots.py`). Sie
@@ -303,7 +303,7 @@ automatisch die venv:
 | **Tests (alle 37)** | die Prüfung von oben |
 | **Backtest komplett (⚠ ÜBERSCHREIBT output/)** | der volle Lauf, rund 77 min |
 | **Backtest schnell (→ output_probelauf/)** | der Probelauf |
-| **Alle Zahlen der Arbeit prüfen** | `skripte/alle_kapitel.py` |
+| **Alle Zahlen der Arbeit nachrechnen** | `skripte/alle_kapitel.py` |
 | **Abbildung 5: Kostensensitivität** | `skripte/abbildung_kostensensitivitaet.py` |
 | **Kapitel 3 vollständig (lang)** | `skripte/kapitel_3_random_forest.py --baumkorrelation` |
 | **Aktuelle Datei ausführen** | die geöffnete Datei, z. B. `skripte/kapitel_6_ergebnisse.py` |
@@ -417,7 +417,7 @@ Literaturverzeichnis steht in **[LIMITATIONS.md](LIMITATIONS.md)**.
 | Ich möchte … | Befehl | Dauer |
 |---|---|---|
 | prüfen, ob alles funktioniert | `MPLBACKEND=Agg python -m pytest tests/ -q` | ~4 s |
-| alle Zahlen der Arbeit nachrechnen | `python skripte/alle_kapitel.py` | ~1 min |
+| alle Zahlen der Arbeit nachrechnen | `python skripte/alle_kapitel.py` | ~1,5 min |
 | gefahrlos ausprobieren | `PORTFOLIO_CONFIG=config.schnell.json python -m portfolio` | Minuten |
 | das volle Experiment laufen lassen | `python -m portfolio` | ~77 min |
 

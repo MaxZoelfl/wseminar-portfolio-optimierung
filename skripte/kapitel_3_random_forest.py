@@ -1,6 +1,6 @@
 """
 Kapitel 3 — Random-Forest-gestützte Renditeprognose: jede Zahl des Kapitels,
-in Textreihenfolge.
+in der Reihenfolge der Arbeit.
 
 FÜR EINSTEIGER — WAS MACHT DIESES SKRIPT?
 Kapitel 3 erklärt, wie der Random Forest Renditen vorhersagt und warum dabei
@@ -170,7 +170,7 @@ def baumkorrelation(md, ret, termine) -> pd.DataFrame:
 
 
 def pruefe() -> Pruefung:
-    """Alle Zahlen aus Kapitel 3, in der Reihenfolge des Textes."""
+    """Alle Zahlen aus Kapitel 3, in der Reihenfolge der Arbeit."""
     p = Pruefung("Kapitel 3 — Random-Forest-gestützte Renditeprognose")
     md, ret = monatsdaten_aufbauen()
     termine = gewichte()["Risk Parity"].index                # die 119 Entscheidungstermine
@@ -188,23 +188,28 @@ def pruefe() -> Pruefung:
     # (nicht zentriert, wie im Nenner des R² bei Gu/Kelly/Xiu).
     rmse0 = np.sqrt((r ** 2).mean())
     p.zahl("RMSE der Nullprognose", "7,48", rmse0 * 100, "%")
-    p.offen("angenommenes R² im Gedankenexperiment", "einem Prozent", "Annahme des Textes, keine Rechnung")
+    p.offen("angenommenes R² im Gedankenexperiment", "1 %", "Annahme eines Rechenbeispiels")
+    p.merke("angenommenes R² im Gedankenexperiment", "einem Prozent")
     p.zahl("so viel sinkt der RMSE dann", "0,5", (1 - np.sqrt(1 - 0.01)) * 100, "%", ungefaehr=True,
-           notiz="Text: „etwa 0,5 % seines Wertes“; 1 − √(1 − R²)")
+           notiz="RMSE sinkt auf √(1 − R²) seines Werts: 1 − √(1 − 0,01)")
 
     # ──────────────────────────────────────────────────────────────────
     p.abschnitt("3.2 Entscheidungsbäume und das Split-Kriterium")
     groessen = pd.Series([len(trainingsfenster(md, t)[0]) for t in termine])
     median = groessen.median()
-    p.zahl("Bereiche eines Baums der Tiefe drei", "acht", 2 ** 3)
-    p.zahl("Zeilen je Bereich bei Tiefe drei", "66", median / 8, ungefaehr=True)
+    p.zahl("Bereiche eines Baums der Tiefe drei", "acht", 2 ** 3, notiz="jede Ebene teilt jeden Bereich in zwei: 2³")
+    p.zahl("Zeilen je Bereich bei Tiefe drei", "66", median / 8, ungefaehr=True,
+           notiz=f"{median:.0f} Trainingszeilen ÷ 8 Bereiche")
     p.zahl("Trainingszeilen je Termin (Median über 119 Termine)", "525", median, ungefaehr=True)
     p.aussage("Zeilen je Bereich bei Tiefe zehn", "weniger als eine", median / 2 ** 10 < 1,
-              de(median / 2 ** 10, 2), notiz=f"{de(median / 2 ** 10, 2)} Zeilen", woertlich=True)
+              de(median / 2 ** 10, 2), notiz=f"{median:.0f} Trainingszeilen auf 2¹⁰ = 1024 Bereiche",
+              woertlich=True)
     train, pruef = tiefensweep(md, termine)
-    p.zahl("Trainingsfehler bei Tiefe 14 in % des Fehlers bei Tiefe eins", "22", train * 100, "%")
+    p.zahl("Trainingsfehler bei Tiefe 14 in % des Fehlers bei Tiefe eins", "22", train * 100, "%",
+           notiz="Einzelbaum, mittlerer quadratischer Fehler auf dem Lernstoff, Mittel über alle 119 Termine")
     p.zahl("Anstieg des Kreuzvalidierungsfehlers von Tiefe eins auf vierzehn", "75", pruef * 100, "%",
-           notiz="Mittel über alle 119 Termine")
+           notiz="derselbe Einzelbaum, Fehler auf den Prüfblöcken der Purged-Kreuzvalidierung, "
+                 "Mittel über alle 119 Termine")
 
     # ──────────────────────────────────────────────────────────────────
     p.abschnitt("3.3 Bagging als Diversifikation")
@@ -217,7 +222,8 @@ def pruefe() -> Pruefung:
             alt = pd.read_csv(REFERENZ)
             gleich = np.allclose(alt[["rho", "rho_quer", "verh"]].values, D[["rho", "rho_quer", "verh"]].values)
             p.aussage("Neurechnung gleich der Referenzdatei", "gleich", gleich,
-                      "gleich" if gleich else "weicht ab")
+                      "gleich" if gleich else "weicht ab",
+                      notiz="Spalten rho, rho_quer und verh von skripte/daten/baumkorrelation.csv")
     else:
         D = pd.read_csv(REFERENZ)
     p.zahl("mittlere Korrelation der Baumprognosen ρ", "0,21", D.rho.mean(), ungefaehr=True,
@@ -225,11 +231,13 @@ def pruefe() -> Pruefung:
     r_tag = titelrenditen()
     oben = r_tag.corr().values[np.triu_indices(len(TICKERS), k=1)]   # jede Paarkorrelation einmal
     p.aussage("ρ ist halb so groß wie die Korrelation der Aktien", "halb so viel",
-              0.45 <= D.rho.mean() / oben.mean() <= 0.55, de(D.rho.mean() / oben.mean(), 2),
-              notiz=f"Verhältnis {de(D.rho.mean() / oben.mean(), 2)}", woertlich=True)
+              0.45 <= D.rho.mean() / oben.mean() <= 0.55, f"Faktor {de(D.rho.mean() / oben.mean(), 2)}",
+              notiz=f"ρ = {de(D.rho.mean(), 3)} gegen {de(oben.mean(), 3)} (mittlere Paarkorrelation der "
+                    "Tagesrenditen)", woertlich=True)
     p.zahl("mittlere Korrelation der fünfzehn Aktien", "0,42", oben.mean())
     B = hp["n_estimators"].median()
-    p.zahl("Bäume je Wald (Median der 119 gewählten Wälder)", "321", B)
+    p.zahl("Bäume je Wald (Median der 119 gewählten Wälder)", "321", B,
+           notiz="aus skripte/daten/rf_hyperparameter.csv")
     # Formel 24: Var = σ²(ρ + (1−ρ)/B). Von einem Baum (σ²) bis zu unendlich
     # vielen (ρσ²) sinkt die Varianz um (1−ρ)σ². Bei B Bäumen ist davon der
     # Anteil [1 − (ρ + (1−ρ)/B)] / (1 − ρ) = 1 − 1/B erreicht — unabhängig von ρ.
@@ -238,19 +246,21 @@ def pruefe() -> Pruefung:
     p.zahl("erreichte Varianzreduktion bei 321 Bäumen", "99,7", erreicht * 100, "%",
            notiz="Anteil der bei unbegrenzt vielen Bäumen möglichen; = 1 − 1/B")
     p.zahl("Termine", "119", len(D))
-    p.zahl("gewichtete Korrelation der Fehler ρ̄ (Breiman)", "0,84", D.rho_quer.mean())
-    p.zahl("Fehler des Waldes in % des Einzelbaumfehlers", "82", D.verh.mean() * 100, "%")
+    p.zahl("gewichtete Korrelation der Fehler ρ̄ (Breiman)", "0,84", D.rho_quer.mean(),
+           notiz="Mittel über alle Termine, aus skripte/daten/baumkorrelation.csv")
+    p.zahl("Fehler des Waldes in % des Einzelbaumfehlers", "82", D.verh.mean() * 100, "%",
+           notiz="Mittel über alle Termine, aus skripte/daten/baumkorrelation.csv")
     p.aussage("Schranke an jedem Termin eingehalten", "an jedem Termin", bool(D.ok.all()),
-              f"{int(D.ok.sum())} von {len(D)}", notiz=f"{int(D.ok.sum())} von {len(D)} Terminen",
-              woertlich=True)
+              f"{int(D.ok.sum())} von {len(D)}", notiz="Fehler des Waldes ≤ ρ̄ · mittlerer Fehler eines Baums "
+              "(Formel 25)", woertlich=True)
 
     # ──────────────────────────────────────────────────────────────────
     p.abschnitt("3.4 Merkmale und ihre Begründung")
     alle = sorted(sum(GRUPPEN.values(), []))
     p.zahl("Kennzahlen", "20", len(FEATURE_COLS))
     p.aussage("Gruppen, in die sie sich teilen", "fünf", len(GRUPPEN) == 5 and alle == sorted(FEATURE_COLS),
-              f"{len(GRUPPEN)}", notiz=" · ".join(f"{g} {len(m)}" for g, m in GRUPPEN.items()),
-              woertlich=True)
+              f"{len(GRUPPEN)}", notiz=" · ".join(f"{g} {len(m)}" for g, m in GRUPPEN.items())
+              + " (zusammen genau die Merkmale aus FEATURE_COLS)", woertlich=True)
     p.quelle("Jegadeesh/Titman: Momentum wirkt über drei bis zwölf Monate", "drei bis zwölf", "Fn 68")
     p.quelle("Jegadeesh/Titman: Effekt baut sich ab nach etwa", "einem Jahr", "Fn 69")
     fenster = inspect.signature(compute_alpha_beta).parameters["window"].default
@@ -268,16 +278,17 @@ def pruefe() -> Pruefung:
     tiefe = RFPortfolioOptimizer()._param_grid()["rf__max_depth"]
     kleinste, groesste = tiefe.support()          # randint(3, 15) zieht 3 bis 14
     p.zahl("größte zulässige Tiefe im Suchraum", "14", groesste)
-    p.zahl("Monate, in denen die kleinste Tiefe gewählt wird", "98", int((hp["max_depth"] == kleinste).sum()))
+    p.zahl("Monate, in denen die kleinste Tiefe gewählt wird", "98", int((hp["max_depth"] == kleinste).sum()),
+           notiz="aus skripte/daten/rf_hyperparameter.csv (von der Suche gewählte Einstellungen je Termin)")
     p.zahl("von Terminen", "119", len(hp))
     p.zahl("kleinste zulässige Tiefe", "drei", kleinste)
     p.quelle("R², mit dem gerechnet wird: das des Random Forest bei Gu/Kelly/Xiu", "0,33", "Fn 70")
     p.zahl("RMSE der Nullprognose (aus § 3.1)", "7,48", rmse0 * 100, "%")
-    # "etwa 7,47": aus den gerundeten Textwerten 7,48 · √(1 − 0,0033) = 7,4676,
-    # aus dem genauen RMSE 7,4646.
-    p.zahl("RMSE bei einem R² von 0,33 %", "7,47", rmse0 * np.sqrt(1 - 0.0033) * 100, "%",
-           ungefaehr=True, toleranz=0.01,
-           notiz="Text: „etwa“; aus den gerundeten Textwerten 7,48 · √(1 − 0,0033) = 7,4676")
+    # Gerechnet wird wie in der Arbeit mit dem auf zwei Stellen gerundeten RMSE aus § 3.1.
+    gerundet = float(runde(rmse0 * 100, 2))
+    p.zahl("RMSE bei einem R² von 0,33 %", "7,47", gerundet * np.sqrt(1 - 0.0033), "%",
+           notiz=f"{de(gerundet, 2)} % · √(1 − 0,0033) = {de(gerundet * np.sqrt(1 - 0.0033), 4)} %; mit dem "
+                 f"ungerundeten RMSE {de(rmse0 * np.sqrt(1 - 0.0033) * 100, 4)} %")
     return p
 
 

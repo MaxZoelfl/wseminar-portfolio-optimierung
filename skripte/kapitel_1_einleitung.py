@@ -6,9 +6,9 @@ Kapitel 1 stellt die Frage der Arbeit und den Forschungsstand vor. Es enthält
 noch keine eigenen Ergebnisse, nur Zahlen aus der Literatur (DeMiguel u. a.,
 Gu/Kelly/Xiu). Die lassen sich nicht aus dem Backtest berechnen, sondern sind
 durch die Fußnoten belegt. Das Skript listet sie trotzdem in der Reihenfolge
-des Textes auf — so ist die Ausgabe aller Skripte zusammen ein vollständiges
-Verzeichnis der Zahlen der Arbeit. Eine einzige Zahl ist eigene Rechnung:
-„3000 Monate, also 250 Jahre“.
+der Arbeit auf, jeweils mit ihrer Fußnote — so ist die Ausgabe aller Skripte
+zusammen ein vollständiges Verzeichnis der Zahlen der Arbeit. Eine einzige
+Zahl ist eigene Rechnung: 3000 Monate sind 250 Jahre.
 
 AUFRUF (virtuelle Umgebung aktiviert, aus einem beliebigen Ordner):
     python skripte/kapitel_1_einleitung.py        # unter einer Sekunde
@@ -26,7 +26,7 @@ DEMIGUEL_MONATE = 3000
 
 
 def pruefe() -> Pruefung:
-    """Alle Zahlen aus Kapitel 1, in der Reihenfolge des Textes."""
+    """Alle Zahlen aus Kapitel 1, in der Reihenfolge der Arbeit."""
     p = Pruefung("Kapitel 1 — Eine Regel, ein Optimum, eine Frage")
 
     # ──────────────────────────────────────────────────────────────────
@@ -38,8 +38,8 @@ def pruefe() -> Pruefung:
     p.quelle("DeMiguel u. a.: Datensätze", "sieben", "Fn 5")
     p.quelle("DeMiguel u. a.: nötige Beobachtungsdauer in Monaten", "3000", "Fn 6")
     p.quelle("DeMiguel u. a.: bei so vielen Titeln", "25", "Fn 6")
-    # "also 250 Jahre" ist eigene Umrechnung der Quellenzahl: Monate durch 12.
-    p.zahl("dieselbe Dauer in Jahren (3000 Monate ÷ 12)", "250", DEMIGUEL_MONATE / 12)
+    # Eigene Umrechnung der Quellenzahl: Monate durch 12.
+    p.zahl("dieselbe Dauer in Jahren", "250", DEMIGUEL_MONATE / 12, notiz="3000 Monate ÷ 12")
 
     # ──────────────────────────────────────────────────────────────────
     p.abschnitt("1.2 Forschungsstand und Abgrenzung")

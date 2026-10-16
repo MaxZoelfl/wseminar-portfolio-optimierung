@@ -362,7 +362,9 @@ Programmbibliotheken ab. Anhang C2 der Arbeit nennt die Versionen des Laufs.
 
 **Nachweis.** Zwei vollständige, unabhängig gestartete Läufe mit
 `deterministic = true` und eingefrorener Kursdatei erzeugen **bitgleiche**
-Ergebnisdateien (alle sieben CSV-Dateien, MD5-Vergleich).
+Ergebnisdateien (alle sieben CSV-Dateien, MD5-Vergleich). Die Dateien des ersten
+Laufs (15.08.2026) liegen im Commit b8eeea9; `skripte/anhang.py` vergleicht sie
+mit denen in `output/` (Lauf vom 25.08.2026).
 
 Der Nachweis gilt für dieselbe Umgebung: Der Lauf vom 15.08.2026 (Python 3.14.6)
 und der maßgebliche Lauf vom 25.08.2026 (Python 3.14.7), beide unter macOS 26.6.1,
@@ -373,8 +375,8 @@ Monat) und Random Forest (an 44 Terminen) unterscheiden sich um höchstens
 1,7·10⁻³. Von den Zahlen der Arbeit ändern sich dadurch sieben in ihrer letzten
 angegebenen Stelle um eins: drei p-Werte und ein t-Wert in der Tabelle in § 6.3
 sowie drei Sharpe-Werte in Tabelle B3. Alle Testentscheidungen, Rangfolgen,
-Deflated Sharpe Ratios und alle übrigen Zahlen bleiben gleich (geprüft mit
-`skripte/alle_kapitel.py` auf den Ergebnisdateien dieses Neulaufs). Bitgleich ist
+Deflated Sharpe Ratios und alle übrigen Zahlen bleiben gleich (Abgleich mit
+`skripte/alle_kapitel.py --abgleich` auf den Ergebnisdateien dieses Neulaufs). Bitgleich ist
 ein Neulauf nur mit denselben Programmversionen (`requirements.txt`) unter
 macOS 26.6.1.
 

@@ -943,11 +943,13 @@ November 2015) stehen also weniger als drei Jahre zur Verfügung; ab dem Termin
 Ende Dezember 2015 ist das Fenster vollständig. Der Qualitätscheck (252 Tage,
 24 Monate) lässt die kürzeren Fenster trotzdem passieren.
 
-**Die Nachrechnungsskripte lesen die Arbeit nicht.** Jede Zahl, wie sie im Text
-steht, ist in `skripte/` als Zeichenkette eingetragen. Ändert sich der Text,
-fällt ein veralteter Eintrag erst mit `python skripte/alle_kapitel.py --text
-pfad/zur/Arbeit.docx` auf: Der Abgleich sucht jede eingetragene Zahl im
-zugehörigen Abschnitt der angegebenen Fassung.
+**Die Nachrechnungsskripte lesen die Arbeit nicht.** Jede Zahl ist in `skripte/`
+so eingetragen, wie sie in der Arbeit geschrieben steht; daraus liest das
+Werkzeug die Stellenzahl der Ausgabe. Ausgegeben wird immer der gerechnete Wert.
+Ändert sich die Arbeit, fällt ein veralteter Eintrag mit
+`python skripte/alle_kapitel.py --text pfad/zur/Arbeit.docx` auf: Dieser Abgleich
+für den Verfasser sucht jede eingetragene Zahl im zugehörigen Abschnitt der
+angegebenen Fassung.
 
 **Die Baumkorrelation (§ 3.3) kommt aus einer Referenzdatei.** Sie neu zu rechnen
 dauert rund 55 Minuten (`--baumkorrelation`). Nach einem Backtest mit anderen
