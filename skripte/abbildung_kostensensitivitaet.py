@@ -20,7 +20,8 @@ Als einziges Skript in diesem Ordner SCHREIBT es Dateien:
 Kapitel 6 (§ 6.4) benutzt dieselben Funktionen, ohne Dateien zu schreiben.
 
 AUFRUF (virtuelle Umgebung aktiviert, aus einem beliebigen Ordner):
-    python skripte/abbildung_kostensensitivitaet.py [ordner]   # Standard: output/ im Projekt
+    python skripte/abbildung_kostensensitivitaet.py [ordner]   # Standard: der Ergebnisordner
+                                                               # aus den Einstellungen (output/)
 """
 import sys
 from pathlib import Path
@@ -31,13 +32,13 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _werkzeuge import ROOT, STRATEGIEN, UMSCHLAG_SPALTE   # noqa: E402  (Pfade, Namen)
+from _werkzeuge import OUTPUT, STRATEGIEN, UMSCHLAG_SPALTE   # noqa: E402  (Pfade, Namen)
 
 from portfolio.config import TRANSACTION_COST, COLORS, bildtitel   # noqa: E402
 from portfolio.metrics import cagr, annualized_vol, sharpe_ratio, max_drawdown   # noqa: E402
 
 ORDNER = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 and not sys.argv[1].startswith("-") \
-    else ROOT / "output"
+    else OUTPUT
 SAETZE = [b / 10_000 for b in range(0, 105, 5)]        # 0 bis 100 bp in 5-bp-Schritten
 
 
@@ -125,7 +126,7 @@ def main() -> None:
     # 'performance_metrics.csv' ist auf vier Nachkommastellen gerundet — mehr
     # Übereinstimmung als 5e-5 ist deshalb gar nicht prüfbar.
     print(f"Kontrolle bei 10 bp (dem Kostensatz des Laufs) — größte Abweichung der Sharpe-Quotienten "
-          f"zu output/performance_metrics.csv: {abw:.2e}")
+          f"zu {ORDNER.name}/performance_metrics.csv: {abw:.2e}")
     print("  Das liegt innerhalb der Rundung dieser Datei auf vier Stellen: Die Umrechnung gibt den Lauf wieder.\n"
           if abw < 1e-4 else "  Das liegt außerhalb der Rundung dieser Datei: Die Umrechnung gibt den Lauf nicht wieder.\n")
 

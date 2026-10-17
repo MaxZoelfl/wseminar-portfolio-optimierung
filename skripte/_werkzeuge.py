@@ -76,7 +76,6 @@ import pandas as pd
 # Arbeitsverzeichnis sucht — so funktioniert jeder Aufruf, egal von wo.
 # ────────────────────────────────────────────────────────────────────────
 ROOT = Path(__file__).resolve().parent.parent
-OUTPUT = ROOT / "output"
 DATEN = Path(__file__).resolve().parent / "daten"
 sys.path.insert(0, str(ROOT))
 os.chdir(ROOT)
@@ -86,8 +85,33 @@ warnings.filterwarnings("ignore")                   # Bibliothekswarnungen ausbl
 import logging                                    # noqa: E402  (erst nach sys.path)
 logging.getLogger("portfolio").setLevel(logging.WARNING)   # Logbuch des Pakets leise stellen
 
-from portfolio.config import TICKERS, SPY_TICKER  # noqa: E402
+from dataclasses import fields                    # noqa: E402
+from portfolio.config import CFG, Config, TICKERS, SPY_TICKER, OHNE_EINFLUSS_AUF_ERGEBNISSE   # noqa: E402
 from portfolio.metrics import sharpe_ratio        # noqa: E402,F401  (die eine Sharpe-Formel, Formel 13/14)
+
+# Ergebnisordner und Kursdatei so, wie die Einstellungen sie festlegen: für die
+# Arbeit output/ und data/prices.pkl. Bei einem anderen Universum oder Zeitraum
+# vergibt portfolio/config.py eigene Pfade (output_<kennung>, prices_<kennung>.pkl).
+OUTPUT = (ROOT / CFG.output_dir).resolve()
+KURSDATEI = (ROOT / CFG.price_cache).resolve()
+# Für Ausgaben: Pfad relativ zum Projektordner, sofern die Kursdatei darin liegt.
+KURSDATEI_ANZEIGE = str(KURSDATEI.relative_to(ROOT)) if KURSDATEI.is_relative_to(ROOT) else str(KURSDATEI)
+
+# Rechnen die Skripte mit dem Lauf der Arbeit? Zwei Fragen:
+#  UNIVERSUM_DER_ARBEIT  dieselben Titel, Referenzreihe und derselbe Zeitraum —
+#                        Voraussetzung für die Abschnitte über bestimmte Titel
+#                        (etwa Coca-Cola und Caterpillar in § 2.2), soweit die
+#                        Skripte das nicht ohnehin an den Titeln selbst prüfen;
+#  LAUF_DER_ARBEIT       zusätzlich alle übrigen Einstellungen gleich, die Ergebnisse
+#                        verändern — Voraussetzung für die Referenzdateien in
+#                        skripte/daten/, die aus dem Lauf der Arbeit stammen.
+# Trifft eine Frage nicht zu, entfällt der betroffene Teil mit einem Hinweis.
+_ARBEIT = Config()
+UNIVERSUM_DER_ARBEIT = (sorted(TICKERS), SPY_TICKER, CFG.start_date, CFG.end_date) == \
+    (sorted(_ARBEIT.tickers), _ARBEIT.spy_ticker, _ARBEIT.start_date, _ARBEIT.end_date)
+ABWEICHENDE_EINSTELLUNGEN = [f.name for f in fields(Config) if f.name not in OHNE_EINFLUSS_AUF_ERGEBNISSE
+                             and getattr(CFG, f.name) != getattr(_ARBEIT, f.name)]
+LAUF_DER_ARBEIT = not ABWEICHENDE_EINSTELLUNGEN
 
 HANDELSTAGE = 252
 # Reihenfolge wie in den Tabellen der Arbeit (§ 6.1, Anhang B).
@@ -100,9 +124,13 @@ KURZ = {"Random Forest": "RF", "Markowitz MVO": "MVO",
 # Daten laden
 # ────────────────────────────────────────────────────────────────────────
 def kurse() -> pd.DataFrame:
-    """Schlusskurse der 15 Titel und des SPY, nur Tage mit allen 16 Kursen
-    (genau wie portfolio/data.py)."""
-    roh = pd.read_pickle(ROOT / "data" / "prices.pkl")
+    """Schlusskurse der Titel und der Referenzreihe (SPY), nur Tage mit allen
+    Kursen (genau wie portfolio/data.py). Gelesen wird die Kursdatei, mit der der
+    Backtest gerechnet hat."""
+    if not KURSDATEI.exists():
+        sys.exit(f"Kursdatei {KURSDATEI} fehlt — zuerst den Backtest laufen lassen "
+                 "(python -m portfolio).")
+    roh = pd.read_pickle(KURSDATEI)
     return roh[TICKERS + [SPY_TICKER]].dropna(how="any")
 
 
@@ -149,8 +177,19 @@ UMSCHLAG_SPALTE = {"Markowitz MVO": "turnover_mvo", "Random Forest": "turnover_r
 
 
 def protokoll() -> dict:
-    """experiment_log.json: Parameter, Kennzahlen, Signifikanz — mit voller Genauigkeit."""
-    return json.loads((OUTPUT / "experiment_log.json").read_text(encoding="utf-8"))
+    """experiment_log.json: Parameter, Kennzahlen, Signifikanz — mit voller Genauigkeit.
+
+    Bricht mit einer klaren Meldung ab, wenn der Ergebnisordner fehlt oder zu
+    anderen Titeln gehört als die Einstellungen (dann passen Gewichte, Renditen
+    und Kurse nicht zusammen)."""
+    datei = OUTPUT / "experiment_log.json"
+    if not datei.exists():
+        sys.exit(f"Ergebnisordner {OUTPUT.name}/ fehlt — zuerst den Backtest laufen lassen (python -m portfolio).")
+    log = json.loads(datei.read_text(encoding="utf-8"))
+    if sorted(log["experiment_meta"]["tickers"]) != sorted(TICKERS):
+        sys.exit(f"Die Ergebnisse in {OUTPUT.name}/ gehören zu anderen Titeln als die Einstellungen "
+                 "(config.json). Backtest mit diesen Titeln laufen lassen oder config.json anpassen.")
+    return log
 
 
 def sharpe_exakt(strategie: str, je_tag: bool = False) -> float:
@@ -184,12 +223,14 @@ def std_wert(funktion, parameter: str):
 
 
 def kursdatei_commits() -> list:
-    """Alle Commits, die data/prices.pkl verändert haben, als (Kennung, Datum),
-    der jüngste zuerst. Leer, wenn git nicht verfügbar ist (kein Klon des Repositorys)."""
+    """Alle Commits, die die Kursdatei verändert haben, als (Kennung, Datum),
+    der jüngste zuerst. Leer, wenn git nicht verfügbar ist (kein Klon des
+    Repositorys) oder die Kursdatei nicht in der Versionsgeschichte liegt."""
     try:
         aus = subprocess.run(["git", "log", "--format=%h %ad", "--date=format:%d.%m.%Y", "--",
-                              "data/prices.pkl"], cwd=ROOT, capture_output=True, text=True, check=True).stdout
-    except (subprocess.CalledProcessError, FileNotFoundError):
+                              str(KURSDATEI.relative_to(ROOT))], cwd=ROOT, capture_output=True, text=True,
+                             check=True).stdout
+    except (subprocess.CalledProcessError, FileNotFoundError, ValueError):
         return []
     return [tuple(z.split()) for z in aus.strip().splitlines() if z.strip()]
 
@@ -385,12 +426,20 @@ class Pruefung:
             pass
         self._zeile("offen", "literatur", was, wert, text, notiz=f"aus der Literatur ({beleg})")
 
+    def hinweis(self, text: str) -> None:
+        """Ein Abschnitt oder eine Zahl entfällt, mit Begründung — etwa weil sie
+        sich auf einen bestimmten Titel der Arbeit bezieht, der im gewählten
+        Universum fehlt. Wird nicht mitgezählt."""
+        print(f"  (entfällt: {text})")
+
     def offen(self, was: str, text: str, grund: str) -> None:
         """Definition, Konstante oder Annahme, die nicht aus den Daten stammt — mit Erklärung."""
         self._zeile("offen", "festlegung", was, text, text, notiz=grund)
 
     def abschluss(self) -> int:
-        """Druckt die Zusammenfassung und gibt die Zahl der Abweichungen zurück."""
+        """Druckt die Zusammenfassung. Rückgabe (für den Exit-Code): mit --abgleich die
+        Zahl der Abweichungen vom Wortlaut, sonst 0 — ohne Abgleich ist eine andere
+        Zahl als in der Arbeit kein Fehler (etwa bei einem anderen Universum)."""
         print("\n  " + "─" * 74)
         if ABGLEICH:
             z = self.zaehler
@@ -406,7 +455,7 @@ class Pruefung:
                   f"Programmcode berechnet, {h['literatur']} aus der Literatur, "
                   f"{h['festlegung']} Definitionen und Annahmen")
         print()
-        return self.zaehler["falsch"]
+        return self.zaehler["falsch"] if ABGLEICH else 0
 
 
 # ────────────────────────────────────────────────────────────────────────

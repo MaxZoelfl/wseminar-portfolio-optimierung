@@ -150,8 +150,9 @@ jedem der 119 Rebalancing-Monate neu läuft — und zwar einkernig, weil
 `deterministic=True` bitgenaue Reproduzierbarkeit erzwingt (siehe
 [Methodikoptionen](#methodikoptionen-alle-standardmäßig-an)).
 
-> ⚠️ Ein neuer Lauf **überschreibt `output/`** — genau daraus stammen die
-> Abbildungen und Zahlen der Seminararbeit. Vorher sichern:
+> ⚠️ Ein neuer Lauf mit den Einstellungen der Arbeit **überschreibt `output/`** —
+> genau daraus stammen die Abbildungen und Zahlen der Seminararbeit. Vorher sichern
+> (Läufe mit anderen Einstellungen schreiben automatisch in einen eigenen Ordner):
 >
 > ```bash
 > cp -r output output_backup
@@ -211,6 +212,19 @@ Tabelle unten); `config.schnell.json` zeigt, wie ein Override aussieht.
 Nur die angegebenen Schlüssel werden überschrieben; der Rest bleibt auf Default.
 Unbekannte Schlüssel werden gemeldet und ignoriert, eine kaputte Datei bricht den
 Lauf nicht ab.
+
+**Anderes Anlageuniversum.** Eine eigene Tickerliste genügt, etwa
+`echo '{ "tickers": ["AAPL", "…"] }' > config.json`. Weichen Titel, Referenzreihe
+(`spy_ticker`) oder Zeitraum von der Arbeit ab, bekommt der Lauf automatisch eine
+eigene Kursdatei (`data/prices_<kennung>.pkl`, beim ersten Lauf von Yahoo Finance
+geladen) und einen eigenen Ergebnisordner (`output_<kennung>/`); die Kennung
+steht im Protokoll. Ebenso bekommt jeder Lauf, dessen Einstellungen die Ergebnisse
+verändern (etwa `rf_n_iter` oder `transaction_cost`), einen eigenen Ergebnisordner.
+`data/prices.pkl` und `output/` der Arbeit bleiben in beiden Fällen unberührt.
+Die Nachrechnungsskripte lesen dieselben Pfade und rechnen alle Zahlen neu;
+Abschnitte über bestimmte Titel der Arbeit (etwa Coca-Cola und Caterpillar in
+§ 2.2, NVIDIA in § 6.6) und Zahlen aus den Referenzdateien des Laufs der Arbeit
+entfallen dort mit einem Hinweis.
 
 | Schlüssel | Default | Bedeutung |
 |---|---|---|

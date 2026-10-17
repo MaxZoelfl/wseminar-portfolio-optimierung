@@ -39,3 +39,7 @@ seiten_messen.py
 textsammlung_bauen.py
 textsammlung_vorbemerkung.md
 textsammlung_nachbemerkung.md
+
+# --- eigene Kursdateien und Ergebnisordner anderer Universen (automatisch benannt, siehe config.py) ---
+data/prices_*.pkl
+output_*/

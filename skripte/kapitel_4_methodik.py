@@ -20,6 +20,7 @@ AUFRUF (virtuelle Umgebung aktiviert, aus einem beliebigen Ordner):
 """
 
 import inspect
+import json
 import sys
 from pathlib import Path
 
@@ -51,14 +52,19 @@ def pruefe() -> Pruefung:
     # ──────────────────────────────────────────────────────────────────
     p.abschnitt("4.1 Datengrundlage und Auswahl der Titel")
     p.zahl("US-amerikanische Standardwerte", "15", meta["n_assets"])
+    # Abrufdatum: Die Kursdatei der Arbeit liegt in der Versionsgeschichte (git); eine
+    # andere Kursdatei (anderes Universum) wird nicht versioniert, dann zählt ihr Dateidatum.
     commits = kursdatei_commits()
     if commits:
         p.aussage("Abrufdatum der Kurse", "15.08.2026", commits[-1][1] == "15.08.2026", commits[-1][1],
-                  notiz=f"data/prices.pkl kam mit Commit {commits[-1][0]} ins Repository und ist seither "
+                  notiz=f"{KURSDATEI_ANZEIGE} kam mit Commit {commits[-1][0]} ins Repository und ist seither "
                         + ("unverändert" if len(commits) == 1 else f"{len(commits) - 1}-mal geändert"),
                   woertlich=True)
     else:
-        p.offen("Abrufdatum der Kurse", "15.08.2026", "ohne git nicht nachprüfbar (kein Klon des Repositorys)")
+        angelegt = pd.Timestamp(KURSDATEI.stat().st_mtime, unit="s")
+        p.aussage("Abrufdatum der Kurse", "15.08.2026", f"{angelegt:%d.%m.%Y}" == "15.08.2026",
+                  f"{angelegt:%d.%m.%Y}", notiz=f"Dateidatum von {KURSDATEI_ANZEIGE} (nicht in der Versionsgeschichte)",
+                  woertlich=True)
     datum = lambda iso: f"{pd.Timestamp(iso):%d.%m.%Y}"          # 2013-01-01 → 01.01.2013
     p.aussage("Beginn des Datenzeitraums", "01.01.2013", START_DATE == "2013-01-01", datum(START_DATE),
               notiz="start_date in portfolio/config.py", woertlich=True)
@@ -70,9 +76,14 @@ def pruefe() -> Pruefung:
     p.zahl("Zwölf-Monats-Momentum: Monate", "Zwölf", laengstes / 21,
            notiz=f"längstes Momentum-Fenster im Code: {laengstes} Handelstage ÷ 21 je Monat")
     n = meta["n_assets"]
-    p.zahl("zu schätzende Einträge der Kovarianzmatrix bei 15 Titeln", "120", n * (n + 1) // 2)
-    sektoren = {SEKTOR[t] for t in meta["tickers"]}
-    p.zahl("abgedeckte GICS-Sektoren", "neun", len(sektoren), notiz=" · ".join(sorted(sektoren)))
+    p.zahl(f"zu schätzende Einträge der Kovarianzmatrix bei {n} Titeln", "120", n * (n + 1) // 2,
+           notiz="N · (N + 1) ÷ 2")
+    if set(meta["tickers"]) <= set(SEKTOR):
+        sektoren = {SEKTOR[t] for t in meta["tickers"]}
+        p.zahl("abgedeckte GICS-Sektoren", "neun", len(sektoren), notiz=" · ".join(sorted(sektoren)))
+    else:
+        p.hinweis("abgedeckte Sektoren — die Zuordnung nach GICS ist nur für die Titel der Arbeit "
+                  "hinterlegt (SEKTOR oben in diesem Skript)")
     p.offen("GICS-Sektoren insgesamt", "11", "Definition des GICS-Standards (Global Industry Classification "
             "Standard)")
     p.merke("GICS-Sektoren insgesamt", "elf")
@@ -87,7 +98,7 @@ def pruefe() -> Pruefung:
            zahl_im_code(mu_zeile, r"\*\s*(\d+)"), "Handelstage", notiz=f"Code: {mu_zeile.strip()}")
     ew = gewichte()["Equal Weight"]
     p.aussage("Anteil je Titel bei der Gleichgewichtung", "ein Fünfzehntel",
-              bool(np.allclose(ew.values, 1 / 15)), f"1/{round(1 / ew.iloc[0, 0])}",
+              bool(np.allclose(ew.values, 1 / len(TICKERS))), f"1/{round(1 / ew.iloc[0, 0])}",
               notiz=f"= {de(ew.iloc[0, 0] * 100, 2)} %, an allen {len(ew)} Terminen", woertlich=True)
 
     # ──────────────────────────────────────────────────────────────────
@@ -137,22 +148,46 @@ def pruefe() -> Pruefung:
                  "ein Jahr Vorlauf brauchen")
     p.zahl("Merkmale", "zwanzig", len(FEATURE_COLS))
     p.zahl("Sperrzone (Embargo) in Prozent der Perioden", "zwei", meta["cv_embargo"] * 100, "%")
-    vergleich = pd.read_csv(DATEN / "vergleichslauf_ohne_purging.csv", index_col=0,
-                            parse_dates=True, comment="#")
+    # Der Vergleichslauf ohne Purging: für die Arbeit als Referenzdatei in skripte/daten/,
+    # für ein anderes Universum im Ordner <Ergebnisordner>_ohne_purging/. Eine Datei gehört
+    # nur dann zu diesem Lauf, wenn ihre Gleichgewichtung dieselben Tagesrenditen hat:
+    # 1/N hängt allein von Kursen und Titeln ab und ist in beiden Läufen identisch.
+    # Die Referenzdatei der Arbeit gilt nur für den Lauf der Arbeit (LAUF_DER_ARBEIT); ein
+    # eigener Vergleichslauf nur, wenn sein Laborprotokoll bis auf use_purged_cv dieselben
+    # Einstellungen zeigt wie dieser Lauf.
     heute = strategierenditen()
-    ohne, mit = sharpe_ratio(vergleich["Random Forest"], rf), sharpe_exakt("Random Forest")
-    p.zahl("Sharpe Random Forest ohne Purging (Vergleichslauf)", "0,961", ohne,
-           notiz="Referenzdatei skripte/daten/vergleichslauf_ohne_purging.csv")
-    p.zahl("Sharpe Random Forest mit Purging (maßgeblicher Lauf)", "0,936", mit)
-    p.zahl("so viel beruhte auf Informationsleckage", "0,025", ohne - mit, ungefaehr=True,
-           toleranz=0.0005, notiz=f"{de(ohne, 4)} − {de(mit, 4)}")
-    uebrige = ["Markowitz MVO", "Equal Weight", "Risk Parity"]
-    gleich = all(de(sharpe_ratio(vergleich[s], rf), 3) == de(sharpe_ratio(heute[s], rf), 3) for s in uebrige)
-    p.aussage("die übrigen drei Strategien bleiben unverändert", "unverändert", gleich,
-              "unverändert" if gleich else "verändert",
-              notiz="Sharpe-Quotienten mit/ohne Purging: " + " · ".join(
-                  f"{KURZ[s]} {de(sharpe_ratio(heute[s], rf), 3)}/{de(sharpe_ratio(vergleich[s], rf), 3)}"
-                  for s in uebrige), woertlich=True)
+    eigener = OUTPUT.parent / f"{OUTPUT.name}_ohne_purging"
+    kandidaten = []
+    if LAUF_DER_ARBEIT:
+        kandidaten.append(DATEN / "vergleichslauf_ohne_purging.csv")
+    if (eigener / "experiment_log.json").exists():
+        andere = json.loads((eigener / "experiment_log.json").read_text(encoding="utf-8"))["experiment_meta"]
+        egal = {"use_purged_cv", "timestamp", "version"}
+        if not andere["use_purged_cv"] and all(andere.get(k) == v for k, v in meta.items() if k not in egal):
+            kandidaten.append(eigener / "daily_returns.csv")
+    vergleich, quelle_vergleich = None, None
+    for datei in kandidaten:
+        v = pd.read_csv(datei, index_col=0, parse_dates=True, comment="#")
+        if v.index.equals(heute.index) and (v["Equal Weight"] - heute["Equal Weight"]).abs().max() < 1e-6:
+            vergleich, quelle_vergleich = v, datei
+            break
+    if vergleich is not None:
+        ohne, mit = sharpe_ratio(vergleich["Random Forest"], rf), sharpe_exakt("Random Forest")
+        p.zahl("Sharpe Random Forest ohne Purging (Vergleichslauf)", "0,961", ohne,
+               notiz=f"aus {quelle_vergleich.relative_to(ROOT)}")
+        p.zahl("Sharpe Random Forest mit Purging (maßgeblicher Lauf)", "0,936", mit)
+        p.zahl("so viel beruhte auf Informationsleckage", "0,025", ohne - mit, ungefaehr=True,
+               toleranz=0.0005, notiz=f"{de(ohne, 4)} − {de(mit, 4)}")
+        uebrige = ["Markowitz MVO", "Equal Weight", "Risk Parity"]
+        gleich = all(de(sharpe_ratio(vergleich[s], rf), 3) == de(sharpe_ratio(heute[s], rf), 3) for s in uebrige)
+        p.aussage("die übrigen drei Strategien bleiben unverändert", "unverändert", gleich,
+                  "unverändert" if gleich else "verändert",
+                  notiz="Sharpe-Quotienten mit/ohne Purging: " + " · ".join(
+                      f"{KURZ[s]} {de(sharpe_ratio(heute[s], rf), 3)}/{de(sharpe_ratio(vergleich[s], rf), 3)}"
+                      for s in uebrige), woertlich=True)
+    else:
+        p.hinweis(f"Vergleichslauf ohne Purging — kein passender Lauf gefunden; den Backtest mit "
+                  f"\"use_purged_cv\": false und \"output_dir\": \"./{OUTPUT.name}_ohne_purging\" wiederholen")
 
     # ──────────────────────────────────────────────────────────────────
     p.abschnitt("4.4 Transaktionskosten und Umschlag")

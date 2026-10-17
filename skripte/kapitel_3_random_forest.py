@@ -18,6 +18,10 @@ Woher die Zahlen kommen:
     neu zu tunen — rund 55 Minuten. Das Ergebnis liegt deshalb als
     Referenzdatei in skripte/daten/baumkorrelation.csv. Mit dem Schalter
     --baumkorrelation rechnet das Skript sie neu und vergleicht mit der Datei.
+  - Beide Referenzdateien gehören zum Lauf der Arbeit. Bei einem anderen
+    Universum oder anderen Einstellungen (config.json) entfallen die Zahlen
+    daraus mit einem Hinweis; die Korrelation der Bäume lässt sich dann mit
+    --baumkorrelation für den neuen Lauf rechnen.
 
 AUFRUF (virtuelle Umgebung aktiviert, aus einem beliebigen Ordner):
     python skripte/kapitel_3_random_forest.py                     # rund 15 Sekunden
@@ -128,7 +132,9 @@ def baumkorrelation(md, ret, termine) -> pd.DataFrame:
       verh       Fehler des Waldes geteilt durch den mittleren Fehler eines Baums
       ok         hält der Wald Breimans Schranke ein?
       wie_lauf   hat die Suche dieselben Einstellungen gewählt wie im Backtest?"""
-    hp = pd.read_csv(DATEN / "rf_hyperparameter.csv", comment="#")
+    # Die Einstellungen des Laufs (zum Vergleich in der Spalte wie_lauf) gibt es nur
+    # für das Universum der Arbeit.
+    hp = pd.read_csv(DATEN / "rf_hyperparameter.csv", comment="#") if LAUF_DER_ARBEIT else None
     print("\n  Baumkorrelation läuft (rund 55 Minuten) …", flush=True)
     zeilen = []
     for i, termin in enumerate(termine):
@@ -148,9 +154,11 @@ def baumkorrelation(md, ret, termine) -> pd.DataFrame:
         rfo = RFPortfolioOptimizer()
         rfo.fit_with_tuning(X, y, sample_times=X.index)   # dieselbe Suche wie im Backtest
         bp = rfo.best_params_
-        soll = hp.iloc[i]
-        wie_lauf = (bp["rf__n_estimators"], bp["rf__max_depth"], bp["rf__min_samples_leaf"]) == \
-                   (soll["n_estimators"], soll["max_depth"], soll["min_samples_leaf"])
+        wie_lauf = None
+        if hp is not None:
+            soll = hp.iloc[i]
+            wie_lauf = (bp["rf__n_estimators"], bp["rf__max_depth"], bp["rf__min_samples_leaf"]) == \
+                       (soll["n_estimators"], soll["max_depth"], soll["min_samples_leaf"])
         skala, wald = rfo.best_estimator_.named_steps["scaler"], rfo.best_estimator_.named_steps["rf"]
         P = np.array([b.predict(skala.transform(X_akt.values)) for b in wald.estimators_])  # Baum × Titel
         beweglich = P.std(axis=1) > 1e-12            # Bäume mit konstanter Prognose: keine Korrelation
@@ -174,7 +182,8 @@ def pruefe() -> Pruefung:
     p = Pruefung("Kapitel 3 — Random-Forest-gestützte Renditeprognose")
     md, ret = monatsdaten_aufbauen()
     termine = gewichte()["Risk Parity"].index                # die 119 Entscheidungstermine
-    hp = pd.read_csv(DATEN / "rf_hyperparameter.csv", comment="#")
+    # Von der Suche gewählte Einstellungen je Termin: nur für den Lauf der Arbeit hinterlegt.
+    hp = pd.read_csv(DATEN / "rf_hyperparameter.csv", comment="#") if LAUF_DER_ARBEIT else None
 
     # ──────────────────────────────────────────────────────────────────
     p.abschnitt("3.1 Prognose als Regressionsproblem")
@@ -200,59 +209,75 @@ def pruefe() -> Pruefung:
     p.zahl("Bereiche eines Baums der Tiefe drei", "acht", 2 ** 3, notiz="jede Ebene teilt jeden Bereich in zwei: 2³")
     p.zahl("Zeilen je Bereich bei Tiefe drei", "66", median / 8, ungefaehr=True,
            notiz=f"{median:.0f} Trainingszeilen ÷ 8 Bereiche")
-    p.zahl("Trainingszeilen je Termin (Median über 119 Termine)", "525", median, ungefaehr=True)
+    p.zahl(f"Trainingszeilen je Termin (Median über {len(termine)} Termine)", "525", median, ungefaehr=True)
     p.aussage("Zeilen je Bereich bei Tiefe zehn", "weniger als eine", median / 2 ** 10 < 1,
               de(median / 2 ** 10, 2), notiz=f"{median:.0f} Trainingszeilen auf 2¹⁰ = 1024 Bereiche",
               woertlich=True)
     train, pruef = tiefensweep(md, termine)
     p.zahl("Trainingsfehler bei Tiefe 14 in % des Fehlers bei Tiefe eins", "22", train * 100, "%",
-           notiz="Einzelbaum, mittlerer quadratischer Fehler auf dem Lernstoff, Mittel über alle 119 Termine")
+           notiz=f"Einzelbaum, mittlerer quadratischer Fehler auf dem Lernstoff, Mittel über alle {len(termine)} Termine")
     p.zahl("Anstieg des Kreuzvalidierungsfehlers von Tiefe eins auf vierzehn", "75", pruef * 100, "%",
            notiz="derselbe Einzelbaum, Fehler auf den Prüfblöcken der Purged-Kreuzvalidierung, "
-                 "Mittel über alle 119 Termine")
+                 f"Mittel über alle {len(termine)} Termine")
 
     # ──────────────────────────────────────────────────────────────────
     p.abschnitt("3.3 Bagging als Diversifikation")
+    herkunft = "neu gerechnet" if BAUMKORR else "aus skripte/daten/baumkorrelation.csv"
     if BAUMKORR:
         D = baumkorrelation(md, ret, termine)
-        if SPEICHERN:
+        if SPEICHERN and LAUF_DER_ARBEIT:
             D.to_csv(REFERENZ, index=False)
             print(f"  Referenzdatei geschrieben: {REFERENZ.relative_to(ROOT)}")
-        else:
+        elif SPEICHERN:
+            print("  Referenzdatei nicht überschrieben: Sie gehört zum Lauf der Arbeit.")
+        elif LAUF_DER_ARBEIT:
             alt = pd.read_csv(REFERENZ)
             gleich = np.allclose(alt[["rho", "rho_quer", "verh"]].values, D[["rho", "rho_quer", "verh"]].values)
             p.aussage("Neurechnung gleich der Referenzdatei", "gleich", gleich,
                       "gleich" if gleich else "weicht ab",
                       notiz="Spalten rho, rho_quer und verh von skripte/daten/baumkorrelation.csv")
-    else:
+    elif LAUF_DER_ARBEIT:
         D = pd.read_csv(REFERENZ)
-    p.zahl("mittlere Korrelation der Baumprognosen ρ", "0,21", D.rho.mean(), ungefaehr=True,
-           notiz="Mittel über alle Termine" + ("" if BAUMKORR else ", aus skripte/daten/baumkorrelation.csv"))
+    else:
+        D = None
+        p.hinweis("Korrelation der Bäume — skripte/daten/baumkorrelation.csv gehört zum Lauf der Arbeit; "
+                  "für diesen Lauf mit --baumkorrelation neu rechnen (rund 55 Minuten)")
     r_tag = titelrenditen()
     oben = r_tag.corr().values[np.triu_indices(len(TICKERS), k=1)]   # jede Paarkorrelation einmal
-    p.aussage("ρ ist halb so groß wie die Korrelation der Aktien", "halb so viel",
-              0.45 <= D.rho.mean() / oben.mean() <= 0.55, f"Faktor {de(D.rho.mean() / oben.mean(), 2)}",
-              notiz=f"ρ = {de(D.rho.mean(), 3)} gegen {de(oben.mean(), 3)} (mittlere Paarkorrelation der "
-                    "Tagesrenditen)", woertlich=True)
-    p.zahl("mittlere Korrelation der fünfzehn Aktien", "0,42", oben.mean())
-    B = hp["n_estimators"].median()
-    p.zahl("Bäume je Wald (Median der 119 gewählten Wälder)", "321", B,
-           notiz="aus skripte/daten/rf_hyperparameter.csv")
-    # Formel 24: Var = σ²(ρ + (1−ρ)/B). Von einem Baum (σ²) bis zu unendlich
-    # vielen (ρσ²) sinkt die Varianz um (1−ρ)σ². Bei B Bäumen ist davon der
-    # Anteil [1 − (ρ + (1−ρ)/B)] / (1 − ρ) = 1 − 1/B erreicht — unabhängig von ρ.
-    rho = D.rho.mean()
-    erreicht = (1 - (rho + (1 - rho) / B)) / (1 - rho)
-    p.zahl("erreichte Varianzreduktion bei 321 Bäumen", "99,7", erreicht * 100, "%",
-           notiz="Anteil der bei unbegrenzt vielen Bäumen möglichen; = 1 − 1/B")
-    p.zahl("Termine", "119", len(D))
-    p.zahl("gewichtete Korrelation der Fehler ρ̄ (Breiman)", "0,84", D.rho_quer.mean(),
-           notiz="Mittel über alle Termine, aus skripte/daten/baumkorrelation.csv")
-    p.zahl("Fehler des Waldes in % des Einzelbaumfehlers", "82", D.verh.mean() * 100, "%",
-           notiz="Mittel über alle Termine, aus skripte/daten/baumkorrelation.csv")
-    p.aussage("Schranke an jedem Termin eingehalten", "an jedem Termin", bool(D.ok.all()),
-              f"{int(D.ok.sum())} von {len(D)}", notiz="Fehler des Waldes ≤ ρ̄ · mittlerer Fehler eines Baums "
-              "(Formel 25)", woertlich=True)
+    if D is not None:
+        p.zahl("mittlere Korrelation der Baumprognosen ρ", "0,21", D.rho.mean(), ungefaehr=True,
+               notiz=f"Mittel über alle Termine, {herkunft}")
+        p.aussage("ρ ist halb so groß wie die Korrelation der Aktien", "halb so viel",
+                  0.45 <= D.rho.mean() / oben.mean() <= 0.55, f"Faktor {de(D.rho.mean() / oben.mean(), 2)}",
+                  notiz=f"ρ = {de(D.rho.mean(), 3)} gegen {de(oben.mean(), 3)} (mittlere Paarkorrelation der "
+                        "Tagesrenditen)", woertlich=True)
+    p.zahl(f"mittlere Korrelation der {len(TICKERS)} Aktien", "0,42", oben.mean(),
+           notiz="Mittel der paarweisen Korrelationen der Tagesrenditen")
+    if hp is not None:
+        B = hp["n_estimators"].median()
+        p.zahl(f"Bäume je Wald (Median der {len(hp)} gewählten Wälder)", "321", B,
+               notiz="aus skripte/daten/rf_hyperparameter.csv")
+    else:
+        B = None
+        p.hinweis("Bäume je Wald — die gewählten Einstellungen je Termin stehen nur im Laufprotokoll; "
+                  "skripte/daten/rf_hyperparameter.csv gehört zum Lauf der Arbeit")
+    if D is not None and B is not None:
+        # Formel 24: Var = σ²(ρ + (1−ρ)/B). Von einem Baum (σ²) bis zu unendlich
+        # vielen (ρσ²) sinkt die Varianz um (1−ρ)σ². Bei B Bäumen ist davon der
+        # Anteil [1 − (ρ + (1−ρ)/B)] / (1 − ρ) = 1 − 1/B erreicht — unabhängig von ρ.
+        rho = D.rho.mean()
+        erreicht = (1 - (rho + (1 - rho) / B)) / (1 - rho)
+        p.zahl(f"erreichte Varianzreduktion bei {B:.0f} Bäumen", "99,7", erreicht * 100, "%",
+               notiz="Anteil der bei unbegrenzt vielen Bäumen möglichen; = 1 − 1/B")
+    if D is not None:
+        p.zahl("Termine", "119", len(D))
+        p.zahl("gewichtete Korrelation der Fehler ρ̄ (Breiman)", "0,84", D.rho_quer.mean(),
+               notiz=f"Mittel über alle Termine, {herkunft}")
+        p.zahl("Fehler des Waldes in % des Einzelbaumfehlers", "82", D.verh.mean() * 100, "%",
+               notiz=f"Mittel über alle Termine, {herkunft}")
+        p.aussage("Schranke an jedem Termin eingehalten", "an jedem Termin", bool(D.ok.all()),
+                  f"{int(D.ok.sum())} von {len(D)}", notiz="Fehler des Waldes ≤ ρ̄ · mittlerer Fehler eines Baums "
+                  "(Formel 25)", woertlich=True)
 
     # ──────────────────────────────────────────────────────────────────
     p.abschnitt("3.4 Merkmale und ihre Begründung")
@@ -278,9 +303,13 @@ def pruefe() -> Pruefung:
     tiefe = RFPortfolioOptimizer()._param_grid()["rf__max_depth"]
     kleinste, groesste = tiefe.support()          # randint(3, 15) zieht 3 bis 14
     p.zahl("größte zulässige Tiefe im Suchraum", "14", groesste)
-    p.zahl("Monate, in denen die kleinste Tiefe gewählt wird", "98", int((hp["max_depth"] == kleinste).sum()),
-           notiz="aus skripte/daten/rf_hyperparameter.csv (von der Suche gewählte Einstellungen je Termin)")
-    p.zahl("von Terminen", "119", len(hp))
+    if hp is not None:
+        p.zahl("Monate, in denen die kleinste Tiefe gewählt wird", "98", int((hp["max_depth"] == kleinste).sum()),
+               notiz="aus skripte/daten/rf_hyperparameter.csv (von der Suche gewählte Einstellungen je Termin)")
+        p.zahl("von Terminen", "119", len(hp))
+    else:
+        p.hinweis("Monate mit der kleinsten Tiefe — die gewählten Einstellungen je Termin stehen nur im "
+                  "Laufprotokoll; skripte/daten/rf_hyperparameter.csv gehört zum Lauf der Arbeit")
     p.zahl("kleinste zulässige Tiefe", "drei", kleinste)
     p.quelle("R², mit dem gerechnet wird: das des Random Forest bei Gu/Kelly/Xiu", "0,33", "Fn 70")
     p.zahl("RMSE der Nullprognose (aus § 3.1)", "7,48", rmse0 * 100, "%")

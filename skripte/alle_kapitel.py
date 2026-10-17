@@ -37,7 +37,8 @@ from pathlib import Path
 # beziehen, aus dem das Skript gestartet wurde.
 STARTORDNER = Path.cwd()
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _werkzeuge import ABGLEICH, wortlaut_fehlt       # noqa: E402
+from _werkzeuge import (ABGLEICH, OUTPUT, UNIVERSUM_DER_ARBEIT, LAUF_DER_ARBEIT,   # noqa: E402
+                        ABWEICHENDE_EINSTELLUNGEN, TICKERS, wortlaut_fehlt)
 
 SKRIPTE = [("Kapitel 1", "kapitel_1_einleitung"),
            ("Kapitel 2", "kapitel_2_theorie"),
@@ -51,8 +52,8 @@ SKRIPTE = [("Kapitel 1", "kapitel_1_einleitung"),
 
 def main() -> int:
     """Alle Kapitel ausgeben, Übersicht drucken, auf Wunsch mit der Arbeit abgleichen.
-    Rückgabe 1, wenn eine Rechnung vom eingetragenen Wortlaut abweicht oder (mit
-    --text) ein Wortlaut in der Arbeit fehlt."""
+    Rückgabe 1 nur im Abgleich: wenn eine Rechnung vom eingetragenen Wortlaut abweicht
+    oder (mit --text) ein Wortlaut in der Arbeit fehlt."""
     parser = argparse.ArgumentParser(description="Alle Zahlen der Arbeit nachrechnen.")
     parser.add_argument("--abgleich", action="store_true",
                         help="jede Zahl mit dem eingetragenen Wortlaut der Arbeit vergleichen")
@@ -63,6 +64,14 @@ def main() -> int:
     argumente, _ = parser.parse_known_args()
     textdatei = (STARTORDNER / argumente.text).resolve() if argumente.text else None
 
+    if not LAUF_DER_ARBEIT:
+        print("═" * 78)
+        print(f"  Andere Einstellungen als in der Arbeit: {', '.join(ABWEICHENDE_EINSTELLUNGEN)}")
+        if not UNIVERSUM_DER_ARBEIT:
+            print(f"  Titel: {', '.join(TICKERS)}")
+        print(f"  Ergebnisse aus {OUTPUT.name}/. Alle Zahlen werden für diesen Lauf gerechnet;")
+        print("  Abschnitte über bestimmte Titel der Arbeit und Zahlen aus Referenzdateien des")
+        print("  Laufs der Arbeit entfallen mit einem Hinweis.")
     ergebnisse = []
     for kapitel, modul in SKRIPTE:
         p = importlib.import_module(modul).pruefe()
@@ -88,7 +97,8 @@ def main() -> int:
         print(f"  {kapitel:<12}" + "".join(f"{z[k]:>{b}}" for (k, _), b in zip(spalten, breite)))
     print("  " + "─" * (10 + sum(breite)))
     print(f"  {'zusammen':<12}" + "".join(f"{summe[k]:>{b}}" for (k, _), b in zip(spalten, breite)))
-    abweichungen = sum(p.zaehler["falsch"] for _, p in ergebnisse)
+    # Nur der Abgleich kennt "Abweichungen"; ohne ihn ist eine andere Zahl als in der Arbeit kein Fehler.
+    abweichungen = sum(p.zaehler["falsch"] for _, p in ergebnisse) if ABGLEICH else 0
     alle = [a for _, p in ergebnisse for a in p.abweichungen]
     if ABGLEICH and alle:
         print("\n  Alle Abweichungen auf einen Blick:")

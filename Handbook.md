@@ -893,7 +893,7 @@ gespeicherten Lauf — sonst würde jede legitime Änderung sie rot färben:
 
 | Vorhaben | Betroffene Stellen |
 |---|---|
-| **Anderes Anlageuniversum** | `config.json` mit `tickers`; `data/prices.pkl` löschen (sonst kommen die alten Kurse aus dem Speicher) |
+| **Anderes Anlageuniversum** | `config.json` mit `tickers`. Weichen Titel, Referenzreihe oder Zeitraum von der Arbeit ab, legt `config.py` automatisch eine eigene Kursdatei (`data/prices_<kennung>.pkl`, beim ersten Lauf frisch geladen) und einen eigenen Ergebnisordner (`output_<kennung>/`) an; jede andere Einstellung, die Ergebnisse verändert, bekommt ebenfalls einen eigenen Ergebnisordner. `data/prices.pkl` und `output/` bleiben unberührt. Die Nachrechnungsskripte lesen dieselben Pfade; Abschnitte über bestimmte Titel der Arbeit und Zahlen aus Referenzdateien des Laufs der Arbeit entfallen dort mit einem Hinweis |
 | **Neues technisches Merkmal** | Funktion in `indicators.py`; Aufruf in `build_all_indicators`; Aggregationsregel in `aggregate_to_monthly`; Name in `FEATURE_COLS_BASE`; Klartextname in `FEATURE_DISPLAY_NAMES` |
 | **Merkmal auch als CS-Rang** | zusätzlich in `RANK_COLS` (`config.py`) — `FEATURE_COLS` wächst automatisch mit |
 | **Fünfte Strategie** | Klasse in `optimizers.py`; Aufruf und Ergebnislisten in `run_backtest`; Spalte in `returns_df`; Name in `STRATEGIES` und Farbe in `COLORS`; Paarliste in `run.py` erweitern (Holm wird automatisch strenger) |

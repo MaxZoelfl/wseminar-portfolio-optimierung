@@ -71,6 +71,7 @@ Fundament, auf dem alle anderen aufbauen.
 # ---------------------------------------------------------------------------
 import os        # Zugriff auf das Betriebssystem (Dateipfade, Umgebungsvariablen)
 import json      # Lesen/Schreiben des JSON-Textformats (für die Konfig-Datei)
+import hashlib   # Prüfsummen (für die Kennung eines anderen Anlageuniversums)
 import warnings  # Steuerung von Warnmeldungen
 import logging   # Protokoll-Ausgaben ("Logbuch" des Programms im Terminal)
 from dataclasses import dataclass, field, fields, asdict  # bequeme Datencontainer
@@ -291,9 +292,14 @@ def _load_config() -> Config:
          Umgebungsvariable PORTFOLIO_CONFIG benannte Datei).
       3. Falls ja: Übernimm daraus alle Einträge, deren Name ein echtes
          Config-Feld ist; unbekannte Namen werden nur gemeldet und ignoriert.
+      4. Weichen Titel, Referenzreihe oder Zeitraum von der Arbeit ab, bekommt
+         der Lauf eine eigene Kursdatei; weicht irgendeine Einstellung ab, die
+         Ergebnisse verändert, einen eigenen Ergebnisordner (siehe unten) —
+         sofern die JSON-Datei die Pfade nicht selbst festlegt.
     So kann man Experimente variieren, ohne den Programmcode anzufassen.
     """
     cfg = Config()
+    applied = []
     # os.environ.get(A, B) liest die Umgebungsvariable A; existiert sie nicht,
     # wird der Ersatzwert B ("config.json" im aktuellen Ordner) benutzt.
     path = os.environ.get("PORTFOLIO_CONFIG", "config.json")
@@ -302,7 +308,7 @@ def _load_config() -> Config:
             with open(path, encoding="utf-8") as fh:
                 data = json.load(fh)                     # JSON-Text → Python-Daten
             valid = {f.name for f in fields(cfg)}        # erlaubte Feldnamen
-            applied, ignored = [], []
+            ignored = []
             for k, v in data.items():
                 if k in valid:
                     setattr(cfg, k, v); applied.append(k)   # Wert übernehmen
@@ -314,7 +320,34 @@ def _load_config() -> Config:
             # Kaputte/unlesbare Datei bricht das Programm nicht ab — wir
             # warnen nur und arbeiten mit den Standardwerten weiter.
             log.warning(f"Konnte '{path}' nicht laden ({e}); nutze Defaults.")
+
+    # Andere Einstellungen als in der Arbeit? Dann dürfen deren Kurse und Ergebnisse
+    # (data/prices.pkl, output/) weder benutzt noch überschrieben werden — außer die
+    # JSON-Datei legt price_cache bzw. output_dir selbst fest.
+    #  - Andere Titel, Referenzreihe oder anderer Zeitraum: Die eingefrorenen Kurse
+    #    passen nicht; der Lauf bekommt eine eigene Kursdatei.
+    #  - Irgendeine Einstellung, die Ergebnisse verändert: eigener Ergebnisordner.
+    # Benannt werden beide nach einer Kennung (Prüfsumme der abweichenden Werte).
+    arbeit = Config()
+    kurs_merkmale = (sorted(cfg.tickers), cfg.spy_ticker, cfg.start_date, cfg.end_date)
+    if kurs_merkmale != (sorted(arbeit.tickers), arbeit.spy_ticker, arbeit.start_date, arbeit.end_date):
+        kennung = hashlib.md5(json.dumps(kurs_merkmale).encode("utf-8")).hexdigest()[:8]
+        if "price_cache" not in applied and cfg.price_cache == arbeit.price_cache:
+            cfg.price_cache = f"./data/prices_{kennung}.pkl"
+            log.info(f"Andere Titel oder anderer Zeitraum als in der Arbeit — Kursdatei {cfg.price_cache}")
+    abweichend = {f.name: getattr(cfg, f.name) for f in fields(cfg)
+                  if f.name not in OHNE_EINFLUSS_AUF_ERGEBNISSE and getattr(cfg, f.name) != getattr(arbeit, f.name)}
+    if abweichend and "output_dir" not in applied and cfg.output_dir == arbeit.output_dir:
+        kennung = hashlib.md5(json.dumps(abweichend, sort_keys=True).encode("utf-8")).hexdigest()[:8]
+        cfg.output_dir = f"./output_{kennung}"
+        log.info(f"Andere Einstellungen als in der Arbeit ({', '.join(abweichend)}) — Ergebnisordner {cfg.output_dir}")
     return cfg
+
+
+# Einstellungen, die keine Zahl verändern: Pfade und die Häufigkeit, mit der das
+# Live-Dashboard neu gezeichnet wird. Alle anderen Felder der Config bestimmen das
+# Ergebnis mit.
+OHNE_EINFLUSS_AUF_ERGEBNISSE = {"output_dir", "price_cache", "dashboard_update_every"}
 
 
 # Die EINE, projektweit gültige Konfigurations-Instanz. Wird genau einmal

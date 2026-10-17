@@ -42,7 +42,11 @@ feststand; er trägt zum Vorsprung vor der Gleichgewichtung bei Markowitz
 
 **Erweiterung:** ein zum jeweiligen Zeitpunkt zusammengesetztes Universum
 (etwa die damaligen Mitglieder des S&P 500) einschließlich ausgeschiedener
-Titel. Das Universum ist über `config.json` (`tickers`) frei wählbar.
+Titel. Der Backtest rechnet mit jedem Universum (`config.json`, `tickers`) und
+legt dafür eine eigene Kursdatei und einen eigenen Ergebnisordner an. Die
+Nachrechnungsskripte erklären die Zahlen dieser Arbeit; bei einem anderen
+Universum entfallen Abschnitte über bestimmte Titel und Zahlen aus den
+Referenzdateien des Laufs der Arbeit mit einem Hinweis.
 
 ---
 

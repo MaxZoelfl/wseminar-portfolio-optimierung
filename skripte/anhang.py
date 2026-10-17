@@ -154,14 +154,18 @@ def pruefe() -> Pruefung:
     rfo.fit_with_tuning(X, y, sample_times=X.index)
     wichtig = pd.Series(rfo.best_estimator_.named_steps["rf"].feature_importances_,
                         index=X.columns).sort_values(ascending=False)
-    gewaehlt = pd.read_csv(DATEN / "rf_hyperparameter.csv", comment="#").iloc[-1]
-    wie_lauf = (rfo.best_params_["rf__n_estimators"], rfo.best_params_["rf__max_depth"],
-                rfo.best_params_["rf__min_samples_leaf"]) == \
-               (gewaehlt["n_estimators"], gewaehlt["max_depth"], gewaehlt["min_samples_leaf"])
+    # Vergleich mit den im Lauf gewählten Einstellungen: nur für den Lauf der Arbeit hinterlegt.
+    vergleich_lauf = ""
+    if LAUF_DER_ARBEIT:
+        gewaehlt = pd.read_csv(DATEN / "rf_hyperparameter.csv", comment="#").iloc[-1]
+        wie_lauf = (rfo.best_params_["rf__n_estimators"], rfo.best_params_["rf__max_depth"],
+                    rfo.best_params_["rf__min_samples_leaf"]) == \
+                   (gewaehlt["n_estimators"], gewaehlt["max_depth"], gewaehlt["min_samples_leaf"])
+        vergleich_lauf = "; gewählte Einstellungen wie im Lauf" if wie_lauf else "; Einstellungen weichen vom Lauf ab"
     p.zahl("Summe der Wichtigkeiten", "100", wichtig.sum() * 100, "%",
            notiz="größte: " + " · ".join(f"{indicators.FEATURE_DISPLAY_NAMES[m]} {de(w * 100, 2)} %"
                                          for m, w in wichtig.head(3).items())
-           + ("; gewählte Einstellungen wie im Lauf" if wie_lauf else "; Einstellungen weichen vom Lauf ab"))
+           + vergleich_lauf)
     p.merke("Summe der Wichtigkeiten", "100 Prozent")
     # Welche Tagesdaten stecken im Lernstoff dieses Waldes? Fenster: drei Jahre bis zum
     # Termin. Die älteste Monatszeile enthält das Zwölf-Monats-Momentum, das 252
@@ -196,13 +200,17 @@ def pruefe() -> Pruefung:
 
     # ──────────────────────────────────────────────────────────────────
     p.abschnitt("Tabelle A1: Das Anlagenuniversum")
-    sektoren = {}
-    for t in meta["tickers"]:
-        sektoren.setdefault(SEKTOR[t], []).append(t)
-    p.aussage("Titel und Kürzel wie im Code (portfolio/config.py)", "Kürzel",
-              sorted(meta["tickers"]) == sorted(SEKTOR), f"{len(meta['tickers'])} Kürzel",
-              notiz=f"{len(sektoren)} Sektoren: " + " · ".join(f"{s_}: {', '.join(t)}" for s_, t in sektoren.items()))
-    p.merke("Kürzel", "Kürzel")
+    if set(meta["tickers"]) <= set(SEKTOR):          # Sektoren nur für die Titel der Arbeit hinterlegt
+        sektoren = {}
+        for t in meta["tickers"]:
+            sektoren.setdefault(SEKTOR[t], []).append(t)
+        p.aussage("Titel und Kürzel wie im Code (portfolio/config.py)", "Kürzel",
+                  sorted(meta["tickers"]) == sorted(SEKTOR), f"{len(meta['tickers'])} Kürzel",
+                  notiz=f"{len(sektoren)} Sektoren: " + " · ".join(f"{s_}: {', '.join(t)}" for s_, t in sektoren.items()))
+        p.merke("Kürzel", "Kürzel")
+    else:
+        p.aussage("Titel und Kürzel wie in den Einstellungen", "Kürzel", True, f"{len(meta['tickers'])} Kürzel",
+                  notiz=", ".join(meta["tickers"]) + " (Sektoren nur für die Titel der Arbeit hinterlegt)")
 
     # ──────────────────────────────────────────────────────────────────
     p.abschnitt("Tabelle A2: Die zwanzig Merkmale des Random Forests")
@@ -253,7 +261,12 @@ def pruefe() -> Pruefung:
     # ──────────────────────────────────────────────────────────────────
     p.abschnitt("Tabelle A3: Mittlere Portfoliogewichte je Titel")
     mittel = {n: G[n].mean() * 100 for n in STRATEGIEN}
-    for titel, werte in TABELLE_A3.items():
+    # Zeilen wie in der Arbeit; bei einem anderen Universum entstehen sie aus den Daten,
+    # geordnet nach dem mittleren Markowitz-Gewicht wie die Tabelle der Arbeit.
+    tabelle = TABELLE_A3 if UNIVERSUM_DER_ARBEIT else {
+        t: tuple(de(mittel[n][t], 1) for n in ["Markowitz MVO", "Random Forest", "Risk Parity"])
+        for t in mittel["Markowitz MVO"].sort_values(ascending=False).index}
+    for titel, werte in tabelle.items():
         for name, text in zip(["Markowitz MVO", "Random Forest", "Risk Parity"], werte):
             p.zahl(f"{titel}, {name}", text, mittel[name][titel], "%")
         p.zahl(f"{titel}, 1/N", "6,67", mittel["Equal Weight"][titel], "%")
@@ -355,13 +368,15 @@ def pruefe() -> Pruefung:
     commits = kursdatei_commits()
     if commits:
         p.aussage("Kursdatei: Abruf", "15.08.2026", commits[-1][1] == "15.08.2026", commits[-1][1],
-                  notiz=f"data/prices.pkl seit Commit {commits[-1][0]} im Repository"
+                  notiz=f"{KURSDATEI_ANZEIGE} seit Commit {commits[-1][0]} im Repository"
                         + (", seither unverändert" if len(commits) == 1 else ""), woertlich=True)
     else:
-        p.offen("Kursdatei: Abruf", "15.08.2026", "ohne git nicht nachprüfbar (kein Klon des Repositorys)")
+        angelegt = pd.Timestamp(KURSDATEI.stat().st_mtime, unit="s")
+        p.aussage("Kursdatei: Abruf", "15.08.2026", f"{angelegt:%d.%m.%Y}" == "15.08.2026", f"{angelegt:%d.%m.%Y}",
+                  notiz=f"Dateidatum von {KURSDATEI_ANZEIGE} (nicht in der Versionsgeschichte)", woertlich=True)
     k = kurse()
     p.zahl("Kursdatei: Handelstage", "3019", len(k), notiz=f"{k.index[0]:%d.%m.%Y} bis {k.index[-1]:%d.%m.%Y}")
-    p.zahl("Kursdatei: Reihen (15 Titel und SPY)", "16", k.shape[1])
+    p.zahl(f"Kursdatei: Reihen ({N} Titel und {SPY_TICKER})", "16", k.shape[1])
     beliebig = next(iter(sig["sharpe_difference_tests"].values()))
     p.zahl("Signifikanztest: Bootstrap-Ziehungen", "4999", beliebig["n_boot"])
     p.zahl("Signifikanztest: T", "2495", beliebig["T"])
@@ -421,22 +436,26 @@ def pruefe() -> Pruefung:
     p.aussage("alle Zahlen aus dem Lauf vom", "25.08.2026", f"{lauf:%d.%m.%Y}" == "25.08.2026", f"{lauf:%d.%m.%Y}",
               notiz=f"Zeitstempel in output/experiment_log.json: {lauf:%d.%m.%Y, %H:%M} Uhr", woertlich=True)
     # Zweiter, unabhängiger Lauf: Seine Ergebnisdateien liegen im Commit FRUEHERER_LAUF.
-    # Verglichen wird der Inhalt jeder Datei über ihre MD5-Prüfsumme.
-    try:
-        frueher = json.loads(git("show", f"{FRUEHERER_LAUF}:output/experiment_log.json"))["experiment_meta"]
-        md5 = lambda daten: hashlib.md5(daten).hexdigest()
-        gleich = [f for f in ERGEBNISDATEIEN
-                  if md5(subprocess.run(["git", "show", f"{FRUEHERER_LAUF}:output/{f}.csv"], cwd=ROOT,
-                                        capture_output=True, check=True).stdout)
-                  == md5((OUTPUT / f"{f}.csv").read_bytes())]
-        zweiter = pd.Timestamp(frueher["timestamp"])
-        p.aussage("zweiter, unabhängiger Lauf: bitgleiche Ergebnisdateien", "zweiter",
-                  len(gleich) == len(ERGEBNISDATEIEN) and zweiter != lauf,
-                  f"{len(gleich)} von {len(ERGEBNISDATEIEN)}",
-                  notiz=f"Lauf vom {zweiter:%d.%m.%Y, %H:%M} Uhr (Commit {FRUEHERER_LAUF}) gegen output/, "
-                        "MD5-Prüfsumme jeder CSV-Datei", woertlich=True)
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        p.offen("zweiter, unabhängiger Lauf: bitgleich", "zweiter", "ohne git nicht nachprüfbar")
+    # Verglichen wird der Inhalt jeder Datei über ihre MD5-Prüfsumme. Das betrifft nur
+    # den Lauf der Arbeit; ein Lauf mit anderem Universum hat kein Gegenstück.
+    if not LAUF_DER_ARBEIT:
+        p.hinweis("Vergleich mit dem zweiten Lauf der Arbeit (Commit b8eeea9) — andere Einstellungen als in der Arbeit")
+    else:
+        try:
+            frueher = json.loads(git("show", f"{FRUEHERER_LAUF}:output/experiment_log.json"))["experiment_meta"]
+            md5 = lambda daten: hashlib.md5(daten).hexdigest()
+            gleich = [f for f in ERGEBNISDATEIEN
+                      if md5(subprocess.run(["git", "show", f"{FRUEHERER_LAUF}:output/{f}.csv"], cwd=ROOT,
+                                            capture_output=True, check=True).stdout)
+                      == md5((OUTPUT / f"{f}.csv").read_bytes())]
+            zweiter = pd.Timestamp(frueher["timestamp"])
+            p.aussage("zweiter, unabhängiger Lauf: bitgleiche Ergebnisdateien", "zweiter",
+                      len(gleich) == len(ERGEBNISDATEIEN) and zweiter != lauf,
+                      f"{len(gleich)} von {len(ERGEBNISDATEIEN)}",
+                      notiz=f"Lauf vom {zweiter:%d.%m.%Y, %H:%M} Uhr (Commit {FRUEHERER_LAUF}) gegen output/, "
+                            "MD5-Prüfsumme jeder CSV-Datei", woertlich=True)
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            p.offen("zweiter, unabhängiger Lauf: bitgleich", "zweiter", "ohne git nicht nachprüfbar")
     p.aussage("LIMITATIONS.md, Abschnitt 12, erklärt Kursdatei und Parallelverarbeitung", "12",
               "## 12. Bit-genaue Reproduzierbarkeit" in (ROOT / "LIMITATIONS.md").read_text(encoding="utf-8"),
               "Abschnitt 12" if "## 12. Bit-genaue Reproduzierbarkeit" in

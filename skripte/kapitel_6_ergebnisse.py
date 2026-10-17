@@ -156,9 +156,10 @@ def pruefe() -> Pruefung:
     # ──────────────────────────────────────────────────────────────────
     p.abschnitt("6.2 Struktur der Portfolios")
     neff = {n: effektive_titelzahl(G[n]) for n in STRATEGIEN}   # Formel 35 je Termin
-    eins = pd.DataFrame([[1.0] + [0.0] * 14], columns=TICKERS)  # alles in einem Titel
-    p.zahl("effektive Titelzahl bei 15 gleichen Gewichten", "15", neff["Equal Weight"].iloc[0],
-           notiz="Formel 35: 1 ÷ Σ w², hier 1 ÷ (15 · (1/15)²)")
+    eins = pd.DataFrame([[1.0] + [0.0] * (len(TICKERS) - 1)], columns=TICKERS)  # alles in einem Titel
+    n_ = len(TICKERS)
+    p.zahl(f"effektive Titelzahl bei {n_} gleichen Gewichten", "15", neff["Equal Weight"].iloc[0],
+           notiz=f"Formel 35: 1 ÷ Σ w², hier 1 ÷ ({n_} · (1/{n_})²)")
     p.zahl("effektive Titelzahl bei vollständiger Konzentration", "1", effektive_titelzahl(eins).iloc[0],
            notiz="alles in einem Titel: 1 ÷ 1²")
     for name, text in [("Markowitz MVO", "5,88"), ("Random Forest", "6,16"),
@@ -168,7 +169,7 @@ def pruefe() -> Pruefung:
     leer = {n: (G[n] < 0.0005).sum(axis=1).mean() for n in ["Markowitz MVO", "Random Forest"]}
     p.aussage("so viel des Universums lassen beide optimierenden Verfahren leer", "rund die Hälfte",
               all(6.5 <= v <= 8.5 for v in leer.values()),
-              " bzw. ".join(de(v, 1) for v in leer.values()) + " von 15 Titeln",
+              " bzw. ".join(de(v, 1) for v in leer.values()) + f" von {len(TICKERS)} Titeln",
               notiz=" · ".join(f"{KURZ[n]} {de(v, 2)}" for n, v in leer.items())
               + " Titel mit Gewicht unter 0,05 %, Mittel je Termin", woertlich=True)
     grenze = {n: (G[n] >= 0.1995).sum(axis=1).mean() for n in ["Markowitz MVO", "Random Forest"]}
@@ -177,9 +178,12 @@ def pruefe() -> Pruefung:
               notiz=" · ".join(f"{KURZ[n]} {de(v, 2)}" for n, v in grenze.items())
               + " Titel mit Gewicht ≥ 19,95 %", woertlich=True)
     p.zahl("Obergrenze je Titel", "20", meta["max_weight"] * 100, "%")
-    p.zahl("Monate, in denen Markowitz NVIDIA an der Obergrenze hält", "81",
-           int((G["Markowitz MVO"]["NVDA"] >= 0.1999).sum()))
-    p.zahl("von Terminen", "119", len(G["Markowitz MVO"]))
+    if "NVDA" in TICKERS:                             # die Arbeit betrachtet hier NVIDIA
+        p.zahl("Monate, in denen Markowitz NVIDIA an der Obergrenze hält", "81",
+               int((G["Markowitz MVO"]["NVDA"] >= 0.1999).sum()), notiz="Gewicht ≥ 19,99 %")
+        p.zahl("von Terminen", "119", len(G["Markowitz MVO"]))
+    else:
+        p.hinweis("Monate, in denen Markowitz NVIDIA an der Obergrenze hält — NVIDIA fehlt im gewählten Universum")
     mu_ci, halb, _ = konfidenzintervalle(titelrenditen())   # Formel 17, wie Abbildung 3
     getrennt = [(i, j) for i, j in combinations(TICKERS, 2) if abs(mu_ci[i] - mu_ci[j]) > halb[i] + halb[j]]
     in_allen = [t for t in TICKERS if all(t in paar for paar in getrennt)]
@@ -264,7 +268,7 @@ def pruefe() -> Pruefung:
     var_quer, cov_quer = diversifikation(C)            # Formel 6, wie in § 2.2
     abstand = (np.sqrt(gleichgewichtete_varianz(var_quer, cov_quer, len(TICKERS))) - np.sqrt(cov_quer)) * 100
     p.zahl("Abstand der Gleichgewichtung zur Diversifikationsgrenze", "0,88", abstand, "Pp",
-           notiz="wie in § 2.2: Volatilität bei 15 Titeln minus √C̄ (Formel 6)")
+           notiz=f"wie in § 2.2: Volatilität bei {len(TICKERS)} Titeln minus √C̄ (Formel 6)")
     p.zahl("Länge des Zeitraums", "zehn", (s.index[-1] - s.index[0]).days / 365.25, "Jahre",
            ungefaehr=True, toleranz=0.5, notiz=f"{s.index[0]:%d.%m.%Y} bis {s.index[-1]:%d.%m.%Y}")
     # Beobachtungsdauer, um eine Renditedifferenz Δ zweier typischer Titel abzusichern
@@ -359,22 +363,27 @@ def pruefe() -> Pruefung:
         """Differenz der arithmetischen Jahresrenditen je Titel, in Prozentpunkten."""
         return ((tg[a] - tg[b]) * r_t).mean() * HANDELSTAGE * 100
 
-    for name, t_nv in [("Markowitz MVO", "6,8"), ("Random Forest", "5,2")]:
+    for name in ["Markowitz MVO", "Random Forest"]:
         b_ = beitrag(name, "Equal Weight")
         # Kontrolle: Beiträge minus Kostenunterschied = Differenz der gespeicherten Renditen
         kontrolle = (s[name] - s["Equal Weight"]).mean() * HANDELSTAGE * 100
         rechnung = b_.sum() - (kosten_je_tag[name] - kosten_je_tag["Equal Weight"]).mean() * HANDELSTAGE * 100
         assert abs(kontrolle - rechnung) < 0.01, "Zerlegung stimmt nicht mit den Renditen überein"
-        p.zahl(f"Beitrag von NVIDIA zum Vorsprung vor 1/N, {name}", t_nv, b_["NVDA"], "Pp",
-               notiz="Gewichtsdifferenz zu 1/N mal Tagesrendite von NVIDIA, gemittelt, mal 252")
-    p.zahl("übrige Titel", "vierzehn", len(TICKERS) - 1)
-    for name, t_rest in [("Markowitz MVO", "3,4"), ("Random Forest", "2,9")]:
-        p.zahl(f"Rückstand auf den übrigen vierzehn Titeln, {name}", t_rest,
-               -beitrag(name, "Equal Weight").drop("NVDA").sum(), "Pp")
-    b_rp = beitrag("Equal Weight", "Risk Parity")
-    anteil_nv = b_rp["NVDA"] / b_rp.sum() * 100
-    p.aussage("Anteil von NVIDIA am Rückstand von Risk Parity", "drei Fünfteln", abs(anteil_nv - 60) <= 2,
-              f"{de(anteil_nv, 1)} %", notiz="drei Fünftel = 60 %", woertlich=True)
+    # Die Arbeit zerlegt den Abstand am Beispiel NVIDIA. Fehlt der Titel, entfällt die Zerlegung.
+    if "NVDA" in TICKERS:
+        for name, t_nv in [("Markowitz MVO", "6,8"), ("Random Forest", "5,2")]:
+            p.zahl(f"Beitrag von NVIDIA zum Vorsprung vor 1/N, {name}", t_nv, beitrag(name, "Equal Weight")["NVDA"],
+                   "Pp", notiz="Gewichtsdifferenz zu 1/N mal Tagesrendite von NVIDIA, gemittelt, mal 252")
+        p.zahl("übrige Titel", "vierzehn", len(TICKERS) - 1)
+        for name, t_rest in [("Markowitz MVO", "3,4"), ("Random Forest", "2,9")]:
+            p.zahl(f"Rückstand auf den übrigen {len(TICKERS) - 1} Titeln, {name}", t_rest,
+                   -beitrag(name, "Equal Weight").drop("NVDA").sum(), "Pp", notiz="Summe ihrer Beiträge, Vorzeichen umgekehrt")
+        b_rp = beitrag("Equal Weight", "Risk Parity")
+        anteil_nv = b_rp["NVDA"] / b_rp.sum() * 100
+        p.aussage("Anteil von NVIDIA am Rückstand von Risk Parity", "drei Fünfteln", abs(anteil_nv - 60) <= 2,
+                  f"{de(anteil_nv, 1)} %", notiz="drei Fünftel = 60 %", woertlich=True)
+    else:
+        p.hinweis("Zerlegung des Renditeabstands am Beispiel NVIDIA — NVIDIA fehlt im gewählten Universum")
     p.aussage("Titel, den Risk Parity am geringsten gewichtet", "am geringsten",
               G["Risk Parity"].mean().idxmin() == "NVDA", G["Risk Parity"].mean().idxmin(),
               notiz=f"mittleres Gewicht {de(G['Risk Parity'].mean().min() * 100, 1)} %", woertlich=True)

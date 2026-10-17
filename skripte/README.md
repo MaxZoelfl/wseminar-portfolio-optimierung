@@ -178,6 +178,31 @@ anderen Einstellungen neu erzeugt werden.
 
 ---
 
+## Mit einem anderen Anlageuniversum oder anderen Einstellungen
+
+Stehen in `config.json` andere Titel, ein anderer Zeitraum oder andere Einstellungen,
+lesen die Skripte die Kursdatei und den Ergebnisordner dieses Laufs
+(`data/prices_<kennung>.pkl`, `output_<kennung>/`, siehe
+[README im Stammordner](../README.md#konfiguration)) und rechnen alle Zahlen neu.
+`alle_kapitel.py` nennt am Anfang die abweichenden Einstellungen. Was sich auf die
+Arbeit selbst bezieht, entfällt mit einem Hinweis `(entfällt: …)`:
+
+- Abschnitte über bestimmte Titel: das Zwei-Anlagen-Beispiel mit Coca-Cola und
+  Caterpillar (§ 2.2), die NVIDIA-Auswertung (§ 6.2, § 6.6) und die
+  Sektorzuordnung (§ 4.1, Tabelle A1); Tabelle A3 entsteht aus den Daten;
+- Zahlen aus den drei Referenzdateien des Laufs der Arbeit — sie gelten nur, wenn
+  alle Einstellungen, die Ergebnisse verändern, denen der Arbeit entsprechen. Die
+  Korrelation der Bäume lässt sich mit `kapitel_3_random_forest.py --baumkorrelation`
+  für den neuen Lauf rechnen; für den Vergleichslauf ohne Purging den Backtest mit
+  `"use_purged_cv": false` und `"output_dir": "./output_<kennung>_ohne_purging"`
+  wiederholen — Kapitel 4 findet ihn dort und prüft, ob er zum Lauf passt;
+- der Vergleich mit dem zweiten Lauf der Arbeit (C2).
+
+Passen Ergebnisordner und Einstellungen nicht zusammen (andere Titel), bricht
+das Skript mit einer Meldung ab, statt falsche Zahlen auszugeben.
+
+---
+
 ## Für den Verfasser: Abgleich mit dem Wortlaut der Arbeit
 
 Die Skripte lesen die Word-Datei nicht. In jedem Skript steht zu jeder Zahl

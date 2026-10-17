@@ -67,7 +67,7 @@ def shrinkage_in_den_fenstern():
     mvo, rp = MarkowitzLedoitWolf(), RiskParityPortfolio()
     deltas, fenstergroessen, verschiebung = [], [], {"Markowitz MVO": [], "Risk Parity": []}
     for k, termin in enumerate(termine):
-        x = r[(r.index >= termin - pd.DateOffset(years=3)) & (r.index <= termin)]   # Schätzfenster
+        x = r[(r.index >= termin - pd.DateOffset(years=CFG.train_years)) & (r.index <= termin)]   # Schätzfenster
         lw = LedoitWolf().fit(x.values)
         deltas.append(lw.shrinkage_)
         fenstergroessen.append(len(x))
@@ -81,8 +81,8 @@ def shrinkage_in_den_fenstern():
             halte = r[(r.index > termine[k - 1]) & (r.index <= termin)]
             gedriftet = G["Markowitz MVO"].loc[termine[k - 1]].values * (1 + halte).prod().values
             vorher = gedriftet / gedriftet.sum()
-        a = mvo.max_sharpe(mu, mit, w_prev=vorher, turnover_limit=0.30)
-        b = mvo.max_sharpe(mu, ohne, w_prev=vorher, turnover_limit=0.30)
+        a = mvo.max_sharpe(mu, mit, w_prev=vorher, turnover_limit=CFG.mvo_turnover_limit)
+        b = mvo.max_sharpe(mu, ohne, w_prev=vorher, turnover_limit=CFG.mvo_turnover_limit)
         verschiebung["Markowitz MVO"].append(np.abs(a - b).max())
         verschiebung["Risk Parity"].append(np.abs(rp.optimize(mit) - rp.optimize(ohne)).max())
     return pd.Series(deltas) * 100, int(np.median(fenstergroessen)), \
@@ -103,35 +103,41 @@ def pruefe() -> Pruefung:
     # ──────────────────────────────────────────────────────────────────
     p.abschnitt("2.2 Diversifikation und ihre Grenze")
     # Abbildung 1: Zwei-Anlagen-Fall, A = Coca-Cola, B = Caterpillar (Formel 4 und 5).
-    sA, sB, rho = sigma["KO"], sigma["CAT"], Korr.loc["KO", "CAT"]
-    # Die Kurven in Abbildung 1 stehen im Zeichencode als Liste "kurven"; jede Zeile
-    # beginnt mit ihrer Korrelation (rho_emp = die gemessene).
-    zeichencode = inspect.getsource(plot_two_asset_diversification)
-    liste = zeichencode[zeichencode.index("kurven = ["):zeichencode.index("]", zeichencode.index("kurven = ["))]
-    gezeichnet = re.findall(r"^\s*\(\s*(-?\d+\.\d+|rho_emp)\s*,", liste, re.MULTILINE)
-    p.zahl("Abb. 1: Zahl der gezeichneten Korrelationen", "fünf", len(gezeichnet),
-           notiz=" · ".join("die gemessene" if k == "rho_emp" else de(float(k), 2) for k in gezeichnet)
-           + " (Liste kurven in portfolio/theory_plots.py)")
-    p.zahl("Abb. 1: gemessene Korrelation Coca-Cola/Caterpillar", "0,35", rho)
-    zeitraum(p, r)
-    p.zahl("Volatilität von Coca-Cola", "17,8", sA * 100, "%")
-    p.zahl("Volatilität von Caterpillar", "29,7", sB * 100, "%")
-    p.zahl("Schwelle σ_A/σ_B, unter der Beimischen das Risiko senkt", "0,60", sA / sB)
-    w_cat = varianzminimale_mischung(sA, sB, rho)              # Formel 5 gleich null
-    p.zahl("Anteil Caterpillar in der varianzminimalen Mischung", "15,7", w_cat * 100, "%")
-    p.zahl("Volatilität dieser Mischung", "17,2", np.sqrt(zwei_anlagen_varianz(w_cat, sA, sB, rho)) * 100, "%")
-    p.zahl("Rendite dieser Mischung", "11,0", ((1 - w_cat) * mu["KO"] + w_cat * mu["CAT"]) * 100, "%")
-    p.zahl("Rendite von Coca-Cola allein", "8,9", mu["KO"] * 100, "%")
+    # Das Beispiel gehört zu diesen beiden Titeln; fehlen sie im gewählten Universum,
+    # entfällt es (wie Ausgabebild 14 im Backtest).
+    if {"KO", "CAT"} <= set(TICKERS):
+        sA, sB, rho = sigma["KO"], sigma["CAT"], Korr.loc["KO", "CAT"]
+        # Die Kurven in Abbildung 1 stehen im Zeichencode als Liste "kurven"; jede Zeile
+        # beginnt mit ihrer Korrelation (rho_emp = die gemessene).
+        zeichencode = inspect.getsource(plot_two_asset_diversification)
+        liste = zeichencode[zeichencode.index("kurven = ["):zeichencode.index("]", zeichencode.index("kurven = ["))]
+        gezeichnet = re.findall(r"^\s*\(\s*(-?\d+\.\d+|rho_emp)\s*,", liste, re.MULTILINE)
+        p.zahl("Abb. 1: Zahl der gezeichneten Korrelationen", "fünf", len(gezeichnet),
+               notiz=" · ".join("die gemessene" if k == "rho_emp" else de(float(k), 2) for k in gezeichnet)
+               + " (Liste kurven in portfolio/theory_plots.py)")
+        p.zahl("Abb. 1: gemessene Korrelation Coca-Cola/Caterpillar", "0,35", rho)
+        zeitraum(p, r)
+        p.zahl("Volatilität von Coca-Cola", "17,8", sA * 100, "%")
+        p.zahl("Volatilität von Caterpillar", "29,7", sB * 100, "%")
+        p.zahl("Schwelle σ_A/σ_B, unter der Beimischen das Risiko senkt", "0,60", sA / sB)
+        w_cat = varianzminimale_mischung(sA, sB, rho)              # Formel 5 gleich null
+        p.zahl("Anteil Caterpillar in der varianzminimalen Mischung", "15,7", w_cat * 100, "%")
+        p.zahl("Volatilität dieser Mischung", "17,2", np.sqrt(zwei_anlagen_varianz(w_cat, sA, sB, rho)) * 100, "%")
+        p.zahl("Rendite dieser Mischung", "11,0", ((1 - w_cat) * mu["KO"] + w_cat * mu["CAT"]) * 100, "%")
+        p.zahl("Rendite von Coca-Cola allein", "8,9", mu["KO"] * 100, "%")
+    else:
+        p.hinweis("Zwei-Anlagen-Beispiel mit Coca-Cola (KO) und Caterpillar (CAT) — "
+                  "mindestens einer der beiden Titel fehlt im gewählten Universum")
     # Diversifikationsgrenze (Formel 6)
     var_quer, cov_quer = diversifikation(Sigma.values)
     var_15 = gleichgewichtete_varianz(var_quer, cov_quer, N)
-    p.zahl("Zahl der untersuchten Titel", "fünfzehn", N)
+    p.zahl("Zahl der untersuchten Titel", "fünfzehn", N, notiz="tickers in den Einstellungen")
     p.zahl("mittlere Kovarianz C̄", "0,0278", cov_quer)
     p.zahl("minimale Volatilität √C̄ (Grenzwert)", "16,68", np.sqrt(cov_quer) * 100, "%")
-    p.zahl("Volatilität bei gleichmäßiger Streuung über 15 Titel", "17,56", np.sqrt(var_15) * 100, "%")
+    p.zahl(f"Volatilität bei gleichmäßiger Streuung über {N} Titel", "17,56", np.sqrt(var_15) * 100, "%")
     p.zahl("Anteil des Kovarianzterms an dieser Varianz", "84,3", (N - 1) / N * cov_quer / var_15 * 100, "%")
     abstand = (np.sqrt(var_15) - np.sqrt(cov_quer)) * 100
-    p.aussage("Abstand zwischen 15 Titeln und Grenzwert", "weniger als 0,9 Pp", abstand < 0.9,
+    p.aussage(f"Abstand zwischen {N} Titeln und Grenzwert", "weniger als 0,9 Pp", abstand < 0.9,
               f"{de(abstand, 2)} Pp", notiz=f"{de(np.sqrt(var_15) * 100, 2)} % − {de(np.sqrt(cov_quer) * 100, 2)} %")
     p.merke("Abstand zum Grenzwert", "0,9")
     # Erreichter Teil des Rückgangs: von einem Titel (√σ̄²) bis zu 15, gemessen am Weg bis zum Grenzwert
@@ -200,8 +206,9 @@ def pruefe() -> Pruefung:
     getrennt = [(i, j) for i, j in paare if abs(mu_ci[i] - mu_ci[j]) > halb[i] + halb[j]]
     p.zahl("Titelpaare", "105", len(paare))
     p.zahl("davon mit überlappenden Intervallen", "94", len(paare) - len(getrennt))
-    p.zahl("Ausnahmen, sämtlich mit NVIDIA", "elf", len(getrennt),
-           notiz="jedes dieser Paare enthält NVIDIA" if all("NVDA" in x for x in getrennt)
+    in_allen = [t for t in TICKERS if getrennt and all(t in paar for paar in getrennt)]
+    p.zahl("Ausnahmen: Paare mit getrennten Intervallen", "elf", len(getrennt),
+           notiz=f"jedes dieser Paare enthält {in_allen[0]}" if len(in_allen) == 1
            else "Paare: " + ", ".join(f"{i}/{j}" for i, j in getrennt))
     p.quelle("Jobson/Korkie: Sharpe-Quotient des geschätzten Optimums", "0,08", "Fn 38")
     p.quelle("Jobson/Korkie: Sharpe-Quotient der Gleichgewichtung", "0,27", "Fn 38")
@@ -209,7 +216,8 @@ def pruefe() -> Pruefung:
 
     # ──────────────────────────────────────────────────────────────────
     p.abschnitt("2.6 Antworten auf den Schätzfehler")
-    p.zahl("unabhängige Varianz- und Kovarianzparameter bei 15 Titeln", "120", N * (N + 1) // 2)
+    p.zahl(f"unabhängige Varianz- und Kovarianzparameter bei {N} Titeln", "120", N * (N + 1) // 2,
+           notiz="N · (N + 1) ÷ 2")
     delta, n_voll, verschiebung = shrinkage_in_den_fenstern()
     p.zahl("n in p/n = 15/756: Handelstage je volles Schätzfenster", "756", n_voll)
     p.zahl("Verhältnis p/n", "0,02", N / n_voll, ungefaehr=True)
