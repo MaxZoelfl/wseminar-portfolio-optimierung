@@ -2,7 +2,9 @@
 
 **Vorbemerkung** (Umsetzungsstatus geprüft am 22.08.2026)
 
-Diese Liste entstand am **09.05.2026, also vor der Umsetzung**. Sie liest sich wie
+Diese Liste entstand **vor der Umsetzung**, spätestens Anfang Mai 2026: Sie führt Risk Parity
+noch als fehlend, und die Skriptfassung `projekt1.6.py` vom 04.05.2026 (Ursprungsfassung im ersten
+Commit 23c8bb5) setzt es bereits um; zuletzt geändert wurde die Datei am 09.05.2026. Sie liest sich wie
 eine To-do-Liste, ist aber inzwischen zur Hälfte eine Erledigt-Liste:
 **10 der 22 Punkte sind gebaut, 5 teilweise, 7 offen.**
 
