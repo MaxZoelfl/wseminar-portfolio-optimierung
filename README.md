@@ -75,7 +75,7 @@ Ausführlich, mit Anleitung zum Lesen der Ausgabe:
 | `skripte/anhang.py` | Anhang A–C, einschließlich Nachbau des zuletzt trainierten Waldes (Abbildung A3) | ~35 s |
 | `skripte/abbildung_kostensensitivitaet.py` | **erzeugt** Abbildung 5 (`output/13_…`) und ihre CSV neu | Sekunden |
 | `skripte/gegenrechnung_drift.py` | beziffert die festen Gewichte im Monat (LIMITATIONS.md § 11.1) | Sekunden |
-| `skripte/Nachrechnung.xlsx` | Kennzahlen aus Kapitel 5 und 6 und Anhang B als Excel-Formeln mit Sollwerten, ohne Python (Daten vom Lauf am 25.08.2026) | — |
+| `skripte/Nachrechnung.xlsx` | Kennzahlen aus Kapitel 5 und 6 und Anhang B als Excel-Formeln mit Sollwerten und acht Diagrammen, ohne Python (Daten vom Lauf am 25.08.2026) | — |
 
 ### Daten und Ergebnisse
 
