@@ -90,6 +90,7 @@ zweimal (etwa in der Bildunterschrift und im Fließtext), steht sie beim ersten 
 | `anhang.py` | Anhang A–C: Bildunterschriften (für A3 wird der zuletzt trainierte Wald nachgebaut), Tabellen A1–A3 und B1–B4, Parameter C1, Angaben in C2 samt Vergleich mit einem zweiten, unabhängigen Lauf | ~35 s |
 | `abbildung_kostensensitivitaet.py` | **erzeugt** Abbildung 5 (`output/13_kosten_sensitivitaet.png`) und `output/kosten_sensitivitaet.csv` neu | ~5 s |
 | `gegenrechnung_drift.py` | beziffert die festen Gewichte innerhalb des Monats ([LIMITATIONS.md](../LIMITATIONS.md) § 11.1); nicht Teil von `alle_kapitel.py`, weil diese Zahlen nicht in der Arbeit stehen | ~15 s |
+| **`Nachrechnung.xlsx`** | dieselben Kennzahlen als **Excel-Formeln**, ohne Python: § 6.1 und Tabelle B2, Tabellen B3 und B4 mit Deflated Sharpe Ratio, Holm-Korrektur, Umschlag und effektive Titelzahl, jeweils mit Sollwert und Ampel. Enthält eine Kopie der Ergebnisdateien vom Lauf am 25.08.2026 und passt nach einem neuen Lauf nicht mehr. Erklärung im Blatt „Anleitung“ | — |
 | `_werkzeuge.py` | gemeinsame Bausteine (Daten laden, Zahlen aus dem Code lesen, runden, ausgeben). Wird nicht selbst gestartet. | — |
 
 Jedes Kapitel-Skript lässt sich auch einzeln starten, etwa
