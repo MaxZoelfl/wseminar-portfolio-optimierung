@@ -49,7 +49,7 @@ from kapitel_4_methodik import SEKTOR                 # noqa: E402  (Sektorzuord
 
 # Der Commit, den Anhang C2 als maßgeblichen Stand nennt. Ändert sich C2 in der
 # Arbeit, wird nur diese Zeile angepasst.
-C2_COMMIT, C2_DATUM = "9cdb533", "05.11.2026"
+C2_COMMIT, C2_DATUM = "013fbfd", "06.11.2026"
 
 # Module, die zusammen den "Rechenkern" bilden: alles, was eine Zahl der Arbeit verändern kann.
 RECHENKERN = ["backtest", "cross_validation", "data", "indicators", "metrics", "optimizers", "significance"]
