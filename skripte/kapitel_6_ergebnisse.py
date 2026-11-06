@@ -33,6 +33,7 @@ from portfolio.plots import rollierender_sharpe       # noqa: E402  (dieselbe Re
 from portfolio.significance import sharpe_difference_test, holm_bonferroni   # noqa: E402
 from portfolio.theory_plots import konfidenzintervalle, diversifikation, gleichgewichtete_varianz   # noqa: E402
 import abbildung_kostensensitivitaet as kosten        # noqa: E402
+import prognoseguete                                  # noqa: E402
 
 # Zeilen der Signifikanztabelle in § 6.3 → Schlüssel im Laufprotokoll, dazu die Werte, wie sie in der
 # Tabelle stehen (sie legen die Stellenzahl der Ausgabe fest): Δ (ann. Sharpe), s(Δ), t, p, p nach Holm.
@@ -282,6 +283,21 @@ def pruefe() -> Pruefung:
     p.offen("Annahme: zwei typische Titel, Renditedifferenz", "5 Pp",
             "Annahme des Gedankenexperiments; „typisch“ = mittlere Volatilität und mittlere Korrelation")
     p.merke("Annahme: zwei typische Titel, Renditedifferenz", "fünf Prozentpunkten")
+    # Prognosegüte des eigenen Waldes: die 119 Monatsprognosen gegen die eingetretenen
+    # Renditen (prognoseguete.py, Prognosen aus skripte/daten/rf_prognosen.csv).
+    if LAUF_DER_ARBEIT:
+        g = prognoseguete.kennzahlen()
+        p.zahl("R² des Waldes gegenüber der Nullprognose", "0,90", g["r2_wald"] * 100, "%",
+               notiz="Maß wie in § 3.1: im Nenner die Summe der quadrierten Renditen")
+        p.zahl("95-%-Intervall des R², untere Grenze", "−6,6", g["r2_unten"] * 100, "%",
+               notiz=f"Bootstrap über die {g['monate']} Monate")
+        p.zahl("95-%-Intervall des R², obere Grenze", "7,8", g["r2_oben"] * 100, "%")
+        p.zahl("RMSE des Waldes", "7,44", g["rmse_wald"] * 100, "%")
+        p.zahl("RMSE des historischen Mittels", "7,34", g["rmse_mittel"] * 100, "%")
+        p.zahl("t-Wert, Wald gegen historisches Mittel", "−1,29", g["t_differenz"],
+               notiz="monatliche Differenz der Fehlerquadrate; negativ: Der Wald liegt weiter daneben")
+    else:
+        p.offen("Prognosegüte des Waldes", "–", "Die Prognosen in skripte/daten/ stammen aus dem Lauf der Arbeit")
     # Gleichgewichtung auf Markowitz' Volatilität gehebelt (Hebel zum risikofreien Zins):
     hebel = K.vola["Markowitz MVO"] / K.vola["Equal Weight"]
     gehebelt = hebel * s["Equal Weight"] + (1 - hebel) * rf / HANDELSTAGE

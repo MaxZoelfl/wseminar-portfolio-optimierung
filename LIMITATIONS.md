@@ -65,7 +65,9 @@ Chopra & Ziemba (1993).
 historischen Mittelwert durch eine Prognose. Dass Random Forest und Markowitz am
 Ende nicht signifikant auseinanderliegen, passt zur Literatur:
 Renditeprognosen des maschinellen Lernens erreichen typischerweise nur ein sehr
-kleines R² außerhalb der Stichprobe (Gu, Kelly & Xiu 2020). Positionsobergrenze
+kleines R² außerhalb der Stichprobe (Gu, Kelly & Xiu 2020). Der eigene Wald kommt
+gegenüber der Nullprognose auf 0,90 Prozent und schlägt das historische Mittel
+nicht (`skripte/prognoseguete.py`). Positionsobergrenze
 (`max_weight = 0.20`) und Long-only-Bedingung wirken zudem wie eine
 Regularisierung und stabilisieren die Gewichte (Jagannathan & Ma 2003).
 

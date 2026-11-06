@@ -90,6 +90,7 @@ zweimal (etwa in der Bildunterschrift und im Fließtext), steht sie beim ersten 
 | `anhang.py` | Anhang A–C: Bildunterschriften (für A3 wird der zuletzt trainierte Wald nachgebaut), Tabellen A1–A3 und B1–B4, Parameter C1, Angaben in C2 samt Vergleich mit einem zweiten, unabhängigen Lauf | ~35 s |
 | `abbildung_kostensensitivitaet.py` | **erzeugt** Abbildung 5 (`output/13_kosten_sensitivitaet.png`) und `output/kosten_sensitivitaet.csv` neu | ~5 s |
 | `gegenrechnung_drift.py` | beziffert die festen Gewichte innerhalb des Monats ([LIMITATIONS.md](../LIMITATIONS.md) § 11.1); nicht Teil von `alle_kapitel.py`, weil diese Zahlen nicht in der Arbeit stehen | ~15 s |
+| `prognoseguete.py` | misst die Monatsprognosen des Waldes an den eingetretenen Renditen: R² und RMSE gegenüber der Nullprognose und dem historischen Mittel (§ 6.5) |
 | **`Nachrechnung.xlsx`** | dieselben Kennzahlen als **Excel-Formeln**, ohne Python: § 6.1 und Tabelle B2, Tabellen B3 und B4 mit Deflated Sharpe Ratio, Holm-Korrektur, Umschlag, effektive Titelzahl und Kostensensitivität (Abbildung 5), jeweils mit Sollwert und Ampel, dazu acht Excel-Diagramme auf den gerechneten Zellen. Enthält eine Kopie der Ergebnisdateien vom Lauf am 25.08.2026 und passt nach einem neuen Lauf nicht mehr. Erklärung im Blatt „Anleitung“ | — |
 | `_werkzeuge.py` | gemeinsame Bausteine (Daten laden, Zahlen aus dem Code lesen, runden, ausgeben). Wird nicht selbst gestartet. | — |
 
@@ -140,7 +141,7 @@ einmal erzeugt hat:
 | `output/turnover.csv` | Umschlag je Strategie und Termin |
 | `output/experiment_log.json` | Einstellungen, Kennzahlen und Signifikanztests mit voller Genauigkeit |
 
-Dazu kommen drei kleine Referenzdateien in `skripte/daten/`:
+Dazu kommen vier kleine Referenzdateien in `skripte/daten/`:
 
 - **`rf_hyperparameter.csv`**: Die Einstellungen, die die Hyperparametersuche an
   jedem der 119 Termine gewählt hat (Zahl der Bäume, Tiefe, Blattgröße). Sie
@@ -159,6 +160,13 @@ Dazu kommen drei kleine Referenzdateien in `skripte/daten/`:
   verhindert). Gleichgewichtung und Risk Parity stimmen mit dem maßgeblichen Lauf
   bitgenau überein, Markowitz auf drei Nachkommastellen (siehe LIMITATIONS.md,
   Abschnitt 12).
+
+- **`rf_prognosen.csv`**: die Monatsprognosen des Waldes je Termin und Titel
+  (§ 6.5). Der Backtest speichert sie nicht, deshalb stammen sie aus einem Neulauf
+  vom 05.11.2026 mit den Einstellungen der Arbeit (`prognoseguete.py --neu`, rund
+  50 Minuten). Er ist nicht bitgleich mit dem maßgeblichen Lauf: Die
+  Sharpe-Quotienten stimmen auf drei Stellen, die Gewichte des Waldes weichen um
+  höchstens 0,17 Prozentpunkte ab.
 
 **Zur Genauigkeit:** `output/daily_returns.csv` ist auf sechs Nachkommastellen
 gerundet. Für Renditen und Volatilitäten genügt das. Für die vierte Stelle eines
